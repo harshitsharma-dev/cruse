@@ -1,0 +1,13 @@
+users:
+  admin:
+    password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
+    role: admin
+  superadmin:
+    password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
+    role: superadmin
+  demo:
+    password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
+    role: user
+  guest:
+    password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
+    role: user
