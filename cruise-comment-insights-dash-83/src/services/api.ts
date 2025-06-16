@@ -1,5 +1,5 @@
 
-const API_BASE_URL = 'http://localhost:5000'; // Changed to localhost for local testing
+const API_BASE_URL = 'http://n8.lsdiedb39c.pagekite.me/sailing/fleets'; // Changed to localhost for local testing
 // const API_BASE_URL = 'http://13.126.187.166:5000'; // Original remote server
 
 class ApiService {

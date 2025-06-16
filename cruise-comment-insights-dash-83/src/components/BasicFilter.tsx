@@ -85,11 +85,11 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       // Prepare filter data in the format expected by parent components
     const filterData = {
       fleets: safeFilterState.fleets,
-      ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix
-      // Only include dates if not using "All Dates"
-      fromDate: useAllDates ? null : (startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate),
-      toDate: useAllDates ? null : (endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate),
-      sailingNumbers: selectedSailingNumbers.length > 0 ? selectedSailingNumbers : ['all'],
+      ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix      // Send "-1" for both dates when using "All Dates", otherwise send actual dates
+      fromDate: useAllDates ? "-1" : (startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate),
+      toDate: useAllDates ? "-1" : (endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate),
+      // Send ["-1"] for sailing numbers when "All Sailings" is selected
+      sailingNumbers: selectedSailingNumbers.length > 0 ? selectedSailingNumbers : ["-1"],
       filter_by: useAllDates ? 'all' : 'date', // Use 'all' for all dates
       useAllDates: useAllDates
     };
@@ -324,64 +324,9 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
                 </div>
               )}
             </div>
-          </div>
-        )}
+          </div>        )}
 
-        {/* Sailing Number Selection - Always Visible */}
-        <div>
-          <Label className="text-sm font-medium">Sailing Numbers</Label>
-          <div className="mt-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  {selectedSailingNumbers.length === 0 
-                    ? "Select Sailing Numbers (All by default)" 
-                    : `${selectedSailingNumbers.length} sailing(s) selected`}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="start" side="bottom" sideOffset={5}>
-                <div className="p-4 space-y-2 max-h-60 overflow-y-auto">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="all-sailings"
-                      checked={selectedSailingNumbers.length === 0}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedSailingNumbers([]);
-                        }
-                      }}
-                    />
-                    <Label htmlFor="all-sailings" className="text-sm font-medium">
-                      All Sailings
-                    </Label>
-                  </div>
-                  {/* Mock sailing numbers - in real implementation, these would be fetched based on date range */}
-                  {['SL001', 'SL002', 'SL003', 'SL004', 'SL005', 'SL006', 'SL007', 'SL008'].map((sailing) => (
-                    <div key={sailing} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`sailing-${sailing}`}
-                        checked={selectedSailingNumbers.includes(sailing)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedSailingNumbers(prev => [...prev, sailing]);
-                          } else {
-                            setSelectedSailingNumbers(prev => prev.filter(s => s !== sailing));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`sailing-${sailing}`} className="text-sm">
-                        {sailing}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>        {/* Date Range Selection */}
+        {/* Date Range Selection */}
         <div>
           <Label className="text-sm font-medium">Sailing Date Range</Label>
           
@@ -402,7 +347,8 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
               All Dates (No date restriction)
             </Label>
           </div>
-            {/* Date Pickers - only show when not using "All Dates" */}
+          
+          {/* Date Pickers - only show when not using "All Dates" */}
           {!useAllDates && (
             <div className="mt-3 flex flex-col sm:flex-row gap-2">
               <Popover>
@@ -571,7 +517,62 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
               <span className="text-gray-500">Please select date range</span>
             )}
           </div>
-        </div>{/* Action Buttons */}
+        </div>
+
+        {/* Sailing Number Selection - Always Visible */}
+        <div>
+          <Label className="text-sm font-medium">Sailing Numbers</Label>
+          <div className="mt-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  {selectedSailingNumbers.length === 0 
+                    ? "Select Sailing Numbers (All by default)" 
+                    : `${selectedSailingNumbers.length} sailing(s) selected`}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="start" side="bottom" sideOffset={5}>
+                <div className="p-4 space-y-2 max-h-60 overflow-y-auto">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="all-sailings"
+                      checked={selectedSailingNumbers.length === 0}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedSailingNumbers([]);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="all-sailings" className="text-sm font-medium">
+                      All Sailings
+                    </Label>
+                  </div>
+                  {/* Mock sailing numbers - in real implementation, these would be fetched based on date range */}
+                  {['SL001', 'SL002', 'SL003', 'SL004', 'SL005', 'SL006', 'SL007', 'SL008'].map((sailing) => (
+                    <div key={sailing} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`sailing-${sailing}`}
+                        checked={selectedSailingNumbers.includes(sailing)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedSailingNumbers(prev => [...prev, sailing]);
+                          } else {
+                            setSelectedSailingNumbers(prev => prev.filter(s => s !== sailing));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`sailing-${sailing}`} className="text-sm">
+                        {sailing}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>          </div>
+        </div>        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
           <Button 
             onClick={handleApplyFilters} 
@@ -598,7 +599,7 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
-        </div>        {/* Current Filter Summary */}
+        </div>{/* Current Filter Summary */}
         {(safeFilterState.fleets.length > 0 || safeFilterState.ships.length > 0 || 
           safeFilterState.dateRange.startDate || safeFilterState.dateRange.endDate || filtersApplied || useAllDates) && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
