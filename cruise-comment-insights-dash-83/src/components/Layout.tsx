@@ -11,8 +11,7 @@ import {
   TrendingUp, 
   LogOut, 
   User,
-  Home,
-  Users
+  Home
 } from 'lucide-react';
 
 const Layout = () => {
@@ -24,6 +23,7 @@ const Layout = () => {
     logout();
     navigate('/login');
   };
+
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Rating Summary', href: '/ratings', icon: BarChart3 },
@@ -31,9 +31,6 @@ const Layout = () => {
     { name: 'Search', href: '/search', icon: Search },
     { name: 'Issues', href: '/issues', icon: AlertTriangle },
     { name: 'Profile', href: '/profile', icon: User },
-    // Only show Users menu for admin/superadmin
-    ...(user?.role === 'admin' || user?.role === 'superadmin' ? 
-        [{ name: 'Users', href: '/users', icon: Users }] : [])
   ];
 
   return (
@@ -41,36 +38,22 @@ const Layout = () => {
       {/* Top Navigation */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">            <div className="flex items-center">
-              <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-lg">CC</span>
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="text-2xl font-bold text-blue-600">
+                ClientCompany
               </div>
-              <div>
-                <div className="text-xl font-bold text-blue-600">
-                  ClientCompany
-                </div>
-                <div className="text-xs text-gray-500">
-                  Cruise Comment Insights
-                </div>
-              </div>
-            </div>              <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <span>Powered by</span>
-                <div className="h-6 w-6 bg-gray-200 rounded flex items-center justify-center">
-                  <span className="text-gray-600 font-semibold text-xs">MI</span>
-                </div>
-                <span className="font-bold text-gray-800">Manotr Intelligence</span>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-sm font-bold text-gray-800">
+                Manotr Intelligence
               </div>
               <div className="flex items-center space-x-2">
                 <User className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-700">{user?.name || user?.username}</span>
-                <span className={`text-xs px-2 py-1 rounded font-medium ${
-                  user?.role === 'superadmin' ? 'bg-red-100 text-red-700' :
-                  user?.role === 'admin' ? 'bg-blue-100 text-blue-700' :
-                  'bg-green-100 text-green-700'
-                }`}>
-                  {user?.role === 'superadmin' ? 'Super Admin' : 
-                   user?.role === 'admin' ? 'Admin' : 'User'}
+                <span className="text-sm text-gray-700">{user?.username}</span>
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  {user?.role}
                 </span>
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>
@@ -116,16 +99,14 @@ const Layout = () => {
             <Outlet />
           </main>
         </div>
-      </div>      {/* Footer with Manotr Intelligence logo - Bottom Right */}
+      </div>
+
+      {/* Footer with Manotr Intelligence logo */}
       <footer className="bg-white border-t mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-end items-center">
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <span>Powered by</span>
-              <div className="h-6 w-6 bg-gradient-to-br from-purple-500 to-purple-700 rounded flex items-center justify-center">
-                <span className="text-white font-bold text-xs">MI</span>
-              </div>
-              <span className="font-semibold text-purple-600">Manotr Intelligence</span>
+          <div className="flex justify-end">
+            <div className="text-sm text-gray-500">
+              Powered by <span className="font-semibold">Manotr Intelligence</span>
             </div>
           </div>
         </div>

@@ -1,0 +1,358 @@
+4a5
+> from navigate_search import *
+11d11
+< # Configure CORS with specific settings
+29,34c29,33
+< FLEET_DATA = [
+<     {
+<         "fleet":"marella",
+<         "ships":["discovery", "explorer", "discovery2", "explorer2", "voyager"]
+<     }
+< ]
+---
+> FLEET_DATA=[
+>         {"fleet":"marella",
+>          "ships": ["explorer", "discovery", "discovery 2", "explorer 2", "voyager"]
+>          }
+>     ]
+97,98c96
+<     print("in filter_sailings - filter_by:", filter_by)
+<     print("data received:", data)
+---
+>     print("in filter_sailings")
+127,163d124
+<     elif filter_by == "all":
+<         # Return all data without date filtering
+<         print("Using all dates - returning all SAMPLE_DATA")
+<         print("SAMPLE_DATA length:", len(SAMPLE_DATA))
+<         results = SAMPLE_DATA
+<         
+<         # Apply fleet/ship filters if provided
+<         if "filters" in data:
+<             filters = data["filters"]
+<             print("Filters provided:", filters)
+<             
+<             # Filter by fleets if specified
+<             if "fleets" in filters and filters["fleets"]:
+<                 print("Filtering by fleets:", filters["fleets"])
+<                 results = [
+<                     item for item in results
+<                     if any(fleet.lower() in item.get("Fleet", "").lower() for fleet in filters["fleets"])
+<                 ]
+<                 print("After fleet filtering:", len(results))
+<             
+<             # Filter by ships if specified  
+<             if "ships" in filters and filters["ships"]:
+<                 print("Filtering by ships:", filters["ships"])
+<                 results = [
+<                     item for item in results
+<                     if any(
+<                         # Check both "Ship" and "Ship Name" fields
+<                         ship.lower().replace(' ', '') in item.get("Ship", "").lower().replace(' ', '') or
+<                         ship.lower().replace(' ', '') in item.get("Ship Name", "").lower().replace(' ', '') or
+<                         # Also check reverse match (in case ship names are formatted differently)
+<                         item.get("Ship", "").lower().replace(' ', '') in ship.lower().replace(' ', '') or
+<                         item.get("Ship Name", "").lower().replace(' ', '') in ship.lower().replace(' ', '')
+<                         for ship in filters["ships"]
+<                     )
+<                 ]
+<                 print("After ship filtering:", len(results))
+< 
+168c129
+<     results = list({frozenset(item.items()): item for item in results}.values())
+---
+>     results = {frozenset(item.items()): item for item in results}.values()
+193a155,183
+> @app.route('/sailing/fleets', methods=['GET'])
+> def get_fleets():
+>     """Endpoint to retrieve fleet names and the ships under each fleet"""
+> 
+>     return jsonify({
+>         "status": "success",
+>         "data": FLEET_DATA
+>     })
+> 
+> @app.route('/sailing/sheets', methods=['GET'])
+> def get_sheets():
+>     """Endpoint to retrieve fleet names and the ships under each fleet"""
+> 
+>     return jsonify({
+>         "status": "success",
+>         "data": SHEET_LIST
+>     })
+> 
+> @app.route('/sailing/metrics', methods=['GET'])
+> def get_metrics():
+>     """Endpoint to retrieve various metrics related to sailing"""
+> 
+>     return jsonify({
+>         "status": "success",
+>         "data": METRIC_ATTRIBUTES
+>     })
+> 
+> 
+> 
+201c191
+<     if not data or ("sailings" not in data and "filters" not in data and data.get("filter_by") != "all"):
+---
+>     if not data or ("sailings" not in data and "filters" not in data):
+212c202
+<         return jsonify({"error": "Invalid filterBy value. Must be 'sailing', 'date', or 'all'"}), 400
+---
+>         return jsonify({"error": "Invalid filterBy value. Must be 'sailing' or 'date'"}), 400
+243c233
+<     """Enhanced endpoint with metric value filtering and support for multiple metrics"""
+---
+>     """Enhanced endpoint with metric value filtering"""
+245,256c235
+<     print("data", data)
+<     
+<     # Validate input - now supports both single metric and multiple metrics
+<     if not data or "filter_by" not in data:
+<         return jsonify({"error": "Missing required parameter: filter_by"}), 400
+<     
+<     # Handle both single metric and multiple metrics
+<     single_metric = data.get("metric")
+<     multiple_metrics = data.get("metrics", [])
+<     
+<     if not single_metric and not multiple_metrics:
+<         return jsonify({"error": "Either 'metric' or 'metrics' parameter is required"}), 400
+---
+> #     print("data",data)
+258,264c237,239
+<     # Determine which metrics to process
+<     if single_metric:
+<         metrics_to_process = [single_metric]
+<         is_multiple_mode = False
+<     else:
+<         metrics_to_process = multiple_metrics
+<         is_multiple_mode = True
+---
+>     # Validate input
+>     if not data or "filter_by" not in data or "metric" not in data:
+>         return jsonify({"error": "Missing required parameters"}), 400
+265a241,242
+>     metric = data["metric"]
+>     # sailings = data["sailings"]
+269,270c246,247
+<     
+<     print("Processing metrics:", metrics_to_process)
+---
+>     print(metric)
+> #     metric = "F&B Quality"
+272,278c249,254
+<     # Validate metrics (excluding 'Review')
+<     for metric in metrics_to_process:
+<         if metric not in METRIC_ATTRIBUTES:
+<             return jsonify({
+<                 "error": f"Invalid metric: {metric}. Metric must be a numeric field (not 'Review')",
+<                 "valid_metrics": METRIC_ATTRIBUTES
+<             }), 400
+---
+>     # Validate metric (excluding 'Review')
+>     if metric not in METRIC_ATTRIBUTES:
+>         return jsonify({
+>             "error": "Metric must be a numeric field (not 'Review')",
+>             "valid_metrics": METRIC_ATTRIBUTES
+>         }), 400
+294,332c270,278
+<     # Process each metric
+<     for metric in metrics_to_process:
+<         for sailing in working_data:
+<             print(f"Processing metric {metric} for sailing", sailing)
+<             ship = sailing["Ship Name"]
+<             number = sailing["Sailing Number"]
+<             df = get_sailing_df(ship, number)
+<             df_reason = get_sailing_df_reason(ship, number)
+<             
+<             if df is None or metric not in df.columns:
+<                 results.append({
+<                     "ship": ship,
+<                     "sailingNumber": number,
+<                     "metric": metric,
+<                     "error": "Data not found" if df is None else "Invalid metric"
+<                 })
+<                 continue
+<             
+<             # Calculate basic stats
+<             metric_values = pd.to_numeric(df[metric], errors='coerce').dropna()
+<             avg_rating = metric_values.mean()
+<             
+<             # Handle NaN values
+<             if pd.isna(avg_rating):
+<                 avg_rating = 0.0
+<             
+<             all_metric_values.extend(metric_values.tolist())
+<             
+<             # Get filtered reviews if requested
+<             filtered_reviews = []
+<             filtered_metric = []
+<             if filter_below is not None:
+<                 mask = df[metric].astype(float) <= filter_below
+<                 filtered_reviews = df_reason.loc[mask, metric].tolist()
+<                 for i, rev in enumerate(filtered_reviews):
+<                     if is_empty_or_nan(rev):
+<                         filtered_reviews[i] = "Please refer to the comment"
+<                 filtered_metric = df.loc[mask, metric].tolist()
+<             
+---
+>     for sailing in working_data:
+>         print("get metric comparison",sailing)
+>         ship = sailing["Ship Name"]
+>         number = sailing["Sailing Number"]
+>         df = get_sailing_df(ship, number)
+>         df_reason = get_sailing_df_reason(ship, number)
+> #         print("df_reason",df_reason)
+>         
+>         if df is None or metric not in df.columns:
+336,341c282
+<                 "metric": metric,
+<                 "averageRating": round(float(avg_rating), 2) if not pd.isna(avg_rating) else 0.0,
+<                 "ratingCount": len(metric_values),
+<                 "filteredReviews": filtered_reviews,
+<                 "filteredMetric": filtered_metric,
+<                 "filteredCount": len(filtered_reviews)
+---
+>                 "error": "Data not found" if df is None else "Invalid metric"
+342a284,313
+>             continue
+>         
+>         # Calculate basic stats
+>         metric_values = pd.to_numeric(df[metric], errors='coerce').dropna()
+>         avg_rating = metric_values.mean()
+>         all_metric_values.extend(metric_values.tolist())
+>         
+>         # Get filtered reviews if requested
+>         filtered_reviews = []
+>         if filter_below is not None:
+>             mask = df[metric].astype(float) <= filter_below
+>             filtered_reviews = df_reason.loc[mask, metric].tolist()
+> #             print(filtered_reviews)
+>             for i, rev in enumerate(filtered_reviews):
+>                 if is_empty_or_nan(rev):
+>                     filtered_reviews[i] = "Please refer to the comment"
+> #             print(filtered_reviews)
+> #             print(len(filtered_reviews))
+>             filtered_metric = df.loc[mask, metric].tolist()
+>         
+>         results.append({
+>             "ship": ship,
+>             "sailingNumber": number,
+>             "metric": metric,
+>             "averageRating": round(avg_rating, 2),
+>             "ratingCount": len(metric_values),
+>             "filteredReviews": filtered_reviews,
+>             "filteredMetric": filtered_metric,
+>             "filteredCount": len(filtered_reviews)
+>         })
+348,350c319,320
+<             if "averageRating" in result and not pd.isna(result["averageRating"]):
+<                 comparison = result["averageRating"] - overall_avg
+<                 result["comparisonToOverall"] = round(float(comparison), 2) if not pd.isna(comparison) else 0.0
+---
+>             if "averageRating" in result:
+>                 result["comparisonToOverall"] = round(result["averageRating"] - overall_avg, 2)
+352,353c322
+<     # Prepare response based on single or multiple metrics mode
+<     response = {
+---
+>     return jsonify({
+354a324
+>         "metric": metric,
+358,366c328
+<     }
+<     
+<     if is_multiple_mode:
+<         response["metrics"] = metrics_to_process
+<     else:
+<         response["metric"] = metrics_to_process[0]
+<     
+<     return jsonify(response)
+< 
+---
+>     })
+369a332
+> #     SHIPS = ["Voyager", "Explorer", "Discovery", "Explorer 2", "Discovery 2", "Voyager250306"]
+431c394,396
+<     filter_params = data.get("filter_params", {})
+---
+>     start_date = data.get("start_date")
+>     end_date = data.get("end_date")
+>     sailing_number_filter = data.get("sailing_numbers", [])
+434,435c399,400
+<     semanticSearch = data.get("semanticSearch", True)
+<     similarity_score_range = data.get("similarity_score_range", [0.0, 1.0])
+---
+>     semantic = data.get("semantic", True)
+>     similarity_threshold = data.get("similarity_threshold", 0.7)
+441,470c406,413
+<     # Filter data based on fleets and ships
+<     filtered_data = [item for item in SAMPLE_DATA if item["Fleet"] in fleets and item["Ship Name"] in ships]
+< 
+<     # Apply additional filters
+<     if "from_date" in filter_params and "to_date" in filter_params:
+<         from_date = pd.to_datetime(filter_params["from_date"])
+<         to_date = pd.to_datetime(filter_params["to_date"])
+<         filtered_data = [item for item in filtered_data if pd.to_datetime(item["Start"]) >= from_date and pd.to_datetime(item["End"]) <= to_date]
+< 
+<     if "sailing_number" in filter_params:
+<         sailing_number = filter_params["sailing_number"]
+<         filtered_data = [item for item in filtered_data if item["Sailing Number"] == sailing_number]
+< 
+<     # Perform semantic search
+<     results = []
+<     for item in filtered_data:
+<         if query.lower() in item["Comment"].lower():
+<             similarity_score = 0.9  # Placeholder for actual similarity calculation
+<             if similarity_score_range[0] <= similarity_score <= similarity_score_range[1]:
+<                 results.append({
+<                     "comment": item["Comment"],
+<                     "sheet_name": item.get("Sheet Name"),
+<                     "meal_time": item.get("Meal Time"),
+<                     "metadata": {
+<                         "fleet": item["Fleet"],
+<                         "ship": item["Ship Name"],
+<                         "sailing_number": item["Sailing Number"],
+<                         "date": item["Start"]
+<                     }
+<                 })
+---
+>     if semantic == True:
+>         results = semantic_search(query,num_results,similarity_threshold, True, fleets, ships,
+>                         sheet_names, None, meal_time,
+>                         start_date, sailing_number_filter )
+>     else:
+>         results = word_search(query,num_results, True, fleets, ships,
+>                         sheet_names, None, meal_time,
+>                         start_date, sailing_number_filter )
+472,473d414
+<     # Limit results
+<     results = results[:num_results]
+480,504d420
+< @app.route('/sailing/fleets', methods=['GET'])
+< def get_fleets():
+<     """Endpoint to retrieve fleet names and the ships under each fleet"""
+<     
+<     return jsonify({
+<         "status": "success",
+<         "data": FLEET_DATA
+<     })
+< 
+< @app.route('/sailing/metrics', methods=['GET'])
+< def get_metrics():
+<     """Endpoint to retrieve various metrics related to sailing"""
+< 
+<     return jsonify({
+<         "status": "success",
+<         "data": METRIC_ATTRIBUTES
+<     })
+< 
+< @app.route('/sailing/sheets', methods=['GET'])
+< def get_sheets():
+<     """Endpoint to retrieve the list of sheets available for feedback"""
+<     return jsonify({
+<         "status": "success",
+<         "data": SHEET_LIST
+<     })
+519a436
+> 

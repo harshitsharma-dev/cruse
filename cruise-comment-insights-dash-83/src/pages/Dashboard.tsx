@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Ship, Users, TrendingUp, AlertTriangle, BarChart3, Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Ship, Users, TrendingUp, AlertTriangle } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -21,28 +20,18 @@ const Dashboard = () => {
         setLoading(true);
         setError(null);
 
-        console.log('Starting dashboard data fetch...');
-        console.log('API Base URL:', 'http://localhost:5000');
-
-        // Test individual endpoints first
-        console.log('Testing fleets endpoint...');
-        const fleetsResponse = await apiService.getFleets();
-        console.log('Fleets response:', fleetsResponse);
-
-        console.log('Testing sheets endpoint...');
-        const sheetsResponse = await apiService.getSheets();
-        console.log('Sheets response:', sheetsResponse);
-
-        console.log('Testing metrics endpoint...');
-        const metricsResponse = await apiService.getMetrics();
-        console.log('Metrics response:', metricsResponse);
+        // Fetch basic data for dashboard
+        const [fleetsResponse, sheetsResponse, metricsResponse] = await Promise.all([
+          apiService.getFleets(),
+          apiService.getSheets(),
+          apiService.getMetrics()
+        ]);
 
         // Get some sample rating data for the last 30 days
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const today = new Date();
 
-        console.log('Testing rating summary endpoint...');
         const ratingsResponse = await apiService.getRatingSummary({
           filter_by: 'date',
           filters: {
@@ -50,7 +39,6 @@ const Dashboard = () => {
             toDate: today.toISOString().split('T')[0]
           }
         });
-        console.log('Ratings response:', ratingsResponse);
 
         setDashboardData({
           fleets: fleetsResponse.data,
@@ -58,7 +46,6 @@ const Dashboard = () => {
           metrics: metricsResponse.data,
           recentRatings: ratingsResponse.data
         });
-        console.log('Dashboard data set successfully');
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
         setError('Failed to load dashboard data. Please check your connection.');
@@ -69,22 +56,6 @@ const Dashboard = () => {
 
     fetchDashboardData();
   }, []);
-
-  // Mock key metrics data
-  const mockMetrics = [
-    { name: 'Overall Satisfaction', value: 4.2, change: '+0.3', trend: 'up', icon: TrendingUp },
-    { name: 'Total Comments', value: 1247, change: '+12%', trend: 'up', icon: Users },
-    { name: 'Response Rate', value: '87%', change: '+5%', trend: 'up', icon: BarChart },
-    { name: 'Critical Issues', value: 23, change: '-8', trend: 'down', icon: AlertTriangle }
-  ];
-
-  // Mock chart data
-  const chartData = [
-    { month: 'Jan', satisfaction: 4.1, comments: 1100 },
-    { month: 'Feb', satisfaction: 4.0, comments: 1200 },
-    { month: 'Mar', satisfaction: 4.3, comments: 1350 },
-    { month: 'Apr', satisfaction: 4.2, comments: 1247 },
-  ];
 
   if (loading) {
     return (
@@ -119,190 +90,179 @@ const Dashboard = () => {
     );
   }
 
+  const totalShips = dashboardData?.fleets?.reduce((acc: number, fleet: any) => acc + fleet.ships.length, 0) || 0;
+  const totalSailings = dashboardData?.recentRatings?.length || 0;
+  const averageRating = dashboardData?.recentRatings?.length > 0 
+    ? (dashboardData.recentRatings.reduce((acc: number, rating: any) => acc + (rating['Overall Holiday'] || 0), 0) / dashboardData.recentRatings.length).toFixed(1)
+    : 'N/A';
+
+  // Prepare chart data from recent ratings
+  const chartData = dashboardData?.recentRatings?.slice(0, 10).map((rating: any) => ({
+    name: `${rating['Ship Name']} - ${rating['Sailing Number']}`,
+    rating: rating['Overall Holiday'] || 0,
+    ship: rating['Ship Name']
+  })) || [];
+
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Welcome, {user?.name || user?.username}!
-            </h1>
-            <p className="text-blue-100 mt-1">
-              {user?.role === 'superadmin' ? 'You have full system access and can manage all users.' :
-               user?.role === 'admin' ? 'You can manage users and access all cruise data.' :
-               'View and analyze cruise guest feedback data.'}
-            </p>
-            <div className="flex items-center mt-3">
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                user?.role === 'superadmin' ? 'bg-red-100 text-red-800' :
-                user?.role === 'admin' ? 'bg-blue-100 text-blue-800' :
-                'bg-green-100 text-green-800'
-              }`}>
-                {user?.role === 'superadmin' ? '🔐 Super Administrator' :
-                 user?.role === 'admin' ? '👨‍💼 Administrator' :
-                 '👤 User'}
-              </div>
-            </div>
-          </div>
-          <div className="hidden md:block">
-            <Ship className="h-16 w-16 text-blue-200" />
-          </div>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Welcome back, {user?.username}!
+        </h1>
+        <p className="text-gray-600 mt-2">Here's your sailing analytics overview</p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {mockMetrics.map((metric, index) => {
-          const Icon = metric.icon;
-          return (
-            <Card key={index} className="relative overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{metric.name}</p>
-                    <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
-                    <div className={`flex items-center mt-1 text-sm ${
-                      metric.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      <span>{metric.change}</span>
-                      <span className="ml-1">vs last month</span>
-                    </div>
-                  </div>
-                  <div className={`p-3 rounded-full ${
-                    metric.trend === 'up' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    <Icon className={`h-6 w-6 ${
-                      metric.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                    }`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Charts and Data Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Satisfaction Trend */}
         <Card>
-          <CardHeader>
-            <CardTitle>Satisfaction Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="satisfaction" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Ship className="h-8 w-8 text-blue-600 mb-2" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Ships</p>
+                <p className="text-2xl font-bold text-gray-900">{totalShips}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Fleet Overview */}
         <Card>
-          <CardHeader>
-            <CardTitle>Fleet Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {dashboardData?.fleets && (
-              <div className="space-y-4">
-                {dashboardData.fleets.map((fleet: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <h3 className="font-semibold capitalize">{fleet.fleet}</h3>
-                      <p className="text-sm text-gray-600">{fleet.ships.length} ships</p>
-                    </div>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Users className="h-8 w-8 text-green-600 mb-2" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Recent Sailings</p>
+                <p className="text-2xl font-bold text-gray-900">{totalSailings}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <TrendingUp className="h-8 w-8 text-yellow-600 mb-2" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Avg Rating</p>
+                <p className="text-2xl font-bold text-gray-900">{averageRating}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-8 w-8 text-red-600 mb-2" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Metrics Tracked</p>
+                <p className="text-2xl font-bold text-gray-900">{dashboardData?.metrics?.length || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts and Data */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="fleets">Fleet Status</TabsTrigger>
+          <TabsTrigger value="ratings">Recent Ratings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Sailings Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                      fontSize={12}
+                    />
+                    <YAxis domain={[0, 10]} />
+                    <Tooltip />
+                    <Bar dataKey="rating" fill="#3B82F6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No recent sailing data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="fleets" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {dashboardData?.fleets?.map((fleet: any) => (
+              <Card key={fleet.fleet}>
+                <CardHeader>
+                  <CardTitle className="capitalize">{fleet.fleet} Fleet</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">Ships: {fleet.ships.length}</p>
                     <div className="flex flex-wrap gap-1">
-                      {fleet.ships.slice(0, 3).map((ship: string) => (
-                        <Badge key={ship} variant="secondary" className="text-xs">
+                      {fleet.ships.map((ship: string) => (
+                        <Badge key={ship} variant="secondary" className="text-xs capitalize">
                           {ship}
                         </Badge>
                       ))}
-                      {fleet.ships.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{fleet.ships.length - 3} more
-                        </Badge>
-                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
 
-      {/* Role-specific sections */}
-      {(user?.role === 'admin' || user?.role === 'superadmin') && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Admin Quick Actions */}
+        <TabsContent value="ratings" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Recent Sailing Ratings</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <Link 
-                  to="/ratings" 
-                  className="flex items-center p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <BarChart3 className="h-5 w-5 text-blue-600 mr-3" />
-                  <span className="font-medium">View Rating Summary</span>
-                </Link>
-                <Link 
-                  to="/search" 
-                  className="flex items-center p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                >
-                  <Search className="h-5 w-5 text-green-600 mr-3" />
-                  <span className="font-medium">Search Comments</span>
-                </Link>
-                {user?.role === 'superadmin' && (
-                  <Link 
-                    to="/users" 
-                    className="flex items-center p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
-                  >
-                    <Users className="h-5 w-5 text-purple-600 mr-3" />
-                    <span className="font-medium">Manage Users</span>
-                  </Link>
-                )}
-              </div>
+              {dashboardData?.recentRatings?.length > 0 ? (
+                <div className="space-y-4">
+                  {dashboardData.recentRatings.slice(0, 10).map((rating: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-semibold">{rating['Ship Name']}</h4>
+                        <p className="text-sm text-gray-600">Sailing: {rating['Sailing Number']}</p>
+                        <p className="text-xs text-gray-500">{rating['Fleet']} fleet</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge 
+                          variant={rating['Overall Holiday'] >= 8 ? 'default' : rating['Overall Holiday'] >= 6 ? 'secondary' : 'destructive'}
+                        >
+                          {rating['Overall Holiday']?.toFixed(1) || 'N/A'}
+                        </Badge>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {rating['Start']} - {rating['End']}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No rating data available
+                </div>
+              )}
             </CardContent>
           </Card>
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center p-3 border-l-4 border-blue-500 bg-blue-50">
-                  <div>
-                    <p className="text-sm font-medium">New ratings data available</p>
-                    <p className="text-xs text-gray-600">2 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center p-3 border-l-4 border-green-500 bg-green-50">
-                  <div>
-                    <p className="text-sm font-medium">Data export completed</p>
-                    <p className="text-xs text-gray-600">5 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center p-3 border-l-4 border-yellow-500 bg-yellow-50">
-                  <div>
-                    <p className="text-sm font-medium">System maintenance scheduled</p>
-                    <p className="text-xs text-gray-600">1 day ago</p>
-                  </div>
-                </div>              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

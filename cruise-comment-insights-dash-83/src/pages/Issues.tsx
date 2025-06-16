@@ -13,9 +13,7 @@ const Issues = () => {
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [issuesData, setIssuesData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState<any>({
-    useAllDates: true // Default to "All Dates" mode
-  });
+  const [filters, setFilters] = useState<any>({});
 
   // Fetch available sheets from API
   const { data: sheetsData, isLoading: sheetsLoading, error: sheetsError } = useQuery({
@@ -32,26 +30,37 @@ const Issues = () => {
   const handleFilterChange = (newFilters: any) => {
     console.log('Filter change in Issues:', newFilters);
     setFilters(newFilters);
-  };  const fetchIssues = async () => {
+  };
+
+  const fetchIssues = async () => {
+    if (!filters.fromDate || !filters.toDate) {
+      alert('Please select date range from the basic filters');
+      return;
+    }
+
+    if (!filters.fleets || filters.fleets.length === 0) {
+      alert('Please select at least one fleet from the basic filters');
+      return;
+    }
+
+    if (!filters.ships || filters.ships.length === 0) {
+      alert('Please select at least one ship from the basic filters');
+      return;
+    }
+
     setLoading(true);
     try {
-      const requestData = {
-        filter_by: filters.useAllDates ? 'all' : 'issues',
+      const issuesFilters = {
+        filter_by: 'date',
         filters: {
-          // Only include dates if not using "All Dates" mode
-          ...(filters.useAllDates ? {} : {
-            start_date: filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            end_date: filters.toDate || new Date().toISOString().split('T')[0],
-          }),
-          fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : undefined,
-          ships: filters.ships && filters.ships.length > 0 ? filters.ships : undefined,
-          sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : undefined,
-          sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || []
-        }
+          fromDate: filters.fromDate,
+          toDate: filters.toDate
+        },
+        sheets: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || []
       };
 
-      console.log('Sending issues request:', requestData);
-      const response = await apiService.getIssuesSummary(requestData);
+      console.log('Sending issues request:', issuesFilters);
+      const response = await apiService.getIssuesSummary(issuesFilters);
       console.log('Issues response:', response);
       setIssuesData(response.data);
     } catch (error) {
@@ -70,27 +79,19 @@ const Issues = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Issues Summary</h1>
-        <p className="text-gray-600 mt-2">Analyze and track issues across sailings</p>      </div>
+        <p className="text-gray-600 mt-2">Analyze and track issues across sailings</p>
+      </div>
 
-      {/* Filters Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BasicFilter 
-          onFilterChange={handleFilterChange}
-          showTitle={true}
-          compact={false}
-        />
-        
-        {/* Sheet Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Issues Configuration
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <Label className="text-base font-medium">Select Sheets to Analyze</Label>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-1 space-y-6">
+          <BasicFilter onFilterChange={handleFilterChange} />
+          
+          {/* Sheet Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Sheet Selection</CardTitle>
+            </CardHeader>
+            <CardContent>
               {sheetsLoading ? (
                 <div className="text-center py-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
@@ -101,7 +102,7 @@ const Issues = () => {
                   <p>Error loading sheets</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="space-y-2">
                   {sheetsData?.data?.map((sheet: string) => (
                     <div key={sheet} className="flex items-center space-x-2">
                       <Checkbox
@@ -111,94 +112,91 @@ const Issues = () => {
                           handleSheetChange(sheet, checked as boolean)
                         }
                       />
-                      <Label htmlFor={`issue-sheet-${sheet}`} className="text-sm cursor-pointer">
+                      <Label htmlFor={`issue-sheet-${sheet}`} className="text-sm">
                         {sheet}
                       </Label>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-            
-            <Button 
-              onClick={fetchIssues} 
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading || !filters.fromDate || !filters.toDate || !filters.fleets?.length || !filters.ships?.length || sheetsLoading}
-            >
-              {loading ? 'Loading...' : 'Get Issues Summary'}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Results Section */}
-      {issuesData ? (
-        <div className="space-y-6">
-          {/* Summary Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                Issues Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">
-                    {issuesData.total_issues || 0}
-                  </div>
-                  <p className="text-sm text-gray-600">Total Issues</p>
-                </div>                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {issuesData.resolved_issues || 0}
-                  </div>
-                  <p className="text-sm text-gray-600">Resolved Issues</p>
-                </div>
-                <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {issuesData.unresolved_issues || 0}
-                  </div>
-                  <p className="text-sm text-gray-600">Unresolved Issues</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Additional Issues Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Issues Analysis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Based on the selected date range and sheets, we found {issuesData.total_issues || 0} total issues. 
-                {(issuesData.resolved_issues || 0) > 0 && ` ${issuesData.resolved_issues} have been resolved.`}
-                {(issuesData.unresolved_issues || 0) > 0 && ` ${issuesData.unresolved_issues} require attention.`}
-              </p>
+              
+              <Button 
+                onClick={fetchIssues} 
+                className="w-full mt-4"
+                disabled={loading || !filters.fromDate || !filters.toDate || !filters.fleets?.length || !filters.ships?.length || sheetsLoading}
+              >
+                {loading ? 'Loading...' : 'Get Issues Summary'}
+              </Button>
             </CardContent>
           </Card>
         </div>
-      ) : loading ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-2 text-gray-600">Loading issues data...</span>
+
+        <div className="lg:col-span-3">
+          {issuesData ? (
+            <div className="space-y-6">
+              {/* Summary Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    Issues Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-red-50 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600">
+                        {issuesData.total_issues || 0}
+                      </div>
+                      <p className="text-sm text-gray-600">Total Issues</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {issuesData.resolved_issues || 0}
+                      </div>
+                      <p className="text-sm text-gray-600">Resolved Issues</p>
+                    </div>
+                    <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {issuesData.unresolved_issues || 0}
+                      </div>
+                      <p className="text-sm text-gray-600">Unresolved Issues</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Additional Issues Analysis */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Issues Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    Based on the selected date range and sheets, we found {issuesData.total_issues || 0} total issues. 
+                    {(issuesData.resolved_issues || 0) > 0 && ` ${issuesData.resolved_issues} have been resolved.`}
+                    {(issuesData.unresolved_issues || 0) > 0 && ` ${issuesData.unresolved_issues} require attention.`}
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center text-gray-500">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium mb-2">No data yet</p>
-              <p className="text-sm">Configure filters and click "Get Issues Summary" to view data</p>
+          ) : loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading issues data...</p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <Card>
+              <CardContent className="flex items-center justify-center h-64">
+                <div className="text-center text-gray-500">
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Configure filters and click "Get Issues Summary" to view data</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

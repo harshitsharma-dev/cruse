@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
 from typing import Dict, List
 from test_data import *
+from navigate_search import *
 import pandas as pd
 import yaml
 from werkzeug.security import check_password_hash
@@ -11,10 +12,11 @@ app = Flask(__name__)
 # Configure CORS with specific settings
 CORS(app, resources={
     r"/sailing/*": {
-        "origins": ["http://localhost:8081", "http://localhost:8082", "http://localhost:3000", "http://127.0.0.1:8081"],
+        "origins": ["http://localhost:8081", "http://localhost:8082", "http://localhost:3000", "http://127.0.0.1:8081", "http://192.168.57.157:8081", "http://192.168.57.*:8081"],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
+        "allow_headers": ["Content-Type", "Authorization", "Access-Control-Request-Method", "Access-Control-Request-Headers"],
+        "supports_credentials": True,
+        "expose_headers": ["Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"]
     }
 })
 
@@ -29,7 +31,7 @@ METRIC_ATTRIBUTES = ['Overall Holiday', 'Prior Customer Service', 'Flight', 'Emb
 FLEET_DATA = [
     {
         "fleet":"marella",
-        "ships":["discovery", "explorer", "discovery2", "explorer2", "voyager"]
+        "ships": ["explorer", "discovery", "discovery 2", "explorer 2", "voyager"]
     }
 ]
 
@@ -173,6 +175,27 @@ def filter_sailings(data):
 def get_check():
     return ("hi how are you")
 
+@app.route('/sailing/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    """Handle preflight OPTIONS requests for all sailing routes"""
+    response = jsonify({})
+    # Allow requests from your network
+    origin = request.headers.get('Origin')
+    allowed_origins = [
+        'http://localhost:8081', 
+        'http://127.0.0.1:8081',
+        'http://192.168.57.157:8081'
+    ]
+    if origin and any(origin.startswith(allowed.rsplit(':', 1)[0]) for allowed in allowed_origins):
+        response.headers.add('Access-Control-Allow-Origin', origin)
+    else:
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8081')
+    
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
 @app.errorhandler(404)
 def not_found(e):
     return {"error": "Not Found"}, 404
@@ -191,9 +214,17 @@ def remove_server_header(response):
     response.headers["Server"] = ""
     return response
 
-@app.route('/sailing/getRatingSmry', methods=['POST'])
+@app.route('/sailing/getRatingSmry', methods=['POST', 'OPTIONS'])
 def get_rating_summary():
     """Endpoint for getting full rating summaries"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8081')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+        
     data = request.get_json()
     print(data)
 
@@ -238,9 +269,17 @@ def is_empty_or_nan(value):
         return len(value) < 1
     return False #added this
 
-@app.route('/sailing/getMetricRating', methods=['POST'])
+@app.route('/sailing/getMetricRating', methods=['POST', 'OPTIONS'])
 def get_metric_comparison():
     """Enhanced endpoint with metric value filtering and support for multiple metrics"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8081')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+        
     data = request.get_json()
     print("data", data)
     
@@ -312,6 +351,11 @@ def get_metric_comparison():
             # Calculate basic stats
             metric_values = pd.to_numeric(df[metric], errors='coerce').dropna()
             avg_rating = metric_values.mean()
+            
+            # Handle NaN values
+            if pd.isna(avg_rating):
+                avg_rating = 0.0
+            
             all_metric_values.extend(metric_values.tolist())
             
             # Get filtered reviews if requested
@@ -329,7 +373,7 @@ def get_metric_comparison():
                 "ship": ship,
                 "sailingNumber": number,
                 "metric": metric,
-                "averageRating": round(avg_rating, 2),
+                "averageRating": round(float(avg_rating), 2) if not pd.isna(avg_rating) else 0.0,
                 "ratingCount": len(metric_values),
                 "filteredReviews": filtered_reviews,
                 "filteredMetric": filtered_metric,
@@ -340,8 +384,9 @@ def get_metric_comparison():
     if compare_avg and all_metric_values:
         overall_avg = sum(all_metric_values) / len(all_metric_values)
         for result in results:
-            if "averageRating" in result:
-                result["comparisonToOverall"] = round(result["averageRating"] - overall_avg, 2)
+            if "averageRating" in result and not pd.isna(result["averageRating"]):
+                comparison = result["averageRating"] - overall_avg
+                result["comparisonToOverall"] = round(float(comparison), 2) if not pd.isna(comparison) else 0.0
     
     # Prepare response based on single or multiple metrics mode
     response = {
@@ -376,8 +421,17 @@ def get_ships():
     # })
 
 
-@app.route('/sailing/auth', methods=['POST'])
+@app.route('/sailing/auth', methods=['POST', 'OPTIONS'])
 def authenticate():
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8081')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+        
     try:
         # Get credentials from request
         data = request.get_json()
@@ -413,58 +467,62 @@ def authenticate():
             "error": f"Authentication failed: {str(e)}"
         }), 500
     
-@app.route('/sailing/semanticSearch', methods=['POST'])
+@app.route('/sailing/semanticSearch', methods=['POST', 'OPTIONS'])
 def get_semantic_search():
     """Endpoint for semantic search based on user query and filters"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8081')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+        
     data = request.get_json()
 
     # Validate input
     query = data.get("query")
     fleets = data.get("fleets")
     ships = data.get("ships")
-    filter_params = data.get("filter_params", {})
+    start_date = data.get("start_date")
+    end_date = data.get("end_date")
+    sailing_number_filter = data.get("sailing_numbers", [])
     sheet_names = data.get("sheet_names", [])
     meal_time = data.get("meal_time")
-    semanticSearch = data.get("semanticSearch", True)
-    similarity_score_range = data.get("similarity_score_range", [0.0, 1.0])
+    semantic = data.get("semantic", True)
+    similarity_threshold = data.get("similarity_threshold", 0.7)
     num_results = data.get("num_results", 10)
 
     if not query:
         return jsonify({"error": "Search query is mandatory"}), 400
 
-    # Filter data based on fleets and ships
-    filtered_data = [item for item in SAMPLE_DATA if item["Fleet"] in fleets and item["Ship Name"] in ships]
-
-    # Apply additional filters
-    if "from_date" in filter_params and "to_date" in filter_params:
-        from_date = pd.to_datetime(filter_params["from_date"])
-        to_date = pd.to_datetime(filter_params["to_date"])
-        filtered_data = [item for item in filtered_data if pd.to_datetime(item["Start"]) >= from_date and pd.to_datetime(item["End"]) <= to_date]
-
-    if "sailing_number" in filter_params:
-        sailing_number = filter_params["sailing_number"]
-        filtered_data = [item for item in filtered_data if item["Sailing Number"] == sailing_number]
-
-    # Perform semantic search
-    results = []
-    for item in filtered_data:
-        if query.lower() in item["Comment"].lower():
-            similarity_score = 0.9  # Placeholder for actual similarity calculation
-            if similarity_score_range[0] <= similarity_score <= similarity_score_range[1]:
-                results.append({
-                    "comment": item["Comment"],
-                    "sheet_name": item.get("Sheet Name"),
-                    "meal_time": item.get("Meal Time"),
-                    "metadata": {
-                        "fleet": item["Fleet"],
-                        "ship": item["Ship Name"],
-                        "sailing_number": item["Sailing Number"],
-                        "date": item["Start"]
-                    }
-                })
-
-    # Limit results
-    results = results[:num_results]
+    if semantic == True:
+        results = semantic_search(
+            query=query,
+            top_k=num_results,
+            similarity_threshold=similarity_threshold,
+            use_ollama=True,
+            fleets=fleets,
+            ships=ships,
+            sheet=sheet_names,
+            restaurant_name=None,
+            time_of_meal=meal_time,
+            start_date_filter=start_date,
+            sailing_number_filter=sailing_number_filter
+        )
+    else:
+        results = word_search(
+            query=query,
+            top_k=num_results,
+            use_ollama=True,
+            fleets=fleets,
+            ships=ships,
+            sheet=sheet_names,
+            restaurant_name=None,
+            time_of_meal=meal_time,
+            start_date_filter=start_date,
+            sailing_number_filter=sailing_number_filter
+        )
 
     return jsonify({
         "status": "success",
@@ -497,9 +555,17 @@ def get_sheets():
         "data": SHEET_LIST
     })
 
-@app.route('/sailing/issuesSmry', methods=['POST'])
+@app.route('/sailing/issuesSmry', methods=['POST', 'OPTIONS'])
 def get_issues_summary():
     """Endpoint to retrieve a summary of issues based on user input"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8081')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+        
     data = request.get_json()
     # Process the data and generate a summary
     summary = {

@@ -5,8 +5,6 @@ import { apiService } from '../services/api';
 interface User {
   username: string;
   role: string;
-  name?: string;
-  email?: string;
 }
 
 interface AuthContextType {
@@ -34,36 +32,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
-  }, []);  const login = async (username: string, password: string): Promise<boolean> => {
-    try {
-      // HARDCODED AUTHENTICATION - No real API calls
-      // Predefined users with different roles
-      const hardcodedUsers = {
-        'superadmin': { role: 'superadmin', name: 'Super Administrator' },
-        'admin': { role: 'admin', name: 'Administrator' },
-        'user': { role: 'user', name: 'Regular User' },
-        'demo': { role: 'user', name: 'Demo User' },
-        'guest': { role: 'user', name: 'Guest User' },
-        // Allow empty/any credentials to default to admin
-        '': { role: 'admin', name: 'Default Admin' }
-      };
+  }, []);
 
-      // Get user info based on username, default to admin if not found
-      const userInfo = hardcodedUsers[username.toLowerCase()] || hardcodedUsers['admin'];
-      
-      const response = {
-        authenticated: true,
-        user: username || 'admin',
-        role: userInfo.role,
-        name: userInfo.name
-      };
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await apiService.authenticate({ username, password });
       
       if (response.authenticated && response.user) {
-        const userData = { 
-          username: response.user, 
-          role: response.role || 'user',
-          name: response.name
-        };
+        const userData = { username: response.user, role: response.role || 'user' };
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         return true;
