@@ -1,5 +1,5 @@
 
-const API_BASE_URL = 'http://n8.lsdiedb39c.pagekite.me';
+const API_BASE_URL = 'http://localhost:5000';
 
 class ApiService {
   private baseUrl: string;
