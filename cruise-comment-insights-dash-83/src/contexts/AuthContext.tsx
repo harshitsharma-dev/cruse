@@ -25,43 +25,34 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // Bypass login - always set a default user
+  const [user, setUser] = useState<User | null>({ username: 'admin', role: 'admin' });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Always set a default user to bypass login
+    const defaultUser = { username: 'admin', role: 'admin' };
+    setUser(defaultUser);
+    localStorage.setItem('user', JSON.stringify(defaultUser));
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    try {
-      const response = await apiService.authenticate({ username, password });
-      
-      if (response.authenticated && response.user) {
-        const userData = { username: response.user, role: response.role || 'user' };
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
-    }
+    // Always return true to bypass authentication
+    const userData = { username: username || 'admin', role: 'admin' };
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+    return true;
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
   };
-
   return (
     <AuthContext.Provider value={{
       user,
       login,
       logout,
-      isAuthenticated: !!user
+      isAuthenticated: true // Always authenticated to bypass login
     }}>
       {children}
     </AuthContext.Provider>

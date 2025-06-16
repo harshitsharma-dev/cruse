@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test</h1>
+    <button onclick="testAPI()">Test Fleet API</button>
+    <div id="result"></div>
+
+    <script>
+        function testAPI() {
+            console.log('Testing API...');
+            fetch("http://n8.lsdiedb39c.pagekite.me/sailing/fleets")
+                .then((res) => res.json())
+                .then((data) => {
+                    console.log('Success:', data);
+                    document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+                });
+        }
+    </script>
+</body>
+</html>
