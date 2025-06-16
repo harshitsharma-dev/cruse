@@ -5,6 +5,8 @@ import { apiService } from '../services/api';
 interface User {
   username: string;
   role: string;
+  name?: string;
+  email?: string;
 }
 
 interface AuthContextType {
@@ -25,34 +27,65 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Bypass login - always set a default user
-  const [user, setUser] = useState<User | null>({ username: 'admin', role: 'admin' });
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Always set a default user to bypass login
-    const defaultUser = { username: 'admin', role: 'admin' };
-    setUser(defaultUser);
-    localStorage.setItem('user', JSON.stringify(defaultUser));
-  }, []);
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      // HARDCODED AUTHENTICATION - No real API calls
+      // Predefined users with different roles
+      const hardcodedUsers = {
+        'superadmin': { role: 'superadmin', name: 'Super Administrator' },
+        'admin': { role: 'admin', name: 'Administrator' },
+        'user': { role: 'user', name: 'Regular User' },
+        'demo': { role: 'user', name: 'Demo User' },
+        'guest': { role: 'user', name: 'Guest User' },
+        // Allow empty/any credentials to default to admin
+        '': { role: 'admin', name: 'Default Admin' }
+      };
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    // Always return true to bypass authentication
-    const userData = { username: username || 'admin', role: 'admin' };
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    return true;
+      // Get user info based on username, default to admin if not found
+      const userInfo = hardcodedUsers[username.toLowerCase()] || hardcodedUsers['admin'];
+      
+      const response = {
+        authenticated: true,
+        user: username || 'admin',
+        role: userInfo.role,
+        name: userInfo.name
+      };
+      
+      if (response.authenticated && response.user) {
+        const userData = { 
+          username: response.user, 
+          role: response.role || 'user',
+          name: response.name
+        };
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
   };
+
   return (
     <AuthContext.Provider value={{
       user,
       login,
       logout,
-      isAuthenticated: true // Always authenticated to bypass login
+      isAuthenticated: !!user
     }}>
       {children}
     </AuthContext.Provider>

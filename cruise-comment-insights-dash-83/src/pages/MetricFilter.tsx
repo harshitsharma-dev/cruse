@@ -1,109 +1,185 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp, Filter, Loader2, Download } from 'lucide-react';
 import BasicFilter from '@/components/BasicFilter';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 
-const MetricFilter = () => {
-  const [selectedMetric, setSelectedMetric] = useState<string>('');
-  const [filterBelow, setFilterBelow] = useState<number[]>([5]);
+const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric
+  const [ratingRange, setRatingRange] = useState<number[]>([6, 10]);
   const [results, setResults] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false);const [filters, setFilters] = useState<any>({
+    fromDate: '',
+    toDate: '',
+    fleets: [],
+    ships: [],
+    useAllDates: true // Default to "All Dates" mode
+  });
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   // Fetch available metrics from API
   const { data: metricsData, isLoading: metricsLoading, error: metricsError } = useQuery({
     queryKey: ['metrics'],
     queryFn: () => apiService.getMetrics(),
   });
-
   const handleFilterChange = (filterData: any) => {
     console.log('Filter data received:', filterData);
     setFilters(filterData);
   };
 
+  const toggleRowExpansion = (index: number) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
   const handleSearch = async () => {
     if (!selectedMetric) {
       alert('Please select a metric');
-      return;
-    }
-
-    if (!filters.fromDate || !filters.toDate) {
-      alert('Please select date range from the basic filters');
-      return;
-    }
-
-    if (!filters.fleets || filters.fleets.length === 0) {
-      alert('Please select at least one fleet from the basic filters');
-      return;
-    }
-
-    if (!filters.ships || filters.ships.length === 0) {
-      alert('Please select at least one ship from the basic filters');
       return;
     }    setIsLoading(true);
     try {
       const searchData = {
         filter_by: filters.useAllDates ? 'all' : 'date',
         filters: {
-          fromDate: filters.fromDate,     // Will be "-1" for all dates
-          toDate: filters.toDate,         // Will be "-1" for all dates
-          fleets: filters.fleets || [],
-          ships: filters.ships || [],
-          sailingNumbers: filters.sailingNumbers || ['-1']
+          // Only include dates if not using "All Dates" mode
+          ...(filters.useAllDates ? {} : {
+            fromDate: filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            toDate: filters.toDate || new Date().toISOString().split('T')[0],
+          }),
+          fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : undefined,
+          ships: filters.ships && filters.ships.length > 0 ? filters.ships : undefined,
+          sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : undefined
         },
-        metric: selectedMetric,
-        filterBelow: filterBelow[0],
+        metric: selectedMetric, // Changed back to single metric
+        filterBelow: ratingRange[1], // Use upper bound of rating range as filter
         compareToAverage: true
-      };
-
-      console.log('Sending metric filter request:', searchData);
+      };      console.log('Sending metric filter request:', searchData);
       const response = await apiService.getMetricRating(searchData);
       console.log('Metric filter response:', response);
-      setResults(response.results || []);
-    } catch (error) {
-      console.error('Error fetching metric data:', error);
-      alert('Error fetching metric data. Please try again.');
+      
+      // Validate response data and handle any NaN values
+      const sanitizedResults = (response.results || []).map(result => ({
+        ...result,
+        averageRating: isNaN(result.averageRating) ? 0 : result.averageRating,
+        comparisonToOverall: isNaN(result.comparisonToOverall) ? 0 : result.comparisonToOverall,
+        filteredMetric: (result.filteredMetric || []).map(val => isNaN(val) ? 0 : val)
+      }));
+      
+      setResults(sanitizedResults);    } catch (error) {
+      console.error('Metric filter error:', error);
+      let errorMessage = 'Failed to fetch metric data. Please try again.';
+      
+      // Handle JSON parsing errors specifically
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        errorMessage = 'Server returned invalid data. This may be due to missing metric values.';
+        console.error('JSON parsing error - likely NaN values in response');
+      }
+      
+      alert(errorMessage);
+      setResults([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (metricsError) {
-    console.error('Error loading metrics:', metricsError);
-  }
+  const exportResults = () => {
+    if (results.length === 0) {
+      alert('No data to export');
+      return;
+    }
 
+    const headers = ['Fleet', 'Ship', 'Sailing Number', 'Rating', 'Comment'];
+    const csvContent = results.map(row => 
+      headers.map(header => `"${row[header] || 'N/A'}"`).join(',')
+    ).join('\n');
+    
+    const blob = new Blob([`${headers.join(',')}\n${csvContent}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `metric-filter-results-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const getRatingColor = (rating: number) => {
+    if (rating >= 8) return 'bg-green-100 text-green-800';
+    if (rating >= 6) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Metric Filter</h1>
-        <p className="text-gray-600 mt-2">Filter and analyze specific metrics across sailings</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Metric Filter</h1>
+          <p className="text-gray-600 mt-2">Filter comments by rating metrics and ranges</p>
+        </div>
+        {results.length > 0 && (
+          <Button onClick={exportResults} className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export Results ({results.length})
+          </Button>
+        )}
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter Options</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <BasicFilter onFilterChange={handleFilterChange} />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Filters Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <BasicFilter 
+          onFilterChange={handleFilterChange}
+          showTitle={true}
+          compact={false}
+        />
+        
+        {/* Filter Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Metric Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Rating Range Slider */}
             <div>
-              <label className="block text-sm font-medium mb-2">Select Metric</label>
+              <Label className="text-base font-medium">Rating Range</Label>
+              <div className="mt-4 px-2">
+                <Slider
+                  value={ratingRange}
+                  onValueChange={setRatingRange}
+                  max={10}
+                  min={0}
+                  step={0.5}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-500 mt-2">
+                  <span>Lower: {ratingRange[0]}</span>
+                  <span>Upper: {ratingRange[1]}</span>
+                </div>
+              </div>
+            </div>            {/* Metric Selection */}
+            <div>
+              <Label className="text-base font-medium">Rating Metrics</Label>
               {metricsLoading ? (
-                <div className="text-sm text-gray-500">Loading metrics...</div>
+                <div className="text-sm text-gray-500 mt-2">Loading metrics...</div>
               ) : metricsError ? (
-                <div className="text-sm text-red-500">Error loading metrics</div>
+                <div className="text-sm text-red-500 mt-2">Error loading metrics</div>
               ) : (
                 <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a metric..." />
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Select a metric to analyze" />
                   </SelectTrigger>
                   <SelectContent>
                     {metricsData?.data?.map((metric: string) => (
@@ -116,109 +192,106 @@ const MetricFilter = () => {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Filter Below Rating: {filterBelow[0]}
-              </label>
-              <Slider
-                value={filterBelow}
-                onValueChange={setFilterBelow}
-                max={10}
-                min={1}
-                step={0.1}
-                className="w-full"
-              />
+            {/* Search Button */}
+            <Button 
+              onClick={handleSearch} 
+              disabled={isLoading || !selectedMetric}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <Filter className="h-4 w-4 mr-2" />
+                  Apply Metric Filter
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Results Section */}
+      {isLoading ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <span className="ml-2 text-gray-600">Filtering metric data...</span>
             </div>
-          </div>
-
-          <Button 
-            onClick={handleSearch} 
-            className="w-full"
-            disabled={isLoading || !selectedMetric || !filters.fromDate || !filters.toDate || !filters.fleets?.length || !filters.ships?.length}
-          >
-            {isLoading ? 'Analyzing...' : 'Analyze Metric'}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Results */}
-      {results.length > 0 && (
+          </CardContent>
+        </Card>
+      ) : results.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>{selectedMetric} Analysis Results</CardTitle>
+            <CardTitle>Filtered Results ({results.length} entries)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {results.map((result, index) => (
-                <div key={index} className="border rounded-lg p-4">
-                  {result.error ? (
-                    <div className="text-red-600">
-                      <h3 className="font-semibold">{result.ship} - Sailing {result.sailingNumber}</h3>
-                      <p>Error: {result.error}</p>
+                <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Fleet</div>
+                        <div className="text-sm capitalize">{result.fleet || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Ship</div>
+                        <div className="text-sm">{result.ship || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Sailing</div>
+                        <div className="text-sm">{result.sailing_number || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Rating</div>
+                        <Badge className={getRatingColor(result.rating)} variant="secondary">
+                          {result.rating?.toFixed(1) || 'N/A'}
+                        </Badge>
+                      </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold text-lg">{result.ship}</h3>
-                          <p className="text-gray-600">Sailing: {result.sailingNumber}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-blue-600">
-                            {result.averageRating}
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {result.ratingCount} ratings
-                          </p>
-                          {result.comparisonToOverall !== undefined && (
-                            <p className="text-xs text-gray-500">
-                              {result.comparisonToOverall > 0 ? '+' : ''}{result.comparisonToOverall} vs avg
-                            </p>
-                          )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleRowExpansion(index)}
+                      className="ml-4"
+                    >
+                      {expandedRows.has(index) ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <Collapsible open={expandedRows.has(index)}>
+                    <CollapsibleContent>
+                      <div className="border-t pt-3 mt-3">
+                        <div className="text-sm font-medium text-gray-500 mb-2">Comment:</div>
+                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                          {result.comment || 'No comment available'}
                         </div>
                       </div>
-
-                      {result.filteredReviews && result.filteredReviews.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="secondary">
-                              {result.filteredCount} reviews below {filterBelow[0]}
-                            </Badge>
-                          </div>
-                          <div className="space-y-2">
-                            {result.filteredReviews.slice(0, 3).map((review: string, idx: number) => (
-                              <div key={idx} className="p-3 bg-gray-50 rounded text-sm">
-                                {review}
-                              </div>
-                            ))}
-                            {result.filteredReviews.length > 3 && (
-                              <p className="text-sm text-gray-600">
-                                +{result.filteredReviews.length - 3} more reviews
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {isLoading && (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading results...</p>
-        </div>
-      )}
-
-      {results.length === 0 && !isLoading && selectedMetric && (
+      ) : (
         <Card>
-          <CardContent className="flex items-center justify-center h-32">
-            <p className="text-gray-500">No results found. Try adjusting your filters.</p>
+          <CardContent className="py-12">
+            <div className="text-center text-gray-500">
+              <Filter className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium mb-2">No results yet</p>
+              <p className="text-sm">Configure filters and click "Apply Metric Filter" to see results</p>
+            </div>
           </CardContent>
         </Card>
       )}

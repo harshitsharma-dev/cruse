@@ -1,5 +1,6 @@
 
-const API_BASE_URL = 'https://n8.lsdiedb39c.pagekite.me';
+const API_BASE_URL = 'http://localhost:5000'; // Changed to localhost for local testing
+// const API_BASE_URL = 'http://13.126.187.166:5000'; // Original remote server
 
 class ApiService {
   private baseUrl: string;
@@ -7,23 +8,17 @@ class ApiService {
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
   }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    console.log('Making request to:', url);
-    
     const response = await fetch(url, {
       mode: 'cors',
-      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
         ...options.headers,
       },
       ...options,
     });
-
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
 
     if (!response.ok) {
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
