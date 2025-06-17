@@ -1,0 +1,21 @@
+Issue_ID,Sailing_Number,Fleet,Ship,Guest_Name,Cabin_Number,Issue_Category,Issue_Subcategory,Severity,Status,Date_Reported,Description,Resolution,Days_to_Resolve,Guest_Satisfaction_Post
+ISS001,SAL001,Marella,Discovery,John Smith,A201,Cabin,Air Conditioning,Medium,Resolved,2024-01-16,"AC unit not cooling properly in cabin A201",Technician repaired compressor,1,8.0
+ISS002,SAL001,Marella,Discovery,Michael Brown,C102,Service,Dining,High,Resolved,2024-01-17,"Long wait times at main dining room - over 45 minutes",Improved staffing during peak hours,2,7.5
+ISS003,SAL002,Marella,Explorer,Lisa Garcia,C410,Service,Housekeeping,High,Resolved,2024-01-22,"Room not cleaned for 2 days, towels not replaced",Housekeeping supervisor addressed team,1,6.5
+ISS004,SAL003,Celebrity,Eclipse,Thomas Anderson,S108,Technical,WiFi,Medium,Resolved,2024-02-03,"Internet connection extremely slow throughout cruise",Network upgrade and reset performed,3,7.0
+ISS005,SAL004,Celebrity,Equinox,Patricia White,AQ412,Cabin,Plumbing,High,Resolved,2024-02-06,"Bathroom shower not draining, water pooling",Plumber cleared blockage,1,6.5
+ISS006,SAL005,Royal,Harmony,Kevin Thompson,R308,Facility,Pool Area,Medium,Resolved,2024-02-12,"Pool deck overcrowded, insufficient seating",Added additional deck chairs,1,7.5
+ISS007,SAL006,Royal,Symphony,Helen Lewis,SY405,Service,Guest Services,High,Resolved,2024-02-17,"Rude behavior from guest services staff member",Staff retraining and guest compensation,2,7.0
+ISS008,SAL007,Marella,Discovery2,Brian Scott,D108,Entertainment,Sound System,Medium,Resolved,2024-03-03,"Sound system issues during evening show",Audio equipment replaced,1,8.0
+ISS009,SAL008,Marella,Explorer2,Rebecca Baker,E407,Cabin,Temperature,High,Resolved,2024-03-07,"Cabin extremely hot, thermostat not working",HVAC system repaired,2,6.5
+ISS010,SAL009,Celebrity,Reflection,Anthony Mitchell,RF108,Dining,Food Quality,Medium,Resolved,2024-03-12,"Food served cold at specialty restaurant",Kitchen procedures reviewed,1,7.5
+ISS011,SAL010,Celebrity,Silhouette,Betty Turner,SH412,Service,Excursions,High,Resolved,2024-03-17,"Shore excursion cancelled without proper notice",Full refund and future cruise credit,1,7.0
+ISS012,SAL001,Marella,Discovery,Sarah Johnson,B305,Technical,Elevator,Low,Resolved,2024-01-18,"Elevator intermittently slow on deck 3",Elevator maintenance performed,1,9.0
+ISS013,SAL002,Marella,Explorer,David Wilson,B208,Facility,Gym,Low,Resolved,2024-01-23,"Several gym equipment pieces out of order",Equipment repaired and replaced,2,9.0
+ISS014,SAL003,Celebrity,Eclipse,Jennifer Lee,S205,Service,Spa,Medium,Resolved,2024-02-04,"Spa appointment cancelled without notice",Rescheduled with complimentary upgrade,1,8.5
+ISS015,SAL004,Celebrity,Equinox,Christopher Moore,AQ305,Dining,Special Diet,Medium,Resolved,2024-02-08,"Gluten-free meal options limited",Expanded gluten-free menu items,2,8.5
+ISS016,SAL005,Royal,Harmony,Maria Rodriguez,R205,Kids,Kids Club,Low,Resolved,2024-02-13,"Kids club activity cancelled due to weather",Indoor alternative activities provided,0,9.5
+ISS017,SAL006,Royal,Symphony,Steven Clark,SY203,Technical,TV,Low,Resolved,2024-02-18,"Cabin TV remote not working properly",Remote replaced immediately,0,9.0
+ISS018,SAL007,Marella,Discovery2,Carol King,D305,Service,Bar,Medium,Resolved,2024-03-04,"Bartender knowledge of cocktail menu limited",Staff training on drink preparation,1,8.5
+ISS019,SAL008,Marella,Explorer2,Gregory Adams,E304,Facility,Deck,Low,Resolved,2024-03-08,"Deck chairs on balcony damaged",Deck furniture replaced,1,9.0
+ISS020,SAL009,Celebrity,Reflection,Kimberly Carter,RF205,Service,Concierge,Medium,Resolved,2024-03-13,"Concierge unable to assist with special requests",Concierge team training enhanced,2,8.5

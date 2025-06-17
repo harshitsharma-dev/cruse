@@ -1,0 +1,36 @@
+Sailing_Number,Fleet,Ship,Itinerary,Start_Date,End_Date,Duration_Days,Destination,Ports_Visited,Total_Guests,Occupancy_Rate,Weather_Conditions,Sea_Conditions,Fuel_Consumption,Revenue_USD,Guest_Satisfaction_Avg
+1,Marella,Explorer,Mediterranean Classic,2025-01-01,2025-01-07,7,Mediterranean,"Palma, Barcelona, Marseille",1850,96.1,Good,Calm,2845,3145500,7.54
+1,Marella,Explorer 2,Mediterranean Explorer,2025-01-08,2025-01-14,7,Mediterranean,"Las Palmas, Barcelona, Marseille, Genoa",1750,96.4,Good,Calm,3120,2975000,7.81
+1,Marella,Discovery,Mediterranean Discovery,2025-01-15,2025-01-21,7,Mediterranean,"Palma, Barcelona, Marseille",1800,97.8,Good,Calm,2650,3060000,7.72
+1,Marella,Discovery 2,Mediterranean Jewels,2025-01-22,2025-01-28,7,Mediterranean,"Southampton, Barcelona, Marseille, Genoa",1450,96.3,Good,Calm,2650,2465000,7.81
+1,Marella,Voyager250306,Mediterranean Highlights,2025-01-29,2025-02-04,7,Mediterranean,"Barcelona, Marseille, Genoa",1900,97.2,Good,Calm,3200,3230000,7.93
+1,Marella,Voyager,Mediterranean Voyage,2025-02-05,2025-02-11,7,Mediterranean,"Barcelona, Marseille, Genoa",1900,96.9,Good,Calm,3200,3230000,7.87
+1,Marella,MDY2-2-9April,Mediterranean Spring,2025-04-02,2025-04-09,7,Mediterranean,"Southampton, Barcelona, Marseille",1450,97.5,Excellent,Calm,2650,2465000,8.79
+1,Marella,MDY2-24March-1April,Mediterranean Easter,2025-03-24,2025-04-01,8,Mediterranean,"Southampton, Barcelona, Marseille, Genoa",1450,98.1,Good,Calm,2650,2610000,8.73
+1,Marella,MDY2-10-17Feb,Mediterranean Winter,2025-02-10,2025-02-17,7,Mediterranean,"Southampton, Barcelona, Marseille",1450,97.8,Good,Moderate,2650,2465000,8.86
+1,Marella,MDY2-24Feb-3March,Mediterranean Late Winter,2025-02-24,2025-03-03,7,Mediterranean,"Southampton, Barcelona, Marseille, Genoa",1450,96.7,Good,Calm,2650,2465000,8.59
+1,Marella,MDY2-3-10March,Mediterranean Early Spring,2025-03-03,2025-03-10,7,Mediterranean,"Southampton, Barcelona, Marseille",1450,97.1,Good,Calm,2650,2465000,8.69
+1,Marella,MDY2-17-24March,Mediterranean Spring Break,2025-03-17,2025-03-24,7,Mediterranean,"Southampton, Barcelona, Marseille, Genoa",1450,97.9,Good,Calm,2650,2465000,8.75
+1,Marella,MDY2-9-14April,Mediterranean Easter Special,2025-04-09,2025-04-14,5,Mediterranean,"Southampton, Barcelona",1450,96.4,Good,Calm,2200,2050000,8.61
+1,Marella,MDY2-20-27Jan,Mediterranean Winter Escape,2025-01-20,2025-01-27,7,Mediterranean,"Southampton, Barcelona, Marseille",1450,98.2,Good,Calm,2650,2465000,8.84
+1,Marella,MDY2-10-17March,Mediterranean Mid Spring,2025-03-10,2025-03-17,7,Mediterranean,"Southampton, Barcelona, Marseille, Genoa",1450,97.6,Good,Calm,2650,2465000,8.72
+1,Marella,MDY2-17-24Feb,Mediterranean Valentine,2025-02-17,2025-02-24,7,Mediterranean,"Southampton, Barcelona, Marseille",1450,98.0,Good,Calm,2650,2465000,8.78
+1,Marella,MDY2-3-10Feb,Mediterranean February,2025-02-03,2025-02-10,7,Mediterranean,"Southampton, Barcelona, Marseille, Genoa",1450,96.8,Good,Moderate,2650,2465000,8.67
+1,Marella,MDY-2-9Feb,Mediterranean Classic Route,2025-02-02,2025-02-09,7,Mediterranean,"Palma, Barcelona, Marseille",1800,95.1,Good,Calm,2845,3060000,8.51
+1,Marella,MDY-29Dec-5Jan,Mediterranean New Year,2024-12-29,2025-01-05,7,Mediterranean,"Palma, Barcelona, Marseille, Genoa",1800,96.8,Good,Calm,2845,3060000,8.45
+1,Marella,MDY-23-30Mar,Mediterranean Spring Classic,2025-03-23,2025-03-30,7,Mediterranean,"Palma, Barcelona, Marseille",1800,96.2,Good,Calm,2845,3060000,8.63
+1,Marella,MDY-2-9Mar,Mediterranean March,2025-03-02,2025-03-09,7,Mediterranean,"Palma, Barcelona, Marseille, Genoa",1800,95.7,Good,Calm,2845,3060000,8.58
+1,Marella,MDY-9-16Mar,Mediterranean Mid March,2025-03-09,2025-03-16,7,Mediterranean,"Palma, Barcelona, Marseille",1800,96.0,Good,Calm,2845,3060000,8.66
+1,Marella,MDY-16-23Mar,Mediterranean Late March,2025-03-16,2025-03-23,7,Mediterranean,"Palma, Barcelona, Marseille, Genoa",1800,96.5,Good,Calm,2845,3060000,8.71
+1,Marella,MDY-6-13Jan,Mediterranean January,2025-01-06,2025-01-13,7,Mediterranean,"Palma, Barcelona, Marseille",1800,95.4,Good,Moderate,2845,3060000,8.49
+1,Marella,MDY-13-20Jan,Mediterranean Mid January,2025-01-13,2025-01-20,7,Mediterranean,"Palma, Barcelona, Marseille, Genoa",1800,95.8,Good,Calm,2845,3060000,8.56
+1,Marella,MDY-27Jan-3Feb,Mediterranean Late January,2025-01-27,2025-02-03,7,Mediterranean,"Palma, Barcelona, Marseille",1800,96.1,Good,Calm,2845,3060000,8.64
+1,Marella,MDY-30Mar-6Apr,Mediterranean Easter Prep,2025-03-30,2025-04-06,7,Mediterranean,"Palma, Barcelona, Marseille, Genoa",1800,96.7,Excellent,Calm,2845,3060000,8.68
+1,Marella,MDY-6-13Apr,Mediterranean April,2025-04-06,2025-04-13,7,Mediterranean,"Palma, Barcelona, Marseille",1800,95.9,Good,Calm,2845,3060000,8.59
+1,Marella,MDY-13-20Apr,Mediterranean Mid April,2025-04-13,2025-04-20,7,Mediterranean,"Palma, Barcelona, Marseille, Genoa",1800,96.3,Good,Calm,2845,3060000,8.62
+1,Marella,MDY-20-27Apr,Mediterranean Late April,2025-04-20,2025-04-27,7,Mediterranean,"Palma, Barcelona, Marseille",1800,95.6,Good,Calm,2845,3060000,8.55
+1,Marella,MDY-27Apr-4May,Mediterranean Spring End,2025-04-27,2025-05-04,7,Mediterranean,"Palma, Barcelona, Marseille, Genoa",1800,96.9,Excellent,Calm,2845,3060000,8.71
+1,Marella,MDY-4-11May,Mediterranean May,2025-05-04,2025-05-11,7,Mediterranean,"Palma, Barcelona, Marseille",1800,97.1,Excellent,Calm,2845,3060000,8.74
+SAL010,Celebrity,Silhouette,Greek Isles,2024-03-15,2024-03-22,7,Mediterranean,"San Juan, Santorini, Mykonos, Rhodes",2740,94.9,Excellent,Calm,4320,6027000,7.9
+SAL011,Royal,Wonder,Transatlantic,2024-03-20,2024-04-01,12,Atlantic,"Port Canaveral, Azores, Southampton",3620,95.0,Variable,Rough,9200,17760000,8.1
+SAL012,Royal,Navigator,Baltic Capitals,2024-03-25,2024-04-01,7,Northern Europe,"Barcelona, Copenhagen, Stockholm, Helsinki",3620,94.7,Cool,Moderate,5800,9951000,8.0

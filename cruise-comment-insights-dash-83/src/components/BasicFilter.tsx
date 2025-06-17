@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -35,7 +34,10 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     resetFilters, 
     availableFleets, 
     availableShips, 
-    isLoading 
+    availableSailingNumbers,
+    loadSailingNumbers,
+    isLoading,
+    isSailingNumbersLoading
   } = useFilter();
   // Add safety checks and default values
   const safeFilterState = {
@@ -112,6 +114,22 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     setFiltersApplied(false);
     setUseAllDates(true); // Reset to "All Dates"
   };
+
+  // Load sailing numbers when date range or ships change
+  useEffect(() => {
+    const loadSailingNumbersForFilter = async () => {
+      if (!useAllDates && startDate && endDate && safeFilterState.ships.length > 0) {
+        const startDateStr = format(startDate, 'yyyy-MM-dd');
+        const endDateStr = format(endDate, 'yyyy-MM-dd');
+        await loadSailingNumbers(safeFilterState.ships, startDateStr, endDateStr);
+      } else if (useAllDates && safeFilterState.ships.length > 0) {
+        // For "All Dates", send "-1" as date parameters
+        await loadSailingNumbers(safeFilterState.ships, '-1', '-1');
+      }
+    };
+
+    loadSailingNumbersForFilter();
+  }, [startDate, endDate, useAllDates, safeFilterState.ships, loadSailingNumbers]);
 
   if (isLoading) {
     return (
@@ -519,25 +537,28 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
               <span className="text-gray-500">Please select date range</span>
             )}
           </div>
-        </div>
-
-        {/* Sailing Number Selection - Always Visible */}
+        </div>        {/* Sailing Number Selection - Always Visible */}
         <div>
-          <Label className="text-sm font-medium">Sailing Numbers</Label>
-          <div className="mt-2">
+          <Label className="text-sm font-semibold text-gray-700">Sailing Numbers</Label>
+          <div className="mt-3">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-start text-left font-normal"
+                  className="w-full justify-start text-left font-normal border-gray-200 hover:border-gray-300"
+                  disabled={isSailingNumbersLoading}
                 >
-                  {selectedSailingNumbers.length === 0 
-                    ? "Select Sailing Numbers (All by default)" 
-                    : `${selectedSailingNumbers.length} sailing(s) selected`}
+                  {isSailingNumbersLoading ? (
+                    "Loading sailing numbers..."
+                  ) : selectedSailingNumbers.length === 0 ? (
+                    "Select Sailing Numbers (All by default)" 
+                  ) : (
+                    `${selectedSailingNumbers.length} sailing(s) selected`
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="start" side="bottom" sideOffset={5}>
-                <div className="p-4 space-y-2 max-h-60 overflow-y-auto">
+                <div className="p-4 space-y-3 max-h-60 overflow-y-auto apollo-scrollbar">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="all-sailings"
@@ -548,33 +569,42 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
                         }
                       }}
                     />
-                    <Label htmlFor="all-sailings" className="text-sm font-medium">
+                    <Label htmlFor="all-sailings" className="text-sm font-semibold">
                       All Sailings
                     </Label>
                   </div>
-                  {/* Mock sailing numbers - in real implementation, these would be fetched based on date range */}
-                  {['SL001', 'SL002', 'SL003', 'SL004', 'SL005', 'SL006', 'SL007', 'SL008'].map((sailing) => (
-                    <div key={sailing} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`sailing-${sailing}`}
-                        checked={selectedSailingNumbers.includes(sailing)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedSailingNumbers(prev => [...prev, sailing]);
-                          } else {
-                            setSelectedSailingNumbers(prev => prev.filter(s => s !== sailing));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`sailing-${sailing}`} className="text-sm">
-                        {sailing}
-                      </Label>
+                  {isSailingNumbersLoading ? (
+                    <div className="text-center py-4 text-sm text-gray-500">
+                      Loading sailing numbers...
                     </div>
-                  ))}
+                  ) : availableSailingNumbers.length === 0 ? (
+                    <div className="text-center py-4 text-sm text-gray-500">
+                      No sailing numbers available for selected criteria
+                    </div>
+                  ) : (
+                    availableSailingNumbers.map((sailing) => (
+                      <div key={sailing} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`sailing-${sailing}`}
+                          checked={selectedSailingNumbers.includes(sailing)}
+                          onCheckedChange={(checked) => {                            if (checked) {
+                              setSelectedSailingNumbers(prev => [...prev, sailing]);
+                            } else {
+                              setSelectedSailingNumbers(prev => prev.filter(s => s !== sailing));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`sailing-${sailing}`} className="text-sm font-medium">
+                          {sailing}
+                        </Label>
+                      </div>
+                    ))
+                  )}
                 </div>
               </PopoverContent>
-            </Popover>          </div>
-        </div>        {/* Action Buttons */}
+            </Popover>
+          </div>
+        </div>{/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
           <Button 
             onClick={handleApplyFilters} 

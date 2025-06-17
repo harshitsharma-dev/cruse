@@ -1,4 +1,3 @@
-
 // const API_BASE_URL = 'http://localhost:5000'; // Changed to localhost for local testing
 const API_BASE_URL = 'http://13.126.187.166:5000'; // Original remote server
 
@@ -128,6 +127,17 @@ class ApiService {
 
   async checkConnection() {
     return this.request<string>('/sailing/check');
+  }
+
+  async getSailingNumbers() {
+    return this.request<{ status: string; data: string[] }>('/sailing/sailing_numbers');
+  }
+
+  async getSailingNumbersFiltered(filters: { ships: string[], start_date: string, end_date: string }) {
+    return this.request<{ status: string; data: string[] }>('/sailing/sailing_numbers_filter', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
   }
 }
 

@@ -17,7 +17,10 @@ interface FilterContextType {
   resetFilters: () => void;
   availableFleets: Array<{ fleet: string; ships: string[] }>;
   availableShips: string[];
+  availableSailingNumbers: string[];
+  loadSailingNumbers: (ships: string[], startDate: string, endDate: string) => Promise<void>;
   isLoading: boolean;
+  isSailingNumbersLoading: boolean;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
@@ -43,7 +46,11 @@ const defaultFilterState: FilterState = {
 export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [filterState, setFilterStateInternal] = useState<FilterState>(defaultFilterState);
   const [availableFleets, setAvailableFleets] = useState<Array<{ fleet: string; ships: string[] }>>([]);
-  const [isLoading, setIsLoading] = useState(true);  useEffect(() => {
+  const [availableSailingNumbers, setAvailableSailingNumbers] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSailingNumbersLoading, setIsSailingNumbersLoading] = useState(false);
+
+  useEffect(() => {
     const loadFleetData = async () => {
       try {
         const response = await apiService.getFleets();
@@ -89,6 +96,23 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       .flatMap(fleet => (fleet.ships || []).map(ship => `${fleet.fleet}:${ship}`));
   }, [filterState.fleets, availableFleets]);
 
+  const loadSailingNumbers = async (ships: string[], startDate: string, endDate: string) => {
+    try {
+      setIsSailingNumbersLoading(true);
+      const response = await apiService.getSailingNumbersFiltered({
+        ships: ships,
+        start_date: startDate,
+        end_date: endDate
+      });
+      const sailingNumbers = Array.isArray(response.data) ? response.data : [];
+      setAvailableSailingNumbers(sailingNumbers);
+    } catch (error) {
+      console.error('Failed to load sailing numbers:', error);
+      setAvailableSailingNumbers([]);
+    } finally {
+      setIsSailingNumbersLoading(false);
+    }
+  };
   return (
     <FilterContext.Provider value={{
       filterState,
@@ -96,7 +120,10 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       resetFilters,
       availableFleets,
       availableShips,
-      isLoading
+      availableSailingNumbers,
+      loadSailingNumbers,
+      isLoading,
+      isSailingNumbersLoading
     }}>
       {children}
     </FilterContext.Provider>

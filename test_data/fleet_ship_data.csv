@@ -1,0 +1,37 @@
+Fleet,Ship,Capacity,Year_Built,Refurbished,Home_Port,Length_Meters,Gross_Tonnage,Crew_Size,Status
+Marella,Explorer,1924,2007,2018,Bridgetown,294,71545,760,Active
+Marella,Explorer 2,1814,2005,2017,Las Palmas,263,69130,681,Active
+Marella,Discovery,1830,2008,2019,Palma,262,69130,681,Active
+Marella,Discovery 2,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,Voyager250306,1912,2006,2021,Barcelona,294,71545,760,Active
+Marella,Voyager,1912,2006,2021,Barcelona,294,71545,760,Active
+Marella,MDY2-2-9April,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-24March-1April,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-10-17Feb,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-24Feb-3March,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-3-10March,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-17-24March,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-9-14April,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-20-27Jan,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-10-17March,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-17-24Feb,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY2-3-10Feb,1506,2003,2020,Southampton,214,63524,606,Active
+Marella,MDY-2-9Feb,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-29Dec-5Jan,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-23-30Mar,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-2-9Mar,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-9-16Mar,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-16-23Mar,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-6-13Jan,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-13-20Jan,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-27Jan-3Feb,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-30Mar-6Apr,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-6-13Apr,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-13-20Apr,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-20-27Apr,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-27Apr-4May,1830,2008,2019,Palma,262,69130,681,Active
+Marella,MDY-4-11May,1830,2008,2019,Palma,262,69130,681,Active
+Royal,Harmony,5479,2016,2021,Port Canaveral,362,226963,2384,Active
+Royal,Symphony,5518,2018,2022,Miami,362,228081,2384,Active
+Royal,Wonder,3807,2022,2022,Port Canaveral,348,236857,1551,Active
+Royal,Navigator,3807,2019,2021,Barcelona,311,138279,1360,Active

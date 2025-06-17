@@ -1,0 +1,11 @@
+Sheet_Name,Description,Fields_Included,Data_Source,Update_Frequency,Last_Updated
+Guest_Ratings,Complete guest satisfaction ratings by sailing,All rating categories plus comments,Guest Survey System,Daily,2024-03-22
+Fleet_Information,Ship and fleet master data,Fleet details and specifications,Ship Management System,Monthly,2024-03-01
+Sailing_Operations,Operational data for each sailing,Itinerary and performance metrics,Operations Management System,Post-Sailing,2024-03-22
+Guest_Issues,Guest complaints and issue tracking,Issue details and resolution status,Guest Services System,Real-time,2024-03-22
+Revenue_Analysis,Financial performance by sailing,Revenue and cost analysis,Financial System,Weekly,2024-03-18
+Staff_Performance,Crew ratings and performance metrics,Staff evaluation scores,HR Management System,Monthly,2024-03-01
+Port_Operations,Port and destination performance,Port ratings and logistics,Port Management System,Post-Sailing,2024-03-22
+Environmental_Data,Sustainability and environmental metrics,Fuel consumption and waste data,Environmental Monitoring System,Daily,2024-03-22
+Safety_Reports,Safety incidents and protocols,Safety metrics and incident reports,Safety Management System,Real-time,2024-03-22
+Guest_Demographics,Guest profile and demographic data,Age groups and travel patterns,Guest Management System,Post-Sailing,2024-03-22

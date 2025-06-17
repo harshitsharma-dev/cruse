@@ -1,0 +1,40 @@
+Metric_Name,Category,Description,Calculation_Method,Target_Value,Current_Value,Trend,Last_Updated
+Overall Holiday,Guest Satisfaction,Average rating for overall holiday experience,Mean of all overall holiday ratings,8.5,8.6,Up,2025-06-17
+Prior Customer Service,Guest Satisfaction,Rating for customer service before cruise,Mean of all prior customer service ratings,8.0,7.5,Stable,2025-06-17
+Flight,Travel Experience,Rating for flight experience and arrangements,Mean of all flight ratings,7.0,5.2,Down,2025-06-17
+Embarkation/Disembarkation,Operations,Rating for boarding and departure process,Mean of all embarkation/disembarkation ratings,8.0,7.4,Stable,2025-06-17
+Value for Money,Guest Satisfaction,Average perception of cruise value,Mean of all value ratings,7.5,6.9,Down,2025-06-17
+App Booking,Technology,Rating for mobile app booking experience,Mean of all app booking ratings,7.0,6.4,Stable,2025-06-17
+Pre-Cruise Hotel Accommodation,Travel Experience,Rating for pre-cruise hotel stay,Mean of all hotel accommodation ratings,7.5,6.3,Stable,2025-06-17
+Cabins,Accommodation,Average rating for cabin comfort and amenities,Mean of all cabin ratings,8.0,7.7,Up,2025-06-17
+Cabin Cleanliness,Accommodation,Rating for cabin cleanliness standards,Mean of all cabin cleanliness ratings,8.5,8.3,Up,2025-06-17
+F&B Quality,Dining,Average rating for food and beverage quality,Mean of all F&B quality ratings,8.0,7.8,Up,2025-06-17
+F&B Service,Dining,Average rating for food and beverage service,Mean of all F&B service ratings,8.5,8.5,Stable,2025-06-17
+Bar Service,Dining,Rating for bar service quality,Mean of all bar service ratings,8.0,7.9,Stable,2025-06-17
+Drinks Offerings and Menu,Dining,Rating for beverage variety and menu options,Mean of all drinks offerings ratings,7.5,7.4,Stable,2025-06-17
+Entertainment,Guest Satisfaction,Average rating for entertainment programs,Mean of all entertainment ratings,8.0,8.1,Up,2025-06-17
+Excursions,Shore Activities,Average rating for shore excursion experiences,Mean of all shore excursion ratings,7.5,6.6,Stable,2025-06-17
+Crew Friendliness,Guest Satisfaction,Rating for crew friendliness and helpfulness,Mean of all crew friendliness ratings,9.0,9.2,Up,2025-06-17
+Ship Condition/Cleanliness (Public Areas),Operations,Rating for public area cleanliness and condition,Mean of all ship condition ratings,8.0,7.6,Stable,2025-06-17
+Sentiment Score,Analytics,Overall sentiment analysis score from guest comments,Calculated from guest feedback text,8.0,7.9,Up,2025-06-17
+Dining_Venues,Guest Satisfaction,Average rating for dining venue quality,Mean of all dining venue ratings,8.5,8.5,Stable,2024-03-22
+Bar_Service,Guest Satisfaction,Average rating for bar service quality,Mean of all bar service ratings,8.0,7.6,Down,2024-03-22
+Housekeeping,Guest Satisfaction,Average rating for housekeeping services,Mean of all housekeeping ratings,9.0,8.6,Up,2024-03-22
+Guest_Services,Guest Satisfaction,Average rating for guest services desk,Mean of all guest services ratings,8.5,8.1,Stable,2024-03-22
+Embarkation,Guest Satisfaction,Average rating for boarding process,Mean of all embarkation ratings,8.0,7.7,Down,2024-03-22
+Disembarkation,Guest Satisfaction,Average rating for departure process,Mean of all disembarkation ratings,8.0,8.0,Stable,2024-03-22
+WiFi_Service,Guest Satisfaction,Average rating for internet connectivity,Mean of all WiFi service ratings,7.0,6.4,Down,2024-03-22
+Pool_Areas,Guest Satisfaction,Average rating for pool and deck areas,Mean of all pool area ratings,8.0,8.1,Up,2024-03-22
+Gym_Facilities,Guest Satisfaction,Average rating for fitness facilities,Mean of all gym ratings,7.5,7.6,Up,2024-03-22
+Shopping,Guest Satisfaction,Average rating for onboard shopping,Mean of all shopping ratings,7.5,7.8,Up,2024-03-22
+Response_Rate,Operational,Percentage of guests who completed surveys,Responses/Total Guests * 100,75.0,68.2,Down,2024-03-22
+Occupancy_Rate,Operational,Average cabin occupancy across all sailings,Occupied Cabins/Total Cabins * 100,95.0,94.1,Stable,2024-03-22
+Revenue_Per_Guest,Financial,Average revenue generated per guest,Total Revenue/Total Guests,2800,2950,Up,2024-03-22
+Issue_Resolution_Time,Operational,Average days to resolve guest issues,Mean resolution time in days,2.0,1.4,Up,2024-03-22
+Critical_Issues,Operational,Number of high-severity issues,Count of high severity issues,10,8,Up,2024-03-22
+Repeat_Guests,Loyalty,Percentage of returning customers,Repeat Guests/Total Guests * 100,35.0,32.1,Down,2024-03-22
+Net_Promoter_Score,Loyalty,Guest likelihood to recommend,NPS calculation from ratings,50,47,Down,2024-03-22
+Staff_Guest_Ratio,Operational,Ratio of crew to guests,Total Crew/Total Guests,0.45,0.44,Stable,2024-03-22
+Environmental_Score,Sustainability,Environmental impact rating,Composite environmental metrics,8.0,7.8,Up,2024-03-22
+Safety_Incidents,Safety,Number of safety-related incidents,Count of safety incidents per sailing,0,0.2,Stable,2024-03-22
+Medical_Incidents,Safety,Number of medical incidents requiring attention,Count of medical incidents per sailing,3,3.1,Stable,2024-03-22
