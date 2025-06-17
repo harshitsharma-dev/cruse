@@ -24,18 +24,39 @@ const RatingSummary = () => {
     const loadDefaultData = async () => {
       try {
         setLoading(true);
+          // Backend expects either "sailing" or "date" filter_by mode
+        // For all data, we'll use "sailing" mode with specific sailing objects
         const defaultPayload = {
-          filter_by: 'all',
-          filters: {}
+          filter_by: 'sailing',
+          sailings: [
+            { shipName: 'Explorer', sailingNumber: '1' },
+            { shipName: 'Explorer 2', sailingNumber: '1' },
+            { shipName: 'Discovery', sailingNumber: '1' },
+            { shipName: 'Discovery 2', sailingNumber: '1' },
+            { shipName: 'Voyager', sailingNumber: '1' }
+          ]
         };
         
-        console.log('RatingSummary: Loading default rating data with all dates:', defaultPayload);
+        console.log('RatingSummary: Loading default rating data:', defaultPayload);
         const response = await apiService.getRatingSummary(defaultPayload);
         console.log('RatingSummary: Default response received:', response);
-        console.log('RatingSummary: Default response data:', response.data);
-        setRatingsData(response.data || []);
+        
+        if (response && response.data) {
+          setRatingsData(Array.isArray(response.data) ? response.data : []);
+          console.log('RatingSummary: Data loaded successfully, count:', response.data.length);
+        } else {
+          console.warn('RatingSummary: No data received from API');
+          setRatingsData([]);
+        }
       } catch (error) {
         console.error('RatingSummary: Error loading default ratings:', error);
+        
+        // More detailed error logging
+        if (error instanceof Error) {
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+        }
+        
         setRatingsData([]);
       } finally {
         setLoading(false);
@@ -71,60 +92,12 @@ const RatingSummary = () => {
     console.log('RatingSummary handleFilterChange called with:', newFilters);
     setFilters(newFilters);
     setLoading(true);
-    
-    try {
-      // Format the API request based on backend expectations
-      let requestPayload: any;
+      try {
+      // Use the exact payload format that BasicFilter sends, which matches backend expectations
+      const requestPayload = newFilters;
       
-      if (newFilters.useAllDates || newFilters.filter_by === 'all') {
-        console.log('Using All Dates mode');
-        // All dates filtering
-        requestPayload = {
-          filter_by: 'all',
-          filters: {}
-        };
-        
-        // Add fleet/ship filters if they exist
-        if (newFilters.fleets && newFilters.fleets.length > 0) {
-          requestPayload.filters.fleets = newFilters.fleets;
-        }
-        if (newFilters.ships && newFilters.ships.length > 0) {
-          requestPayload.filters.ships = newFilters.ships;
-        }
-        if (newFilters.sailingNumbers && newFilters.sailingNumbers.length > 0) {
-          requestPayload.filters.sailing_numbers = newFilters.sailingNumbers;
-        }
-      } else if (newFilters.fromDate && newFilters.toDate) {
-        // Date-based filtering
-        requestPayload = {
-          filter_by: 'date',
-          filters: {
-            fromDate: newFilters.fromDate,
-            toDate: newFilters.toDate
-          }
-        };
-        
-        // Add optional filters if they exist
-        if (newFilters.fleets && newFilters.fleets.length > 0) {
-          requestPayload.filters.fleets = newFilters.fleets;
-        }
-        if (newFilters.ships && newFilters.ships.length > 0) {
-          requestPayload.filters.ships = newFilters.ships;
-        }
-        if (newFilters.sailingNumbers && newFilters.sailingNumbers.length > 0) {
-          requestPayload.filters.sailing_numbers = newFilters.sailingNumbers;
-        }
-      } else {
-        // Sailing-based filtering - provide default sailings if none specified
-        requestPayload = {
-          filter_by: 'sailing',
-          sailings: newFilters.sailings || [
-            { shipName: 'Explorer', sailingNumber: '1' },
-            { shipName: 'Explorer 2', sailingNumber: '1' }
-          ]
-        };
-      }      
-      console.log('Sending rating summary request:', requestPayload);
+      console.log('RatingSummary: Sending request with payload:', requestPayload);
+      
       const response = await apiService.getRatingSummary(requestPayload);
       console.log('Rating summary response:', response);
       console.log('Response data:', response.data);

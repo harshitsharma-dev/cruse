@@ -7,23 +7,37 @@ class ApiService {
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
   }
-
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
+    
+    try {
+      console.log(`API Request: ${options.method || 'GET'} ${url}`);
+      if (options.body) {
+        console.log('Request body:', options.body);
+      }
+      
+      const response = await fetch(url, {
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error ${response.status}:`, errorText);
+        throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`API Response for ${endpoint}:`, data);
+      return data;
+    } catch (error) {
+      console.error(`API Request failed for ${endpoint}:`, error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async authenticate(credentials: { username: string; password: string }) {

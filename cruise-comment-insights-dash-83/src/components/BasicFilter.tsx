@@ -84,20 +84,44 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     }
   };  const handleApplyFilters = () => {
     handleDateRangeApply();
-      // Prepare filter data in the format expected by parent components
-    const filterData = {
+    
+    // Prepare filter data based on backend expectations from Latest_flask_comments.py
+    let filterData;
+      if (useAllDates) {
+      // For "All Dates", use sailing mode with all available sailings
+      filterData = {
+        filter_by: 'sailing',
+        sailings: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
+          ? selectedSailingNumbers.map(num => ({ shipName: 'Explorer', sailingNumber: num }))
+          : [
+              { shipName: 'Explorer', sailingNumber: '1' },
+              { shipName: 'Explorer 2', sailingNumber: '1' },
+              { shipName: 'Discovery', sailingNumber: '1' },
+              { shipName: 'Discovery 2', sailingNumber: '1' },
+              { shipName: 'Voyager', sailingNumber: '1' }
+            ]
+      };
+    } else {
+      // For specific date range, use date mode
+      filterData = {
+        filter_by: 'date',
+        filters: {
+          fromDate: startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate,
+          toDate: endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate
+        }
+      };
+    }
+    
+    // Add additional metadata for UI components (not sent to backend)
+    const uiFilterData = {
+      ...filterData,
       fleets: safeFilterState.fleets,
-      ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix      // Send "-1" for both dates when using "All Dates", otherwise send actual dates
-      fromDate: useAllDates ? "-1" : (startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate),
-      toDate: useAllDates ? "-1" : (endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate),
-      // Send ["-1"] for sailing numbers when "All Sailings" is selected
+      ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix
       sailingNumbers: selectedSailingNumbers.length > 0 ? selectedSailingNumbers : ["-1"],
-      filter_by: useAllDates ? 'all' : 'date', // Use 'all' for all dates
       useAllDates: useAllDates
     };
-    
-    console.log('BasicFilter sending filter data:', filterData);
-    console.log('useAllDates state:', useAllDates);
+      console.log('BasicFilter sending filter data:', filterData);
+    console.log('UI filter data:', uiFilterData);
     
     // Show applied feedback
     setFiltersApplied(true);
@@ -114,22 +138,34 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     setFiltersApplied(false);
     setUseAllDates(true); // Reset to "All Dates"
   };
-
   // Load sailing numbers when date range or ships change
   useEffect(() => {
     const loadSailingNumbersForFilter = async () => {
-      if (!useAllDates && startDate && endDate && safeFilterState.ships.length > 0) {
-        const startDateStr = format(startDate, 'yyyy-MM-dd');
-        const endDateStr = format(endDate, 'yyyy-MM-dd');
-        await loadSailingNumbers(safeFilterState.ships, startDateStr, endDateStr);
-      } else if (useAllDates && safeFilterState.ships.length > 0) {
-        // For "All Dates", send "-1" as date parameters
-        await loadSailingNumbers(safeFilterState.ships, '-1', '-1');
+      // Only load if we have ships selected
+      if (safeFilterState.ships.length === 0) {
+        return;
+      }
+
+      try {
+        if (!useAllDates && startDate && endDate) {
+          const startDateStr = format(startDate, 'yyyy-MM-dd');
+          const endDateStr = format(endDate, 'yyyy-MM-dd');
+          console.log('Loading sailing numbers for specific dates:', { startDateStr, endDateStr, ships: safeFilterState.ships });
+          await loadSailingNumbers(safeFilterState.ships, startDateStr, endDateStr);
+        } else if (useAllDates) {
+          // For "All Dates", send "-1" as date parameters
+          console.log('Loading sailing numbers for all dates:', { ships: safeFilterState.ships });
+          await loadSailingNumbers(safeFilterState.ships, '-1', '-1');
+        }
+      } catch (error) {
+        console.error('Error loading sailing numbers in BasicFilter:', error);
       }
     };
 
-    loadSailingNumbersForFilter();
-  }, [startDate, endDate, useAllDates, safeFilterState.ships, loadSailingNumbers]);
+    // Add a small delay to prevent rapid successive calls
+    const timeoutId = setTimeout(loadSailingNumbersForFilter, 300);
+    return () => clearTimeout(timeoutId);
+  }, [startDate, endDate, useAllDates, JSON.stringify(safeFilterState.ships)]); // Use JSON.stringify to properly compare arrays
 
   if (isLoading) {
     return (

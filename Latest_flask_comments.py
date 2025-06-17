@@ -121,16 +121,11 @@ def find_sailings(sailings: List[Dict]) -> List[Dict]:
 
 def filter_sailings(data):
     filter_by = data.get("filter_by", "sailing")
-    print("in filter_sailings, filter_by:", filter_by)
+    print("in filter_sailings")
 
     results = []
 
-    if filter_by == "all":
-        # Return all sample data when filter_by is "all"
-        print("Returning all sample data")
-        results = SAMPLE_DATA.copy()
-        
-    elif filter_by == "sailing":
+    if filter_by == "sailing":
         # Get requested sailings if provided
         if "sailings" in data:
             results = find_sailings(data["sailings"])
@@ -140,26 +135,18 @@ def filter_sailings(data):
     elif filter_by == "date":
         # Apply date filters if provided
         if "filters" in data:
-            from_date_str = data["filters"].get("fromDate")
-            to_date_str = data["filters"].get("toDate")
-            
-            # Handle special case for "all dates" (-1)
-            if from_date_str == "-1" and to_date_str == "-1":
-                print("All dates requested, returning all data")
-                results = SAMPLE_DATA.copy()
-            else:
-                from_date = pd.to_datetime(from_date_str)
-                to_date = pd.to_datetime(to_date_str)
-                print("Date range:", from_date, to_date)
+            from_date = pd.to_datetime(data["filters"].get("fromDate"))
+            to_date = pd.to_datetime(data["filters"].get("toDate"))
+            print(from_date, to_date)
 
-                if pd.isna(from_date) or pd.isna(to_date):
-                    return -2
+            if not from_date or not to_date:
+                return -2
 
-                # Filter SAMPLE_DATA by date range
-                results = [
-                    item for item in SAMPLE_DATA
-                    if pd.to_datetime(item["Start"]) >= from_date and pd.to_datetime(item["End"]) <= to_date
-                ]
+            # Filter SAMPLE_DATA by date range
+            results = [
+                item for item in SAMPLE_DATA
+                if pd.to_datetime(item["Start"]) >= from_date and pd.to_datetime(item["End"]) <= to_date
+            ]
         else:
             return -3
 
@@ -167,10 +154,7 @@ def filter_sailings(data):
         return -4
 
     # Remove duplicates if both sailings and date filters are applied
-    if results:
-        results = list({frozenset(item.items()): item for item in results}.values())
-    
-    print(f"Filtered results count: {len(results)}")
+    results = {frozenset(item.items()): item for item in results}.values()
     return results
 
 
@@ -269,6 +253,12 @@ def get_sailing_numbers_filter():
     ships_list = data.get("ships", [])
     start_date = data.get("start_date", None)
     end_date = data.get("end_date", None)
+    
+    if start_date == "-1":
+        start_date = None
+    if end_date == "-1":
+        end_date = None
+      
 
     # res = UT.filter_sailings(SAILING_LIST_MAPPING, ships_list, start_date, end_date)
     res = SQLOP.fetch_sailings(ships_list, start_date, end_date)

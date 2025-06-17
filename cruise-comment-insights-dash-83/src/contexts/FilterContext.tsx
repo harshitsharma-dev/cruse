@@ -95,16 +95,27 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       .filter(fleet => filterState.fleets.includes(fleet.fleet))
       .flatMap(fleet => (fleet.ships || []).map(ship => `${fleet.fleet}:${ship}`));
   }, [filterState.fleets, availableFleets]);
-
   const loadSailingNumbers = async (ships: string[], startDate: string, endDate: string) => {
     try {
       setIsSailingNumbersLoading(true);
+      
+      // Add validation to prevent empty requests
+      if (!ships || ships.length === 0) {
+        console.log('No ships selected, skipping sailing numbers load');
+        setAvailableSailingNumbers([]);
+        return;
+      }
+
+      console.log('Loading sailing numbers with:', { ships, startDate, endDate });
+      
       const response = await apiService.getSailingNumbersFiltered({
         ships: ships,
         start_date: startDate,
         end_date: endDate
       });
+      
       const sailingNumbers = Array.isArray(response.data) ? response.data : [];
+      console.log('Sailing numbers loaded:', sailingNumbers);
       setAvailableSailingNumbers(sailingNumbers);
     } catch (error) {
       console.error('Failed to load sailing numbers:', error);
