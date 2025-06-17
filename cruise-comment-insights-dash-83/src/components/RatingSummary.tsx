@@ -352,22 +352,23 @@ const RatingSummary = () => {
         )}
       </div>
     );
-  };
-  return (
-    <div className="space-y-6">
+  };  return (
+    <div className="space-y-8">
       {/* Filters Section */}
       <BasicFilter 
         onFilterChange={handleFilterChange}
         showTitle={true}
         compact={false}
-        className="mb-6"
+        className="mb-8"
       />
       
       {/* Data Section */}
-      <Card>
+      <Card className="apollo-shadow bg-white/95 backdrop-blur-sm border-white/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6" />
+          <CardTitle className="flex items-center gap-3 text-2xl">
+            <div className="apollo-gradient-primary p-2 rounded-lg">
+              <BarChart3 className="h-7 w-7 text-white" />
+            </div>
             Rating Summary
           </CardTitle>
         </CardHeader>

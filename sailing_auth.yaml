@@ -1,15 +1,13 @@
 users:
   admin:
-    password: "pbkdf2:sha256:600000$JGMnM2tExK424c51$bc4770e66248982411e6c6ca95c9e7fe3019559e4a672120139741198c33548ba"
-    role: "admin"
-    full_name: "Administrator"
-    
+    password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
+    role: admin
+  superadmin:
+    password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
+    role: superadmin
   demo:
-    password: "pbkdf2:sha256:600000$2tPx35aSheaARS7L$eed932df44480866802a62437e9861b9b7b15fff2b5373061a6ad86fb155650a8"
-    role: "user"
-    full_name: "Demo User"
-    
-  test:
-    password: "pbkdf2:sha256:600000$auZUysaPZ4ibE1RF$c9e62f507133acf3870cbbf6518903cd979384dea1494b8cfce18b8c19251c04"
-    role: "user"
-    full_name: "Test User"
+    password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
+    role: user
+  guest:
+    password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
+    role: user

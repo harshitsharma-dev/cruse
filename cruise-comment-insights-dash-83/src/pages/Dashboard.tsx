@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -195,13 +196,15 @@ const Dashboard = () => {
   };
 
   const chartData = generateChartData();
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <div className="apollo-gradient-primary h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4 apollo-animate-float">
+            <div className="animate-spin h-8 w-8 border-2 border-white border-t-transparent rounded-full"></div>
+          </div>
+          <p className="text-lg text-gray-700 font-medium">Loading Apollo Dashboard...</p>
+          <p className="text-sm text-gray-500 mt-1">Fetching your analytics data</p>
         </div>
       </div>
     );
@@ -210,53 +213,57 @@ const Dashboard = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md apollo-shadow bg-white/95 backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="text-center">
-              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Connection Error</h3>
-              <p className="text-gray-600 mb-4">{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="h-8 w-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Connection Error</h3>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <Button                onClick={() => window.location.reload()} 
+                className="apollo-gradient-primary hover:opacity-90 transition-all"
               >
-                Retry
-              </button>
+                Retry Connection
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
     );
   }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white">
+      <div className="apollo-gradient-primary rounded-2xl p-8 text-white apollo-shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">
-              Welcome, {user?.name || user?.username}!
+            <h1 className="text-4xl font-bold mb-2">
+              Welcome to Apollo, {user?.name || user?.username}!
             </h1>
-            <p className="text-blue-100 mt-1">
+            <p className="text-blue-100 text-lg mb-4">
               {user?.role === 'superadmin' ? 'You have full system access and can manage all users.' :
                user?.role === 'admin' ? 'You can manage users and access all cruise data.' :
                'View and analyze cruise guest feedback data.'}
             </p>
-            <div className="flex items-center mt-3">
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+            <div className="flex items-center">
+              <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
                 user?.role === 'superadmin' ? 'bg-red-100 text-red-800' :
-                user?.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                user?.role === 'admin' ? 'bg-yellow-100 text-yellow-800' :
                 'bg-green-100 text-green-800'
               }`}>
-                {user?.role === 'superadmin' ? '🔐 Super Administrator' :
-                 user?.role === 'admin' ? '👨‍💼 Administrator' :
-                 '👤 User'}
+                {user?.role === 'superadmin' ? 'Super Admin' : 
+                 user?.role === 'admin' ? 'Admin' : 'User'}
               </div>
             </div>
           </div>
           <div className="hidden md:block">
-            <Ship className="h-16 w-16 text-blue-200" />
-          </div>        </div>
+            <div className="h-20 w-20 bg-white/20 rounded-full flex items-center justify-center apollo-animate-float">
+              <TrendingUp className="h-10 w-10 text-white" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Key Metrics */}
@@ -264,26 +271,26 @@ const Dashboard = () => {
         {keyMetrics.map((metric, index) => {
           const Icon = metric.icon;
           return (
-            <Card key={index} className="relative overflow-hidden">
+            <Card key={index} className="relative overflow-hidden apollo-shadow bg-white/90 backdrop-blur-sm border-white/20 hover:shadow-xl transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">{metric.name}</p>
-                    <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
-                    <div className={`flex items-center mt-1 text-sm ${
+                    <p className="text-sm font-medium text-gray-600 mb-1">{metric.name}</p>
+                    <p className="text-3xl font-bold text-gray-900 mb-2">{metric.value}</p>
+                    <div className={`flex items-center text-sm font-medium ${
                       metric.trend === 'up' ? 'text-green-600' : 
                       metric.trend === 'down' ? 'text-red-600' : 'text-gray-600'
                     }`}>
                       <span>{metric.change}</span>
-                      <span className="ml-1">vs last month</span>
+                      <span className="ml-1 font-normal opacity-75">vs last month</span>
                     </div>
                   </div>
-                  <div className={`p-3 rounded-full ${
-                    metric.trend === 'up' ? 'bg-green-100' : 
+                  <div className={`p-4 rounded-2xl ${
+                    metric.trend === 'up' ? 'apollo-gradient-accent' : 
                     metric.trend === 'down' ? 'bg-red-100' : 'bg-gray-100'
                   }`}>
-                    <Icon className={`h-6 w-6 ${
-                      metric.trend === 'up' ? 'text-green-600' : 
+                    <Icon className={`h-8 w-8 ${
+                      metric.trend === 'up' ? 'text-white' : 
                       metric.trend === 'down' ? 'text-red-600' : 'text-gray-600'
                     }`} />
                   </div>
@@ -292,38 +299,39 @@ const Dashboard = () => {
             </Card>
           );
         })}
-      </div>
-
-      {/* Quick Actions */}
-      <Card>
+      </div>      {/* Quick Actions */}
+      <Card className="apollo-shadow bg-white/90 backdrop-blur-sm border-white/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="apollo-gradient-accent p-2 rounded-lg">
+              <BarChart3 className="h-6 w-6 text-white" />
+            </div>
             Quick Actions
           </CardTitle>
-        </CardHeader>        <CardContent>
+        </CardHeader>
+        <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link to="/search" className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors">
-              <Search className="h-8 w-8 text-blue-600 mb-2" />
-              <span className="text-sm font-medium">Search Comments</span>
+            <Link to="/search" className="group flex flex-col items-center p-6 rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:apollo-gradient-accent hover:text-white transition-all duration-300 transform hover:scale-105">
+              <Search className="h-10 w-10 text-blue-600 group-hover:text-white mb-3 transition-colors" />
+              <span className="text-sm font-semibold">Search Comments</span>
             </Link>
-            <Link to="/ratings" className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors">
-              <BarChart3 className="h-8 w-8 text-green-600 mb-2" />
-              <span className="text-sm font-medium">View Ratings</span>
+            <Link to="/ratings" className="group flex flex-col items-center p-6 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-green-500 hover:text-white transition-all duration-300 transform hover:scale-105">
+              <BarChart3 className="h-10 w-10 text-green-600 group-hover:text-white mb-3 transition-colors" />
+              <span className="text-sm font-semibold">View Ratings</span>
             </Link>
-            <Link to="/issues" className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors">
-              <AlertTriangle className="h-8 w-8 text-orange-600 mb-2" />
-              <span className="text-sm font-medium">Track Issues</span>
+            <Link to="/issues" className="group flex flex-col items-center p-6 rounded-xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-500 hover:text-white transition-all duration-300 transform hover:scale-105">
+              <AlertTriangle className="h-10 w-10 text-orange-600 group-hover:text-white mb-3 transition-colors" />
+              <span className="text-sm font-semibold">Track Issues</span>
             </Link>
             {user?.role === 'superadmin' ? (
-              <Link to="/users" className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors">
-                <Users className="h-8 w-8 text-purple-600 mb-2" />
-                <span className="text-sm font-medium">Manage Users</span>
+              <Link to="/users" className="group flex flex-col items-center p-6 rounded-xl border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-500 hover:text-white transition-all duration-300 transform hover:scale-105">
+                <Users className="h-10 w-10 text-purple-600 group-hover:text-white mb-3 transition-colors" />
+                <span className="text-sm font-semibold">Manage Users</span>
               </Link>
             ) : (
-              <Link to="/metrics" className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                <TrendingUp className="h-8 w-8 text-purple-600 mb-2" />
-                <span className="text-sm font-medium">Analyze Metrics</span>
+              <Link to="/metrics" className="group flex flex-col items-center p-6 rounded-xl border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-500 hover:text-white transition-all duration-300 transform hover:scale-105">
+                <TrendingUp className="h-10 w-10 text-purple-600 group-hover:text-white mb-3 transition-colors" />
+                <span className="text-sm font-semibold">Analyze Metrics</span>
               </Link>
             )}
           </div>
@@ -331,78 +339,106 @@ const Dashboard = () => {
       </Card>
 
       {/* Recent Activity */}
-      <Card>
+      <Card className="apollo-shadow bg-white/90 backdrop-blur-sm border-white/20">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="apollo-gradient-secondary p-2 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-white" />
+            </div>
+            Recent Activity
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-3 h-3 apollo-gradient-accent rounded-full apollo-animate-float"></div>
               <div className="flex-1">
-                <p className="text-sm font-medium">New ratings data available</p>
-                <p className="text-xs text-gray-500">2 hours ago</p>
+                <p className="text-sm font-semibold text-gray-900">New ratings data available</p>                <p className="text-xs text-gray-500 font-medium">2 hours ago</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="flex items-center space-x-4">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
               <div className="flex-1">
-                <p className="text-sm font-medium">Dashboard data refreshed</p>
-                <p className="text-xs text-gray-500">4 hours ago</p>
+                <p className="text-sm font-semibold text-gray-900">Dashboard data refreshed</p>
+                <p className="text-xs text-gray-500 font-medium">4 hours ago</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <div className="flex items-center space-x-4">
+              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
               <div className="flex-1">
-                <p className="text-sm font-medium">Issue alert: 3 new critical feedback items</p>
-                <p className="text-xs text-gray-500">6 hours ago</p>
+                <p className="text-sm font-semibold text-gray-900">Issue alert: 3 new critical feedback items</p>
+                <p className="text-xs text-gray-500 font-medium">6 hours ago</p>
               </div>
             </div>
-          </div>        </CardContent>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Charts and Data Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Satisfaction Trend */}
-        <Card>
+        <Card className="apollo-shadow bg-white/90 backdrop-blur-sm border-white/20">
           <CardHeader>
-            <CardTitle>Satisfaction Trend</CardTitle>
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="apollo-gradient-primary p-2 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+              Satisfaction Trend
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="satisfaction" fill="#3B82F6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
+                <XAxis dataKey="month" tick={{ fill: '#6b7280' }} />
+                <YAxis tick={{ fill: '#6b7280' }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '12px',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                  }}
+                />
+                <Bar dataKey="satisfaction" fill="url(#apolloGradient)" radius={[4, 4, 0, 0]} />
+                <defs>
+                  <linearGradient id="apolloGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--apollo-primary))" />
+                    <stop offset="100%" stopColor="hsl(var(--apollo-accent))" />
+                  </linearGradient>
+                </defs>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Fleet Overview */}
-        <Card>
+        <Card className="apollo-shadow bg-white/90 backdrop-blur-sm border-white/20">
           <CardHeader>
-            <CardTitle>Fleet Overview</CardTitle>
-          </CardHeader>
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="apollo-gradient-secondary p-2 rounded-lg">
+                <Ship className="h-6 w-6 text-white" />
+              </div>
+              Fleet Overview
+            </CardTitle>          </CardHeader>
           <CardContent>
             {dashboardData?.fleets && (
               <div className="space-y-4">
                 {dashboardData.fleets.map((fleet: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
                     <div>
-                      <h3 className="font-semibold capitalize">{fleet.fleet}</h3>
-                      <p className="text-sm text-gray-600">{fleet.ships.length} ships</p>
+                      <h3 className="font-bold text-gray-900 capitalize">{fleet.fleet}</h3>
+                      <p className="text-sm text-gray-600 font-medium">{fleet.ships.length} ships</p>
                     </div>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-2">
                       {fleet.ships.slice(0, 3).map((ship: string) => (
-                        <Badge key={ship} variant="secondary" className="text-xs">
+                        <Badge key={ship} className="apollo-gradient-accent text-white font-medium">
                           {ship}
                         </Badge>
                       ))}
                       {fleet.ships.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs font-medium border-gray-300">
                           +{fleet.ships.length - 3} more
                         </Badge>
                       )}
@@ -412,7 +448,8 @@ const Dashboard = () => {
               </div>
             )}
           </CardContent>
-        </Card>      </div>
+        </Card>
+      </div>
     </div>
   );
 };

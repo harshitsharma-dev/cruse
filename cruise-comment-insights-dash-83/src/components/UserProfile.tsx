@@ -54,36 +54,40 @@ const UserProfile = () => {
   const handlePasswordReset = () => {
     // Implementation for password reset
     alert('Password reset instructions have been sent to your email address.');
-  };
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <User className="h-8 w-8 text-blue-600" />
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">User Profile</h1>
-            <p className="text-gray-600">Manage your account settings and preferences</p>
+  };  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="apollo-gradient-primary rounded-2xl p-8 text-white apollo-shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 bg-white/20 rounded-full flex items-center justify-center">
+              <User className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold mb-2">User Profile</h1>
+              <p className="text-blue-100 text-lg">Manage your Apollo account settings and preferences</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge 
-            className={`${
-              user?.role === 'superadmin' ? 'bg-red-100 text-red-700' :
-              user?.role === 'admin' ? 'bg-blue-100 text-blue-700' :
-              'bg-green-100 text-green-700'
-            }`}
-            variant="secondary"
-          >
-            {user?.role === 'superadmin' ? 'Super Administrator' :
-             user?.role === 'admin' ? 'Administrator' : 'User'}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge 
+              className={`px-4 py-2 text-sm font-semibold ${
+                user?.role === 'superadmin' ? 'bg-red-100 text-red-800' :
+                user?.role === 'admin' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-green-100 text-green-800'
+              }`}
+              variant="secondary"
+            >
+              {user?.role === 'superadmin' ? 'Super Administrator' :
+               user?.role === 'admin' ? 'Administrator' : 'User'}
+            </Badge>          </div>
         </div>
       </div>
 
-      <Card>
+      <Card className="apollo-shadow bg-white/95 backdrop-blur-sm border-white/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="apollo-gradient-accent p-2 rounded-lg">
+              <User className="h-6 w-6 text-white" />
+            </div>
             Personal Information
           </CardTitle>
         </CardHeader>

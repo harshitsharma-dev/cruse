@@ -121,21 +121,23 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
         </CardContent>
       </Card>
     );
-  }
-  return (
-    <Card className={cn("w-full", compact ? "border-0 shadow-none bg-gray-50" : "", className)}>
+  }  return (
+    <Card className={cn("w-full apollo-shadow bg-white/95 backdrop-blur-sm border-white/20", compact ? "border-0 shadow-none bg-gray-50" : "", className)}>
       {showTitle && (
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Filter className="h-5 w-5" />
-            Filters
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="apollo-gradient-primary p-2 rounded-lg">
+              <Filter className="h-6 w-6 text-white" />
+            </div>
+            Apollo Filters
           </CardTitle>
         </CardHeader>
       )}
-      <CardContent className={cn("space-y-6", compact ? "p-4" : "p-6")}>        {/* Fleet Selection */}
+      <CardContent className={cn("space-y-6", compact ? "p-4" : "p-6")}>
+        {/* Fleet Selection */}
         <div>
-          <Label className="text-sm font-medium">Fleet Selection</Label>
-          <div className="mt-2">
+          <Label className="text-sm font-semibold text-gray-700">Fleet Selection</Label>
+          <div className="mt-3">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
