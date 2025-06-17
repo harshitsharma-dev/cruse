@@ -81,10 +81,10 @@ const Dashboard = () => {
     };
 
     fetchDashboardData();
-  }, []);
-  // Calculate key metrics from real data
+  }, []);  // Calculate key metrics from real data
   const calculateKeyMetrics = () => {
-    if (!dashboardData?.currentRatings || !dashboardData?.previousRatings) {
+    if (!dashboardData?.currentRatings || !Array.isArray(dashboardData.currentRatings) || 
+        !dashboardData?.previousRatings || !Array.isArray(dashboardData.previousRatings)) {
       return [
         { name: 'Overall Satisfaction', value: 'N/A', change: 'N/A', trend: 'neutral', icon: TrendingUp },
         { name: 'Total Comments', value: 'N/A', change: 'N/A', trend: 'neutral', icon: Users },
@@ -93,8 +93,8 @@ const Dashboard = () => {
       ];
     }
 
-    const currentData = dashboardData.currentRatings;
-    const previousData = dashboardData.previousRatings;
+    const currentData = Array.isArray(dashboardData.currentRatings) ? dashboardData.currentRatings : [];
+    const previousData = Array.isArray(dashboardData.previousRatings) ? dashboardData.previousRatings : [];
 
     // Calculate Overall Satisfaction (average of 'Overall Holiday' ratings)
     const currentSatisfaction = currentData.length > 0 
@@ -159,10 +159,9 @@ const Dashboard = () => {
     ];
   };
 
-  const keyMetrics = calculateKeyMetrics();
-  // Generate chart data from real API data
+  const keyMetrics = calculateKeyMetrics();  // Generate chart data from real API data
   const generateChartData = () => {
-    if (!dashboardData?.currentRatings || dashboardData.currentRatings.length === 0) {
+    if (!dashboardData?.currentRatings || !Array.isArray(dashboardData.currentRatings) || dashboardData.currentRatings.length === 0) {
       return [
         { month: 'No Data', satisfaction: 0, comments: 0 },
       ];
@@ -421,23 +420,22 @@ const Dashboard = () => {
                 <Ship className="h-6 w-6 text-white" />
               </div>
               Fleet Overview
-            </CardTitle>          </CardHeader>
-          <CardContent>
-            {dashboardData?.fleets && (
+            </CardTitle>          </CardHeader>          <CardContent>
+            {dashboardData?.fleets && Array.isArray(dashboardData.fleets) && (
               <div className="space-y-4">
                 {dashboardData.fleets.map((fleet: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
                     <div>
                       <h3 className="font-bold text-gray-900 capitalize">{fleet.fleet}</h3>
-                      <p className="text-sm text-gray-600 font-medium">{fleet.ships.length} ships</p>
+                      <p className="text-sm text-gray-600 font-medium">{Array.isArray(fleet.ships) ? fleet.ships.length : 0} ships</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {fleet.ships.slice(0, 3).map((ship: string) => (
+                      {Array.isArray(fleet.ships) && fleet.ships.slice(0, 3).map((ship: string) => (
                         <Badge key={ship} className="apollo-gradient-accent text-white font-medium">
                           {ship}
                         </Badge>
                       ))}
-                      {fleet.ships.length > 3 && (
+                      {Array.isArray(fleet.ships) && fleet.ships.length > 3 && (
                         <Badge variant="outline" className="text-xs font-medium border-gray-300">
                           +{fleet.ships.length - 3} more
                         </Badge>
