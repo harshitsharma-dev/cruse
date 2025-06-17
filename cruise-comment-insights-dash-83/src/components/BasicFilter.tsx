@@ -85,43 +85,33 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
   };  const handleApplyFilters = () => {
     handleDateRangeApply();
     
-    // Prepare filter data based on backend expectations from Latest_flask_comments.py
+    // Prepare filter data based on backend expectations
     let filterData;
-      if (useAllDates) {
-      // For "All Dates", use sailing mode with all available sailings
+    
+    if (useAllDates) {
+      // For "All Dates", send all available data
       filterData = {
-        filter_by: 'sailing',
-        sailings: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
-          ? selectedSailingNumbers.map(num => ({ shipName: 'Explorer', sailingNumber: num }))
-          : [
-              { shipName: 'Explorer', sailingNumber: '1' },
-              { shipName: 'Explorer 2', sailingNumber: '1' },
-              { shipName: 'Discovery', sailingNumber: '1' },
-              { shipName: 'Discovery 2', sailingNumber: '1' },
-              { shipName: 'Voyager', sailingNumber: '1' }
-            ]
+        fleets: safeFilterState.fleets,
+        ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix
+        start_date: null,
+        end_date: null,
+        sailing_numbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
+          ? selectedSailingNumbers 
+          : []
       };
     } else {
-      // For specific date range, use date mode
+      // For specific date range
       filterData = {
-        filter_by: 'date',
-        filters: {
-          fromDate: startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate,
-          toDate: endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate
-        }
+        fleets: safeFilterState.fleets,
+        ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix
+        start_date: startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate,
+        end_date: endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate,
+        sailing_numbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
+          ? selectedSailingNumbers 
+          : []
       };
-    }
-    
-    // Add additional metadata for UI components (not sent to backend)
-    const uiFilterData = {
-      ...filterData,
-      fleets: safeFilterState.fleets,
-      ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix
-      sailingNumbers: selectedSailingNumbers.length > 0 ? selectedSailingNumbers : ["-1"],
-      useAllDates: useAllDates
-    };
-      console.log('BasicFilter sending filter data:', filterData);
-    console.log('UI filter data:', uiFilterData);
+    }    
+    console.log('BasicFilter sending filter data:', filterData);
     
     // Show applied feedback
     setFiltersApplied(true);
@@ -130,7 +120,7 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     // Call the parent component's filter change handler
     onFilterChange?.(filterData);
     onApplyFilters?.();
-  };  const handleResetFilters = () => {
+  };const handleResetFilters = () => {
     resetFilters();
     setStartDate(undefined);
     setEndDate(undefined);

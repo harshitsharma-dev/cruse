@@ -97,11 +97,19 @@ const RatingSummary = () => {
       const requestPayload = newFilters;
       
       console.log('RatingSummary: Sending request with payload:', requestPayload);
-      
-      const response = await apiService.getRatingSummary(requestPayload);
+        const response = await apiService.getRatingSummary(requestPayload);
       console.log('Rating summary response:', response);
       console.log('Response data:', response.data);
-      setRatingsData(response.data || []);
+      
+      // Ensure we always set an array
+      const responseData = response?.data;
+      if (Array.isArray(responseData)) {
+        setRatingsData(responseData);
+        console.log('RatingSummary: Data loaded successfully, count:', responseData.length);
+      } else {
+        console.warn('RatingSummary: Response data is not an array:', responseData);
+        setRatingsData([]);
+      }
     } catch (error) {
       console.error('Error fetching ratings:', error);
       alert('Failed to fetch ratings data. Please try again.');
@@ -110,9 +118,8 @@ const RatingSummary = () => {
       setLoading(false);
     }
   };
-
   const exportToExcel = () => {
-    if (ratingsData.length === 0) {
+    if (!Array.isArray(ratingsData) || ratingsData.length === 0) {
       alert('No data to export');
       return;
     }
@@ -140,9 +147,12 @@ const RatingSummary = () => {
     if (numRating >= 6) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
-
   const generateChartData = (groupKey: string) => {
     const group = ratingGroups[groupKey as keyof typeof ratingGroups];
+    
+    if (!Array.isArray(ratingsData) || ratingsData.length === 0) {
+      return [];
+    }
     
     return ratingsData.map((rating, index) => {
       const chartItem: any = {
@@ -255,7 +265,7 @@ const RatingSummary = () => {
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             <span className="ml-2 text-gray-600">Loading ratings data...</span>
           </div>
-        ) : ratingsData.length === 0 ? (
+        ) : (!Array.isArray(ratingsData) || ratingsData.length === 0) ? (
           <Card>
             <CardContent className="py-12">
               <div className="text-center text-gray-500">
@@ -288,9 +298,8 @@ const RatingSummary = () => {
                         </th>
                       ))}
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {ratingsData.map((rating, index) => (
+                  </thead>                  <tbody className="divide-y divide-gray-200">
+                    {Array.isArray(ratingsData) && ratingsData.map((rating, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {rating['Ship Name'] || 'N/A'}
