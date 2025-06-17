@@ -96,16 +96,34 @@ const RatingSummary = () => {
       // Use the exact payload format that BasicFilter sends, which matches backend expectations
       const requestPayload = newFilters;
       
-      console.log('RatingSummary: Sending request with payload:', requestPayload);
-        const response = await apiService.getRatingSummary(requestPayload);
+      console.log('RatingSummary: Sending request with payload:', requestPayload);        const response = await apiService.getRatingSummary(requestPayload);
       console.log('Rating summary response:', response);
       console.log('Response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      console.log('Is response.data an array?', Array.isArray(response.data));
+      console.log('Response data constructor:', response.data?.constructor?.name);
       
-      // Ensure we always set an array
-      const responseData = response?.data;
+      // Handle different response formats
+      let responseData;
+      if (response?.data) {
+        responseData = response.data;
+      } else if (Array.isArray(response)) {
+        responseData = response;
+      } else {
+        responseData = [];
+      }
+        console.log('Final responseData type:', typeof responseData);
+      console.log('Is final responseData an array?', Array.isArray(responseData));
+      
+      // Force array treatment if it looks like array data
       if (Array.isArray(responseData)) {
         setRatingsData(responseData);
         console.log('RatingSummary: Data loaded successfully, count:', responseData.length);
+      } else if (responseData && typeof responseData === 'object' && responseData.length !== undefined) {
+        // Sometimes arrays can lose their Array prototype, try to convert
+        const arrayData = Array.from(responseData);
+        setRatingsData(arrayData);
+        console.log('RatingSummary: Data converted to array, count:', arrayData.length);
       } else {
         console.warn('RatingSummary: Response data is not an array:', responseData);
         setRatingsData([]);
