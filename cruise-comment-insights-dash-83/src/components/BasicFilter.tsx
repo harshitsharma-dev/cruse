@@ -144,18 +144,19 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       // Only load if we have ships selected
       if (safeFilterState.ships.length === 0) {
         return;
-      }
-
-      try {
+      }      try {
+        // Extract just ship names (remove fleet prefix)
+        const shipNamesOnly = safeFilterState.ships.map(ship => ship.split(':')[1]);
+        
         if (!useAllDates && startDate && endDate) {
           const startDateStr = format(startDate, 'yyyy-MM-dd');
           const endDateStr = format(endDate, 'yyyy-MM-dd');
-          console.log('Loading sailing numbers for specific dates:', { startDateStr, endDateStr, ships: safeFilterState.ships });
-          await loadSailingNumbers(safeFilterState.ships, startDateStr, endDateStr);
+          console.log('Loading sailing numbers for specific dates:', { startDateStr, endDateStr, ships: shipNamesOnly });
+          await loadSailingNumbers(shipNamesOnly, startDateStr, endDateStr);
         } else if (useAllDates) {
           // For "All Dates", send "-1" as date parameters
-          console.log('Loading sailing numbers for all dates:', { ships: safeFilterState.ships });
-          await loadSailingNumbers(safeFilterState.ships, '-1', '-1');
+          console.log('Loading sailing numbers for all dates:', { ships: shipNamesOnly });
+          await loadSailingNumbers(shipNamesOnly, '-1', '-1');
         }
       } catch (error) {
         console.error('Error loading sailing numbers in BasicFilter:', error);
