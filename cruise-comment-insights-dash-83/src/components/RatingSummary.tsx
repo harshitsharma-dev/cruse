@@ -98,28 +98,30 @@ const RatingSummary = () => {
       
       console.log('RatingSummary: Sending request with payload:', requestPayload);        const response = await apiService.getRatingSummary(requestPayload);
       console.log('Rating summary response:', response);
-      console.log('Response data:', response.data);
       console.log('Response data type:', typeof response.data);
-      console.log('Is response.data an array?', Array.isArray(response.data));
-      console.log('Response data constructor:', response.data?.constructor?.name);
-      
-      // Handle different response formats
+        // Handle different response formats
       let responseData;
       if (response?.data) {
         responseData = response.data;
+        // If the data is a string (JSON), parse it
+        if (typeof responseData === 'string') {
+          try {
+            responseData = JSON.parse(responseData);
+            console.log('Parsed JSON string to object/array');
+          } catch (parseError) {
+            console.error('Failed to parse JSON string:', parseError);
+            responseData = [];
+          }
+        }
       } else if (Array.isArray(response)) {
         responseData = response;
       } else {
         responseData = [];
       }
-        console.log('Final responseData type:', typeof responseData);
-      console.log('Is final responseData an array?', Array.isArray(responseData));
-      
-      // Force array treatment if it looks like array data
+        
       if (Array.isArray(responseData)) {
         setRatingsData(responseData);
-        console.log('RatingSummary: Data loaded successfully, count:', responseData.length);
-      } else if (responseData && typeof responseData === 'object' && responseData.length !== undefined) {
+        console.log('RatingSummary: Data loaded successfully, count:', responseData.length);      } else if (responseData && typeof responseData === 'object' && responseData.length !== undefined) {
         // Sometimes arrays can lose their Array prototype, try to convert
         const arrayData = Array.from(responseData);
         setRatingsData(arrayData);
