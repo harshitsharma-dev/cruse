@@ -89,6 +89,9 @@ const Issues = () => {
       console.log('Issues response data:', response.data);
       console.log('Issues response data type:', typeof response.data);
       console.log('Sailing summaries data:', response.data?.sailing_summaries);
+      console.log('All issues data:', response.data?.all_issues);
+      console.log('Sailing summaries count:', response.data?.sailing_summaries?.length || 0);
+      console.log('All issues count:', response.data?.all_issues?.length || 0);
       
       setIssuesData(response.data);
     } catch (error) {
@@ -242,37 +245,28 @@ const Issues = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {/* Display sailing summaries if available */}
+              <div className="space-y-4">                {/* Display sailing summaries if available */}
                 {issuesData.sailing_summaries && Array.isArray(issuesData.sailing_summaries) ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-4">
                     {issuesData.sailing_summaries.map((sailing: any, index: number) => (
-                      <div key={index} className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium text-gray-900">{sailing.ship || 'Unknown Ship'}</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {sailing.sailing_number || 'N/A'}
-                          </Badge>
+                      <div key={index} className="p-6 border border-gray-200 rounded-lg hover:shadow-md transition-shadow bg-white">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-bold text-lg text-gray-900 capitalize">
+                              {sailing.ship_name || 'Unknown Ship'}
+                            </h4>
+                            <Badge variant="outline" className="mt-1">
+                              {sailing.sailing_number || 'N/A'}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Total Issues:</span>
-                            <span className="font-medium text-red-600">{sailing.total_issues || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Resolved:</span>
-                            <span className="font-medium text-green-600">{sailing.resolved_issues || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Pending:</span>
-                            <span className="font-medium text-yellow-600">{sailing.pending_issues || 0}</span>
-                          </div>
-                          {sailing.start_date && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Start Date:</span>
-                              <span className="text-gray-800">{sailing.start_date}</span>
-                            </div>
-                          )}
+                        
+                        {/* Sailing Summary Text */}
+                        <div className="mt-4">
+                          <h5 className="font-medium text-gray-800 mb-2">Summary:</h5>
+                          <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg">
+                            {sailing.sailing_summary || 'No summary available'}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -323,9 +317,7 @@ const Issues = () => {
                 )}
               </div>
             </CardContent>
-          </Card>
-
-          {/* Issues Overview Section - Second */}
+          </Card>          {/* All Issues Overview Section - Second */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -334,60 +326,36 @@ const Issues = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {issuesData.sailing_summaries ? issuesData.sailing_summaries.length : 0}
+                  </div>
+                  <p className="text-sm text-gray-600">Sailings Analyzed</p>
+                </div>
                 <div className="text-center p-4 bg-red-50 rounded-lg">
                   <div className="text-2xl font-bold text-red-600">
-                    {issuesData.total_issues || 0}
+                    {issuesData.all_issues ? issuesData.all_issues.length : 0}
                   </div>
-                  <p className="text-sm text-gray-600">Total Issues</p>
+                  <p className="text-sm text-gray-600">Total Issues Found</p>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {issuesData.all_issues ? 
+                      [...new Set(issuesData.all_issues.map((issue: any) => issue.sheet_name))].length : 0}
+                  </div>
+                  <p className="text-sm text-gray-600">Issue Categories</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {issuesData.resolved_issues || 0}
+                    {issuesData.all_issues ? 
+                      [...new Set(issuesData.all_issues.map((issue: any) => issue.ship_name))].length : 0}
                   </div>
-                  <p className="text-sm text-gray-600">Resolved Issues</p>
-                </div>
-                <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {issuesData.unresolved_issues || 0}
-                  </div>
-                  <p className="text-sm text-gray-600">Unresolved Issues</p>
+                  <p className="text-sm text-gray-600">Ships Covered</p>
                 </div>
               </div>
-              
-              {/* Additional metrics if available */}
-              {(issuesData.critical_issues || issuesData.pending_issues || issuesData.categories) && (
-                <div className="mt-6 pt-6 border-t">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {issuesData.critical_issues !== undefined && (
-                      <div className="text-center p-3 bg-orange-50 rounded-lg">
-                        <div className="text-xl font-bold text-orange-600">
-                          {issuesData.critical_issues}
-                        </div>
-                        <p className="text-xs text-gray-600">Critical Issues</p>
-                      </div>
-                    )}
-                    {issuesData.pending_issues !== undefined && (
-                      <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <div className="text-xl font-bold text-blue-600">
-                          {issuesData.pending_issues}
-                        </div>
-                        <p className="text-xs text-gray-600">Pending Issues</p>
-                      </div>
-                    )}
-                    {issuesData.categories && (
-                      <div className="text-center p-3 bg-purple-50 rounded-lg">
-                        <div className="text-xl font-bold text-purple-600">
-                          {Array.isArray(issuesData.categories) ? issuesData.categories.length : issuesData.categories}
-                        </div>
-                        <p className="text-xs text-gray-600">Issue Categories</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </CardContent>
-          </Card>          {/* Detailed Issues Analysis - All Issues */}
+          </Card>{/* Detailed Issues Analysis - All Issues */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -425,47 +393,37 @@ const Issues = () => {
                     </div>
                   </div>
                 )}
-                
-                {/* All Issues List - if available */}
+                  {/* All Issues List - if available */}
                 {issuesData.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
                   <div className="mt-6">
                     <h4 className="font-medium mb-4 text-lg">All Issues Details</h4>
-                    <div className="space-y-3 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                    <div className="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
                       {issuesData.all_issues.map((issue: any, index: number) => (
-                        <div key={index} className="p-3 bg-gray-50 rounded-lg border-l-4 border-red-400">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="font-medium text-gray-900">
-                              {issue.ship || 'Unknown Ship'} - {issue.sailing_number || 'N/A'}
+                        <div key={index} className="p-4 bg-gray-50 rounded-lg border-l-4 border-red-400">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <div className="font-bold text-gray-900 capitalize">
+                                {issue.ship_name || 'Unknown Ship'}
+                              </div>
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {issue.sailing_number || 'N/A'}
+                              </Badge>
                             </div>
-                            <div className="flex gap-2">
-                              {issue.status && (
-                                <Badge 
-                                  variant={issue.status === 'resolved' ? 'default' : 'destructive'}
-                                  className="text-xs"
-                                >
-                                  {issue.status}
-                                </Badge>
-                              )}
-                              {issue.priority && (
-                                <Badge variant="outline" className="text-xs">
-                                  {issue.priority}
+                            <div className="flex flex-col gap-1">
+                              {issue.sheet_name && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {issue.sheet_name}
                                 </Badge>
                               )}
                             </div>
                           </div>
-                          <div className="text-sm space-y-1">
-                            {issue.sheet && (
-                              <div><strong>Sheet:</strong> {issue.sheet}</div>
-                            )}
-                            {issue.category && (
-                              <div><strong>Category:</strong> {issue.category}</div>
-                            )}
-                            {issue.description && (
-                              <div><strong>Issue:</strong> {issue.description}</div>
-                            )}
-                            {issue.date && (
-                              <div><strong>Date:</strong> {issue.date}</div>
-                            )}
+                          
+                          {/* Issue Content */}
+                          <div className="mt-3">
+                            <h5 className="font-medium text-gray-800 mb-2">Issues Identified:</h5>
+                            <div className="text-sm text-gray-700 leading-relaxed bg-white p-3 rounded border max-h-32 overflow-y-auto">
+                              {issue.issues || 'No detailed issues available'}
+                            </div>
                           </div>
                         </div>
                       ))}
