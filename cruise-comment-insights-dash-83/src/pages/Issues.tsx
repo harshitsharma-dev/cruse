@@ -202,28 +202,7 @@ const Issues = () => {
                     </div>
                   )}
                 </div>
-              )}
-            </div>              {/* Debug info for button state */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="p-3 bg-gray-100 rounded text-xs mb-4 space-y-1">
-                <p><strong>Debug Info:</strong></p>
-                <p>Loading: {loading.toString()}</p>
-                <p>UseAllDates: {filters?.useAllDates?.toString()}</p>
-                <p>FromDate: {filters?.fromDate || 'undefined'}</p>
-                <p>ToDate: {filters?.toDate || 'undefined'}</p>
-                <p>Fleets: {JSON.stringify(filters?.fleets)}</p>
-                <p>Ships: {JSON.stringify(filters?.ships)}</p>
-                <p>SailingNumbers: {JSON.stringify(filters?.sailingNumbers)}</p>
-                <p>SelectedSheets: {JSON.stringify(selectedSheets)}</p>
-                <p>SheetsLoading: {sheetsLoading.toString()}</p>
-                <p>Button disabled: {(loading || sheetsLoading).toString()}</p>
-                <p>IssuesData available: {issuesData ? 'yes' : 'no'}</p>
-                {issuesData && (
-                  <p>IssuesData: {JSON.stringify(issuesData, null, 2)}</p>
-                )}
-              </div>
-            )}
-            
+              )}            </div>            
             <Button 
               onClick={fetchIssues} 
               className="w-full bg-blue-600 hover:bg-blue-700"
@@ -316,74 +295,24 @@ const Issues = () => {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>          {/* All Issues Overview Section - Second */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                All Issues Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {issuesData.sailing_summaries ? issuesData.sailing_summaries.length : 0}
-                  </div>
-                  <p className="text-sm text-gray-600">Sailings Analyzed</p>
-                </div>
-                <div className="text-center p-4 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">
-                    {issuesData.all_issues ? issuesData.all_issues.length : 0}
-                  </div>
-                  <p className="text-sm text-gray-600">Total Issues Found</p>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {issuesData.all_issues ? 
-                      [...new Set(issuesData.all_issues.map((issue: any) => issue.sheet_name))].length : 0}
-                  </div>
-                  <p className="text-sm text-gray-600">Issue Categories</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {issuesData.all_issues ? 
-                      [...new Set(issuesData.all_issues.map((issue: any) => issue.ship_name))].length : 0}
-                  </div>
-                  <p className="text-sm text-gray-600">Ships Covered</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>{/* Detailed Issues Analysis - All Issues */}
+            </CardContent>          </Card>
+
+          {/* Detailed Issues Analysis - All Issues */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-orange-600" />
                 All Issues - Detailed Analysis
               </CardTitle>
-            </CardHeader>
-            <CardContent>
+            </CardHeader>            <CardContent>
               <div className="space-y-4">
                 <p className="text-gray-600">
-                  <strong>Complete Issues Breakdown:</strong> Based on the selected filters, we found {issuesData.total_issues || 0} total issues across your selected criteria.
-                  {(issuesData.resolved_issues || 0) > 0 && ` ${issuesData.resolved_issues} have been resolved.`}
-                  {(issuesData.unresolved_issues || 0) > 0 && ` ${issuesData.unresolved_issues} require attention.`}
-                </p>
+                  <strong>Complete Issues Breakdown:</strong> Analysis of {issuesData.sailing_summaries ? issuesData.sailing_summaries.length : 0} sailings 
+                  revealing {issuesData.all_issues ? issuesData.all_issues.length : 0} detailed issue reports across 
+                  {issuesData.all_issues ? [...new Set(issuesData.all_issues.map((issue: any) => issue.sheet_name))].length : 0} different categories.                </p>
                 
-                {/* Additional details if available */}
-                {issuesData.details && (
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium mb-2">Additional Details:</h4>
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {typeof issuesData.details === 'string' 
-                        ? issuesData.details 
-                        : JSON.stringify(issuesData.details, null, 2)}
-                    </pre>
-                  </div>
-                )}
-                  {/* Categories breakdown if available */}
-                {issuesData.categories && Array.isArray(issuesData.categories) && (
+                {/* Category breakdown */}
+                {issuesData.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
                   <div className="mt-4">
                     <h4 className="font-medium mb-2">Issue Categories:</h4>
                     <div className="flex flex-wrap gap-2">
@@ -428,28 +357,7 @@ const Issues = () => {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-                
-                {/* Show message if no individual issues available */}
-                {(!issuesData.all_issues || !Array.isArray(issuesData.all_issues) || issuesData.all_issues.length === 0) && (
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-blue-700 text-sm">
-                      <strong>Note:</strong> Individual issue details are not available in the current response. 
-                      The summary above shows aggregated issue counts and statistics.
-                    </p>
-                  </div>
-                )}
-                
-                {/* Debug data display */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                    <h4 className="font-medium mb-2 text-yellow-800">Debug - Full Response Data:</h4>
-                    <pre className="text-xs text-yellow-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
-                      {JSON.stringify(issuesData, null, 2)}
-                    </pre>
-                  </div>
-                )}
+                  </div>                )}
               </div>
             </CardContent>
           </Card>
