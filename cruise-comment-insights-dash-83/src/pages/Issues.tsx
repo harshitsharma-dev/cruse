@@ -54,7 +54,7 @@ const Issues = () => {
     console.log('Available sheets from API:', sheetsData);
     
     setLoading(true);
-    try {      // Payload for the current backend /sailing/issuesSmry endpoint
+    try {      // Payload for the current backend /sailing/getIssuesList endpoint
       const requestData = {
         // Include all filter data for the backend to process
         ships: filters.ships && filters.ships.length > 0 
@@ -83,7 +83,7 @@ const Issues = () => {
       console.log('Final issues payload:', requestData);
       console.log('=== END PAYLOAD DEBUG ===');
       
-      console.log('Sending issues request to /sailing/issuesSmry...');
+      console.log('Sending issues request to /sailing/getIssuesList...');
       const response = await apiService.getIssuesSummary(requestData);      console.log('Issues response received:', response);
       console.log('Issues response status:', response.status);
       console.log('Issues response data:', response.data);
