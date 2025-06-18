@@ -47,32 +47,58 @@ const Issues = () => {
     setFilters(newFilters);
     console.log('Filters updated in Issues component');
   };
-
-  const fetchIssues = async () => {
-    console.log('=== ISSUES FETCH DEBUG START ===');
+  const fetchIssues = async () => {    console.log('=== ISSUES FETCH DEBUG START ===');
     console.log('Current filters object:', filters);
     console.log('Selected sheets:', selectedSheets);
     console.log('Sheets data:', sheetsData?.data);
+    console.log('Available sheets from API:', sheetsData);
     
     setLoading(true);
     try {
+      // Payload for the current backend /sailing/issuesSmry endpoint
       const requestData = {
-        // Updated to match new BasicFilter format
-        fleets: filters.fleets || [],
-        ships: filters.ships ? filters.ships.map((ship: string) => ship.split(':')[1] || ship) : [], // Remove fleet prefix
-        start_date: filters.useAllDates ? null : (filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
-        end_date: filters.useAllDates ? null : (filters.toDate || new Date().toISOString().split('T')[0]),
-        sailing_numbers: filters.sailingNumbers || [],
-        sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || []
+        // Include all filter data for the backend to process
+        ships: filters.ships && filters.ships.length > 0 
+          ? filters.ships.map((ship: string) => ship.split(':')[1] || ship) // Remove fleet prefix
+          : [],
+        sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 
+          ? filters.sailingNumbers 
+          : [],
+        sheets: selectedSheets.length > 0 
+          ? selectedSheets 
+          : (sheetsData?.data && sheetsData.data.length > 0 ? sheetsData.data : []),
+        // Include date filters if not using all dates
+        use_all_dates: filters.useAllDates,
+        from_date: filters.useAllDates ? null : filters.fromDate,
+        to_date: filters.useAllDates ? null : filters.toDate,
+        fleets: filters.fleets || []
       };
 
+      console.log('=== ISSUES PAYLOAD DEBUG ===');
+      console.log('Raw filters.ships:', filters.ships);
+      console.log('Processed ships:', requestData.ships);
+      console.log('Raw filters.sailingNumbers:', filters.sailingNumbers);
+      console.log('Processed sailing_numbers:', requestData.sailing_numbers);
+      console.log('Selected sheets:', selectedSheets);
+      console.log('Processed sheets:', requestData.sheets);
+      console.log('Date filters - useAllDates:', requestData.use_all_dates);
+      console.log('Date filters - fromDate:', requestData.from_date);
+      console.log('Date filters - toDate:', requestData.to_date);
       console.log('Final issues payload:', requestData);
-      console.log('Sending issues request to API...');
+      console.log('=== END PAYLOAD DEBUG ===');
+      
+      console.log('Sending issues request to /sailing/issuesSmry...');
       const response = await apiService.getIssuesSummary(requestData);
       console.log('Issues response received:', response);
+      console.log('Issues response status:', response.status);
+      console.log('Issues response data:', response.data);
+      console.log('Issues response data type:', typeof response.data);
+      
       setIssuesData(response.data);
     } catch (error) {
       console.error('Error fetching issues details:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
       alert('Failed to fetch issues data. Please try again.');
     } finally {
       setLoading(false);
@@ -178,18 +204,24 @@ const Issues = () => {
                   )}
                 </div>
               )}
-            </div>            
-            {/* Debug info for button state */}
+            </div>              {/* Debug info for button state */}
             {process.env.NODE_ENV === 'development' && (
-              <div className="p-2 bg-gray-100 rounded text-xs mb-4">
+              <div className="p-3 bg-gray-100 rounded text-xs mb-4 space-y-1">
+                <p><strong>Debug Info:</strong></p>
                 <p>Loading: {loading.toString()}</p>
                 <p>UseAllDates: {filters?.useAllDates?.toString()}</p>
                 <p>FromDate: {filters?.fromDate || 'undefined'}</p>
                 <p>ToDate: {filters?.toDate || 'undefined'}</p>
                 <p>Fleets: {JSON.stringify(filters?.fleets)}</p>
                 <p>Ships: {JSON.stringify(filters?.ships)}</p>
+                <p>SailingNumbers: {JSON.stringify(filters?.sailingNumbers)}</p>
+                <p>SelectedSheets: {JSON.stringify(selectedSheets)}</p>
                 <p>SheetsLoading: {sheetsLoading.toString()}</p>
                 <p>Button disabled: {(loading || sheetsLoading).toString()}</p>
+                <p>IssuesData available: {issuesData ? 'yes' : 'no'}</p>
+                {issuesData && (
+                  <p>IssuesData: {JSON.stringify(issuesData, null, 2)}</p>
+                )}
               </div>
             )}
             
@@ -202,9 +234,7 @@ const Issues = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Results Section */}
+      </div>      {/* Results Section */}
       {issuesData ? (
         <div className="space-y-6">
           {/* Summary Overview */}
@@ -222,7 +252,8 @@ const Issues = () => {
                     {issuesData.total_issues || 0}
                   </div>
                   <p className="text-sm text-gray-600">Total Issues</p>
-                </div>                <div className="text-center p-4 bg-green-50 rounded-lg">
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
                     {issuesData.resolved_issues || 0}
                   </div>
@@ -235,20 +266,88 @@ const Issues = () => {
                   <p className="text-sm text-gray-600">Unresolved Issues</p>
                 </div>
               </div>
+              
+              {/* Additional metrics if available */}
+              {(issuesData.critical_issues || issuesData.pending_issues || issuesData.categories) && (
+                <div className="mt-6 pt-6 border-t">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {issuesData.critical_issues !== undefined && (
+                      <div className="text-center p-3 bg-orange-50 rounded-lg">
+                        <div className="text-xl font-bold text-orange-600">
+                          {issuesData.critical_issues}
+                        </div>
+                        <p className="text-xs text-gray-600">Critical Issues</p>
+                      </div>
+                    )}
+                    {issuesData.pending_issues !== undefined && (
+                      <div className="text-center p-3 bg-blue-50 rounded-lg">
+                        <div className="text-xl font-bold text-blue-600">
+                          {issuesData.pending_issues}
+                        </div>
+                        <p className="text-xs text-gray-600">Pending Issues</p>
+                      </div>
+                    )}
+                    {issuesData.categories && (
+                      <div className="text-center p-3 bg-purple-50 rounded-lg">
+                        <div className="text-xl font-bold text-purple-600">
+                          {Array.isArray(issuesData.categories) ? issuesData.categories.length : issuesData.categories}
+                        </div>
+                        <p className="text-xs text-gray-600">Issue Categories</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Additional Issues Analysis */}
+          {/* Detailed Issues Analysis */}
           <Card>
             <CardHeader>
               <CardTitle>Issues Analysis</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">
-                Based on the selected date range and sheets, we found {issuesData.total_issues || 0} total issues. 
-                {(issuesData.resolved_issues || 0) > 0 && ` ${issuesData.resolved_issues} have been resolved.`}
-                {(issuesData.unresolved_issues || 0) > 0 && ` ${issuesData.unresolved_issues} require attention.`}
-              </p>
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  Based on the selected filters, we found {issuesData.total_issues || 0} total issues across your selected criteria.
+                  {(issuesData.resolved_issues || 0) > 0 && ` ${issuesData.resolved_issues} have been resolved.`}
+                  {(issuesData.unresolved_issues || 0) > 0 && ` ${issuesData.unresolved_issues} require attention.`}
+                </p>
+                
+                {/* Additional details if available */}
+                {issuesData.details && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium mb-2">Additional Details:</h4>
+                    <pre className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {typeof issuesData.details === 'string' 
+                        ? issuesData.details 
+                        : JSON.stringify(issuesData.details, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                
+                {/* Categories breakdown if available */}
+                {issuesData.categories && Array.isArray(issuesData.categories) && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Issue Categories:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {issuesData.categories.map((category: string, index: number) => (
+                        <Badge key={index} variant="outline">{category}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Debug data display */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                    <h4 className="font-medium mb-2 text-yellow-800">Debug - Full Response Data:</h4>
+                    <pre className="text-xs text-yellow-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                      {JSON.stringify(issuesData, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -267,7 +366,10 @@ const Issues = () => {
             <div className="text-center text-gray-500">
               <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p className="text-lg font-medium mb-2">No data yet</p>
-              <p className="text-sm">Configure filters and click "Get Issues Summary" to view data</p>
+              <p className="text-sm">Configure your filters and click "Get Issues Summary" to view issues data</p>
+              <p className="text-xs mt-2 text-gray-400">
+                Select ships, date ranges, and issue sheets to analyze
+              </p>
             </div>
           </CardContent>
         </Card>

@@ -113,16 +113,11 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(searchData),
     });
-  }
-
-  async getIssuesSummary(filters: any) {
+  }  async getIssuesSummary(filters: any) {
+    console.log('API: Calling issuesSmry endpoint with filters:', filters);
     return this.request<{ 
       status: string; 
-      data: {
-        total_issues: number;
-        resolved_issues: number;
-        unresolved_issues: number;
-      };
+      data: any; // Handle any data structure from endpoint
     }>('/sailing/issuesSmry', {
       method: 'POST',
       body: JSON.stringify(filters),

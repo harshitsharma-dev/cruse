@@ -40,10 +40,10 @@ const RatingSummary = () => {
         console.log('RatingSummary: Loading default rating data:', defaultPayload);
         const response = await apiService.getRatingSummary(defaultPayload);
         console.log('RatingSummary: Default response received:', response);
-        
-        if (response && response.data) {
-          setRatingsData(Array.isArray(response.data) ? response.data : []);
-          console.log('RatingSummary: Data loaded successfully, count:', response.data.length);
+          if (response && response.data) {
+          const sortedData = sortDataByStartDate(Array.isArray(response.data) ? response.data : []);
+          setRatingsData(sortedData);
+          console.log('RatingSummary: Default data loaded and sorted by start date, count:', sortedData.length);
         } else {
           console.warn('RatingSummary: No data received from API');
           setRatingsData([]);
@@ -86,6 +86,84 @@ const RatingSummary = () => {
       title: 'Other Services',
       metrics: ['Prior Customer Service', 'Flight', 'App Booking']
     }
+  };  // Helper function to extract and parse start date from sailing number
+  const extractStartDate = (sailingNumber: string): Date | null => {
+    if (!sailingNumber) return null;
+    
+    console.log('Extracting date from sailing number:', sailingNumber);
+      // Extract date from sailing number format like "MEX-10-17Jan-AtlanticIslands" or "MEX-14-20March-CanarianFlavours"
+    const dateMatch = sailingNumber.match(/(\d{1,2})([A-Za-z]{3,})/);
+    if (!dateMatch) {
+      console.log('No date match found for:', sailingNumber);
+      return null;
+    }
+    
+    const day = parseInt(dateMatch[1]);
+    const monthStr = dateMatch[2].toLowerCase().substring(0, 3); // Take first 3 characters
+    
+    console.log('Parsed day:', day, 'month:', monthStr);
+    
+    // Map month abbreviations to numbers
+    const monthMap: { [key: string]: number } = {
+      'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+      'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+    };
+    
+    const month = monthMap[monthStr];
+    if (month === undefined) {
+      console.log('Unknown month abbreviation:', monthStr);
+      return null;
+    }
+    
+    // Assume current year for now, you can adjust this logic as needed
+    const year = new Date().getFullYear();
+    
+    try {
+      const date = new Date(year, month, day);
+      console.log('Created date:', date);
+      return date;
+    } catch (error) {
+      console.warn('Failed to parse date from sailing number:', sailingNumber, error);
+      return null;
+    }
+  };
+
+  // Helper function to format date for display
+  const formatStartDate = (sailingNumber: string): string => {
+    const date = extractStartDate(sailingNumber);
+    if (!date) return 'N/A';
+    
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+  // Sort ratings data by start date
+  const sortDataByStartDate = (data: any[]): any[] => {
+    if (!Array.isArray(data)) return [];
+    
+    console.log('Sorting data by start date. Input data count:', data.length);
+    
+    const sortedData = [...data].sort((a, b) => {
+      const dateA = extractStartDate(a['Sailing Number']);
+      const dateB = extractStartDate(b['Sailing Number']);
+      
+      console.log('Comparing:', a['Sailing Number'], 'vs', b['Sailing Number']);
+      console.log('DateA:', dateA, 'DateB:', dateB);
+      
+      // Put entries without valid dates at the end
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      
+      const result = dateA.getTime() - dateB.getTime();
+      console.log('Sort result:', result);
+      return result;
+    });
+    
+    console.log('Data sorted. Final order:', sortedData.map(d => d['Sailing Number']));
+    return sortedData;
   };
 
   const handleFilterChange = async (newFilters: any) => {
@@ -117,15 +195,16 @@ const RatingSummary = () => {
         responseData = response;
       } else {
         responseData = [];
-      }
-        
+      }        
       if (Array.isArray(responseData)) {
-        setRatingsData(responseData);
-        console.log('RatingSummary: Data loaded successfully, count:', responseData.length);      } else if (responseData && typeof responseData === 'object' && responseData.length !== undefined) {
+        const sortedData = sortDataByStartDate(responseData);
+        setRatingsData(sortedData);
+        console.log('RatingSummary: Data loaded and sorted by start date, count:', sortedData.length);      } else if (responseData && typeof responseData === 'object' && responseData.length !== undefined) {
         // Sometimes arrays can lose their Array prototype, try to convert
         const arrayData = Array.from(responseData);
-        setRatingsData(arrayData);
-        console.log('RatingSummary: Data converted to array, count:', arrayData.length);
+        const sortedData = sortDataByStartDate(arrayData);
+        setRatingsData(sortedData);
+        console.log('RatingSummary: Data converted to array and sorted by start date, count:', sortedData.length);
       } else {
         console.warn('RatingSummary: Response data is not an array:', responseData);
         setRatingsData([]);
@@ -137,8 +216,7 @@ const RatingSummary = () => {
     } finally {
       setLoading(false);
     }
-  };
-  const exportToExcel = () => {
+  };  const exportToExcel = () => {
     if (!Array.isArray(ratingsData) || ratingsData.length === 0) {
       alert('No data to export');
       return;
@@ -146,13 +224,16 @@ const RatingSummary = () => {
 
     // Get all metrics from all groups
     const allMetrics = Object.values(ratingGroups).flatMap(group => group.metrics);
-    const headers = ['Ship', 'Sailing Number', 'Fleet', ...allMetrics];
+    const headers = ['Ship', 'Sailing Number', 'Start Date', 'Fleet', ...allMetrics];
     
     // Create CSV content
     const csvContent = [
       headers.join(','),
       ...ratingsData.map(rating => 
         headers.map(header => {
+          if (header === 'Start Date') {
+            return formatStartDate(rating['Sailing Number']);
+          }
           const value = rating[header];
           return value !== null && value !== undefined ? value : 'N/A';
         }).join(',')
@@ -388,33 +469,30 @@ const RatingSummary = () => {
               renderChartsForGroup(groupKey)
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full bg-white border border-gray-200 rounded-lg">                  <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Ship</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Sailing</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Fleet</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Period</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Start Date</th>
                       {group.metrics.map((metric) => (
                         <th key={metric} className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">
                           {metric}
                         </th>
                       ))}
                     </tr>
-                  </thead>                  <tbody className="divide-y divide-gray-200">                    {Array.isArray(ratingsData) && ratingsData.map((rating, index) => (
+                  </thead><tbody className="divide-y divide-gray-200">                    {Array.isArray(ratingsData) && ratingsData.map((rating, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {rating['Ship'] || 'N/A'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {rating['Sailing Number'] || 'N/A'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 capitalize">
+                        </td>                        <td className="px-4 py-3 text-sm text-gray-600 capitalize">
                           {rating['Fleet'] || 'N/A'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {rating['Start'] && rating['End'] ? 
-                            `${rating['Start']} - ${rating['End']}` : 'N/A'}
+                          {formatStartDate(rating['Sailing Number'])}
                         </td>
                         {group.metrics.map((metric) => (
                           <td key={metric} className="px-4 py-3 text-sm">
@@ -436,7 +514,31 @@ const RatingSummary = () => {
         )}
       </div>
     );
-  };  return (
+  };  // Debug function to test date parsing with sample data
+  const testDateParsing = () => {
+    const sampleSailings = [
+      "MEX-10-17Jan-AtlanticIslands",
+      "MEX-14-20March-CanarianFlavours", 
+      "MEX-14-21Feb-CanarianFlavours"
+    ];
+    
+    console.log('=== DATE PARSING TEST ===');
+    sampleSailings.forEach(sailing => {
+      const date = extractStartDate(sailing);
+      const formatted = formatStartDate(sailing);
+      console.log(`${sailing} -> ${date} -> ${formatted}`);
+    });
+    console.log('=== END DATE PARSING TEST ===');
+  };
+
+  // Test the date parsing on component mount (only in development)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      testDateParsing();
+    }
+  }, []);
+
+  return (
     <div className="space-y-8">
       {/* Filters Section */}
       <BasicFilter 
