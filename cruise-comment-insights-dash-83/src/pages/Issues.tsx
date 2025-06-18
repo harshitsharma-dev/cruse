@@ -225,7 +225,7 @@ const Issues = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">                {/* Display sailing summaries if available */}
-                {issuesData.sailing_summaries && Array.isArray(issuesData.sailing_summaries) ? (
+                {issuesData?.sailing_summaries && Array.isArray(issuesData.sailing_summaries) && issuesData.sailing_summaries.length > 0 ? (
                   <div className="space-y-4">
                     {issuesData.sailing_summaries.map((sailing: any, index: number) => (
                       <div key={index} className="p-6 border border-gray-200 rounded-lg hover:shadow-md transition-shadow bg-white">
@@ -305,20 +305,55 @@ const Issues = () => {
                 All Issues - Detailed Analysis
               </CardTitle>
             </CardHeader>            <CardContent>
-              <div className="space-y-4">
-                <p className="text-gray-600">
-                  <strong>Complete Issues Breakdown:</strong> Analysis of {issuesData.sailing_summaries ? issuesData.sailing_summaries.length : 0} sailings 
-                  revealing {issuesData.all_issues ? issuesData.all_issues.length : 0} detailed issue reports across 
-                  {issuesData.all_issues ? [...new Set(issuesData.all_issues.map((issue: any) => issue.sheet_name))].length : 0} different categories.                </p>
-                
-                {/* Category breakdown */}
-                {issuesData.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
+              <div className="space-y-4">                <p className="text-gray-600">
+                  <strong>Complete Issues Breakdown:</strong> Analysis of {issuesData?.sailing_summaries ? issuesData.sailing_summaries.length : 0} sailings 
+                  revealing {issuesData?.all_issues ? issuesData.all_issues.length : 0} detailed issue reports across 
+                  {(() => {
+                    try {
+                      if (!issuesData?.all_issues || !Array.isArray(issuesData.all_issues)) return 0;
+                      const categories = [...new Set(issuesData.all_issues.map((issue: any) => issue?.sheet_name).filter(Boolean))];
+                      return categories.length;
+                    } catch (error) {
+                      console.error('Error calculating categories count:', error);
+                      return 0;
+                    }
+                  })()} different categories.
+                </p>{/* Category breakdown */}
+                {issuesData?.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="font-medium mb-2">Issue Categories:</h4>
+                    <h4 className="font-medium mb-2">Issue Categories Found:</h4>
                     <div className="flex flex-wrap gap-2">
-                      {issuesData.categories.map((category: string, index: number) => (
-                        <Badge key={index} variant="outline">{category}</Badge>
-                      ))}
+                      {(() => {
+                        try {
+                          const categories = [...new Set(issuesData.all_issues.map((issue: any) => issue?.sheet_name).filter(Boolean))];
+                          return categories.map((category: string, index: number) => (
+                            <Badge key={index} variant="outline">{category}</Badge>
+                          ));
+                        } catch (error) {
+                          console.error('Error rendering categories:', error);
+                          return <Badge variant="outline">Error loading categories</Badge>;
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Ships breakdown */}
+                {issuesData?.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Ships Analyzed:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        try {
+                          const ships = [...new Set(issuesData.all_issues.map((issue: any) => issue?.ship_name).filter(Boolean))];
+                          return ships.map((ship: string, index: number) => (
+                            <Badge key={index} variant="secondary" className="capitalize">{ship}</Badge>
+                          ));
+                        } catch (error) {
+                          console.error('Error rendering ships:', error);
+                          return <Badge variant="secondary">Error loading ships</Badge>;
+                        }
+                      })()}
                     </div>
                   </div>
                 )}
