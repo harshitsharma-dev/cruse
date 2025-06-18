@@ -108,19 +108,24 @@ const Search = () => {
       console.log('=== SEARCH DEBUG END ===');
     }
   };
-
   const exportResults = () => {
     if (results.length === 0) {
       alert('No results to export');
       return;
     }
 
-    // Simple CSV export
-    const csvContent = results.map(result => 
-      `"${result.comment?.replace(/"/g, '""') || ''}","${result.metadata?.fleet || ''}","${result.metadata?.ship || ''}","${result.sheet_name || ''}","${result.metadata?.sailing_number || ''}","${result.meal_time || ''}"`
-    ).join('\n');
+    // Simple CSV export with correct field names
+    const csvContent = results.map(result => {
+      // Extract show/activity name dynamically
+      const showKey = Object.keys(result).find(
+        key => !['Comment', 'Fleet', 'Distance Score', 'Id', 'status'].includes(key)
+      );
+      const showName = showKey ? result[showKey] : '';
+      
+      return `"${result.Comment?.replace(/"/g, '""') || ''}","${result.Fleet || ''}","${showName?.replace(/"/g, '""') || ''}","${result['Distance Score'] || ''}","${result.Id || ''}"`;
+    }).join('\n');
     
-    const blob = new Blob([`Comment,Fleet,Ship,Sheet,Sailing Number,Meal Time\n${csvContent}`], { type: 'text/csv' });
+    const blob = new Blob([`Comment,Fleet,Show/Activity,Distance Score,ID\n${csvContent}`], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -136,15 +141,8 @@ const Search = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Search</h1>
-          <p className="text-gray-600 mt-2">Search through guest comments and feedback</p>
+          <h1 className="text-3xl font-bold text-gray-900">Search</h1>          <p className="text-gray-600 mt-2">Search through guest comments and feedback</p>
         </div>
-        {results.length > 0 && (
-          <Button onClick={exportResults} className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Export Results ({results.length})
-          </Button>
-        )}
       </div>
 
       {/* Filters Section */}
@@ -396,50 +394,79 @@ const Search = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Results Section */}
+      </div>      {/* Results Section */}
       {results.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Search Results ({results.length})</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Search Results ({results.length})</CardTitle>
+              <Button onClick={exportResults} variant="outline" size="sm" className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {results.map((result, index) => (
-                <div key={index} className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex gap-2 flex-wrap">
-                      {result.metadata?.fleet && (
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          Fleet: {result.metadata.fleet}
-                        </span>
-                      )}
-                      {result.metadata?.ship && (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                          Ship: {result.metadata.ship}
-                        </span>
-                      )}
-                      {result.sheet_name && (
-                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                          Sheet: {result.sheet_name}
+          <CardContent><div className="space-y-4">
+              {results.map((result, index) => {
+                console.log('Rendering search result:', result);
+                
+                // Extract show/activity name dynamically (field that's not a standard field)
+                const showKey = Object.keys(result).find(
+                  key => !['Comment', 'Fleet', 'Distance Score', 'Id', 'status'].includes(key)
+                );
+                const showName = showKey ? result[showKey] : 'N/A';
+                
+                return (
+                  <div key={result.Id || index} className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex gap-2 flex-wrap">
+                        {result.Fleet && (
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            Fleet: {result.Fleet}
+                          </span>
+                        )}
+                        {showName && showName !== 'N/A' && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                            Activity: {showName}
+                          </span>
+                        )}
+                        {result['Distance Score'] && (
+                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                            Score: {result['Distance Score'].toFixed(3)}
+                          </span>
+                        )}
+                      </div>
+                      {result.Id && (
+                        <span className="text-xs text-gray-500">
+                          ID: {result.Id.slice(0, 8)}...
                         </span>
                       )}
                     </div>
-                    {result.metadata?.sailing_number && (
-                      <span className="text-xs text-gray-500">
-                        Sailing: {result.metadata.sailing_number}
-                      </span>
+                    
+                    {showKey && (
+                      <div className="mb-2">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {showKey}: {showName}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                      <span className="font-medium">Comment:</span> {result.Comment || 'No comment available'}
+                    </p>
+                    
+                    {/* Debug info in development */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <details className="text-xs text-gray-500 mt-2">
+                        <summary>Debug Info</summary>
+                        <pre className="mt-1 bg-gray-100 p-2 rounded text-xs overflow-auto">
+                          {JSON.stringify(result, null, 2)}
+                        </pre>
+                      </details>
                     )}
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed">{result.comment}</p>
-                  {result.meal_time && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      Meal Time: {result.meal_time}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
