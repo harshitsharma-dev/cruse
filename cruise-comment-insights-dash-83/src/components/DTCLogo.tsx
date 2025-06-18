@@ -7,9 +7,9 @@ interface DTCLogoProps {
 
 const DTCLogo: React.FC<DTCLogoProps> = ({ size = 'sm', className = '' }) => {
   const sizeClasses = {
-    sm: 'h-6 w-6',
-    md: 'h-8 w-8',
-    lg: 'h-10 w-10'
+    sm: 'h-6 w-auto',
+    md: 'h-8 w-auto',
+    lg: 'h-10 w-auto'
   };
 
   const textSizeClasses = {
@@ -20,8 +20,12 @@ const DTCLogo: React.FC<DTCLogoProps> = ({ size = 'sm', className = '' }) => {
 
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
-      <div className={`${sizeClasses[size]} apollo-gradient-secondary rounded-lg flex items-center justify-center apollo-shadow`}>
-        <span className="text-white font-bold text-xs">DTC</span>
+      <div className={`${sizeClasses[size]}`}>
+        <img 
+          src="/dtc.jpg" 
+          alt="DTC"
+          className={`${sizeClasses[size]} object-contain rounded apollo-shadow`}
+        />
       </div>
       <span className={`font-semibold text-gray-700 ${textSizeClasses[size]}`}>
         DTC

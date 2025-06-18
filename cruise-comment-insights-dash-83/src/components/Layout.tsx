@@ -49,16 +49,8 @@ const Layout = () => {
             {/* Apollo Logo */}
             <div className="flex items-center">
               <ApolloLogo size="sm" />
-            </div>
-
-            {/* User Info and Actions */}
+            </div>            {/* User Info and Actions */}
             <div className="flex items-center space-x-6">
-              {/* DTC Branding */}
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <span>Powered by</span>
-                <DTCLogo size="sm" />
-              </div>
-              
               {/* User Profile */}
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
