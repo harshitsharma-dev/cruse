@@ -40,37 +40,43 @@ const Issues = () => {
       setSelectedSheets(allSheets);
     }
   };
-
   const handleFilterChange = (newFilters: any) => {
-    console.log('Filter change in Issues:', newFilters);
+    console.log('=== FILTER CHANGE IN ISSUES ===');
+    console.log('New filters received:', newFilters);
+    console.log('Previous filters:', filters);
     setFilters(newFilters);
-  };  const fetchIssues = async () => {
+    console.log('Filters updated in Issues component');
+  };
+
+  const fetchIssues = async () => {
+    console.log('=== ISSUES FETCH DEBUG START ===');
+    console.log('Current filters object:', filters);
+    console.log('Selected sheets:', selectedSheets);
+    console.log('Sheets data:', sheetsData?.data);
+    
     setLoading(true);
     try {
       const requestData = {
-        filter_by: filters.useAllDates ? 'all' : 'issues',
-        filters: {
-          // Only include dates if not using "All Dates" mode
-          ...(filters.useAllDates ? {} : {
-            start_date: filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            end_date: filters.toDate || new Date().toISOString().split('T')[0],
-          }),
-          fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : undefined,
-          ships: filters.ships && filters.ships.length > 0 ? filters.ships : undefined,
-          sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : undefined,
-          sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || []
-        }
+        // Updated to match new BasicFilter format
+        fleets: filters.fleets || [],
+        ships: filters.ships ? filters.ships.map((ship: string) => ship.split(':')[1] || ship) : [], // Remove fleet prefix
+        start_date: filters.useAllDates ? null : (filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
+        end_date: filters.useAllDates ? null : (filters.toDate || new Date().toISOString().split('T')[0]),
+        sailing_numbers: filters.sailingNumbers || [],
+        sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || []
       };
 
-      console.log('Sending issues request:', requestData);
+      console.log('Final issues payload:', requestData);
+      console.log('Sending issues request to API...');
       const response = await apiService.getIssuesSummary(requestData);
-      console.log('Issues response:', response);
+      console.log('Issues response received:', response);
       setIssuesData(response.data);
     } catch (error) {
-      console.error('Error fetching issues:', error);
+      console.error('Error fetching issues details:', error);
       alert('Failed to fetch issues data. Please try again.');
     } finally {
       setLoading(false);
+      console.log('=== ISSUES FETCH DEBUG END ===');
     }
   };
 
@@ -172,12 +178,25 @@ const Issues = () => {
                   )}
                 </div>
               )}
-            </div>
+            </div>            
+            {/* Debug info for button state */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="p-2 bg-gray-100 rounded text-xs mb-4">
+                <p>Loading: {loading.toString()}</p>
+                <p>UseAllDates: {filters?.useAllDates?.toString()}</p>
+                <p>FromDate: {filters?.fromDate || 'undefined'}</p>
+                <p>ToDate: {filters?.toDate || 'undefined'}</p>
+                <p>Fleets: {JSON.stringify(filters?.fleets)}</p>
+                <p>Ships: {JSON.stringify(filters?.ships)}</p>
+                <p>SheetsLoading: {sheetsLoading.toString()}</p>
+                <p>Button disabled: {(loading || sheetsLoading).toString()}</p>
+              </div>
+            )}
             
             <Button 
               onClick={fetchIssues} 
               className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading || !filters.fromDate || !filters.toDate || !filters.fleets?.length || !filters.ships?.length || sheetsLoading}
+              disabled={loading || sheetsLoading}
             >
               {loading ? 'Loading...' : 'Get Issues Summary'}
             </Button>

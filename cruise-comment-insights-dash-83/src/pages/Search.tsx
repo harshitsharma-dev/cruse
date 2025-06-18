@@ -52,45 +52,60 @@ const Search = () => {
       checked ? [...prev, mealTime] : prev.filter(m => m !== mealTime)
     );
   };
-
   const handleFilterChange = (newFilters: any) => {
-    console.log('Filter change in Search:', newFilters);
+    console.log('=== FILTER CHANGE IN SEARCH ===');
+    console.log('New filters received:', newFilters);
+    console.log('Previous filters:', filters);
     setFilters(newFilters);
-  };  const handleSearch = async () => {
+    console.log('Filters updated in Search component');
+  };const handleSearch = async () => {
+    console.log('=== SEARCH DEBUG START ===');
+    console.log('Query:', query);
+    console.log('Query trimmed:', query.trim());
+    console.log('Current filters object:', filters);
+    console.log('filters.useAllDates:', filters.useAllDates);
+    console.log('filters.fromDate:', filters.fromDate);
+    console.log('filters.toDate:', filters.toDate);
+    console.log('Selected sheets:', selectedSheets);
+    console.log('Selected meal times:', selectedMealTimes);
+    console.log('Search type:', searchType);
+    
     if (!query.trim()) {
+      console.log('Search aborted: No query provided');
       alert('Please enter a search query');
       return;
-    }    setLoading(true);
+    }
+
+    setLoading(true);
     try {
       const searchData = {
         query,
-        filter_by: filters.useAllDates ? 'all' : 'semantic',
-        filters: {
-          // Only include dates if not using "All Dates" mode
-          ...(filters.useAllDates ? {} : {
-            start_date: filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            end_date: filters.toDate || new Date().toISOString().split('T')[0],
-          }),
-          fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : undefined,
-          ships: filters.ships && filters.ships.length > 0 ? filters.ships : undefined,
-          sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : undefined
-        },        sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || [],
+        // Updated to match new BasicFilter format
+        fleets: filters.fleets || [],
+        ships: filters.ships ? filters.ships.map((ship: string) => ship.split(':')[1] || ship) : [], // Remove fleet prefix
+        start_date: filters.useAllDates ? null : (filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
+        end_date: filters.useAllDates ? null : (filters.toDate || new Date().toISOString().split('T')[0]),
+        sailing_numbers: filters.sailingNumbers || [],
+        sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || [],
         meal_time: selectedMealTimes.length > 0 ? selectedMealTimes : undefined,
         semanticSearch: searchType === 'semantic',
         similarity_score_range: searchType === 'semantic' ? [cutOff[0] / 10, 1.0] : [0.0, 1.0],
         num_results: numResults
       };
 
-      console.log('Sending search request:', searchData);
+      console.log('Final search payload:', searchData);
+      console.log('Sending search request to API...');
       const response = await apiService.semanticSearch(searchData);
-      console.log('Search response:', response);
+      console.log('Search response received:', response);
+      console.log('Results count:', response.results?.length || 0);
       setResults(response.results || []);
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('Search error details:', error);
       alert('Search failed. Please try again.');
       setResults([]);
     } finally {
       setLoading(false);
+      console.log('=== SEARCH DEBUG END ===');
     }
   };
 
@@ -356,11 +371,25 @@ const Search = () => {
                   step={0.1}
                   className="mt-2"
                 />
+              </div>            )}
+
+            {/* Debug info for button state */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="p-2 bg-gray-100 rounded text-xs">
+                <p>Loading: {loading.toString()}</p>
+                <p>Query: {query}</p>
+                <p>Query trimmed: {query.trim()}</p>
+                <p>UseAllDates: {filters?.useAllDates?.toString()}</p>
+                <p>FromDate: {filters?.fromDate || 'undefined'}</p>
+                <p>ToDate: {filters?.toDate || 'undefined'}</p>
+                <p>Button disabled: {(loading || !query.trim() || (!filters?.useAllDates && (!filters?.fromDate || !filters?.toDate))).toString()}</p>
               </div>
-            )}            <Button 
+            )}
+
+            <Button 
               onClick={handleSearch} 
               className="w-full bg-blue-600 hover:bg-blue-700" 
-              disabled={loading || !query.trim() || (!filters?.useAllDates && (!filters?.fromDate || !filters?.toDate))}
+              disabled={loading || !query.trim()}
             >
               <SearchIcon className="h-4 w-4 mr-2" />
               {loading ? 'Searching...' : 'Search'}

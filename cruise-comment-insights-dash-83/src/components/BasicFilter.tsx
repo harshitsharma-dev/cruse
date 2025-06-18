@@ -87,8 +87,7 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     
     // Prepare filter data based on backend expectations
     let filterData;
-    
-    if (useAllDates) {
+      if (useAllDates) {
       // For "All Dates", send all available data
       filterData = {
         fleets: safeFilterState.fleets,
@@ -96,6 +95,13 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
         start_date: null,
         end_date: null,
         sailing_numbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
+          ? selectedSailingNumbers 
+          : [],
+        // Add camelCase versions for compatibility
+        useAllDates: true,
+        fromDate: null,
+        toDate: null,
+        sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
           ? selectedSailingNumbers 
           : []
       };
@@ -108,9 +114,16 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
         end_date: endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate,
         sailing_numbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
           ? selectedSailingNumbers 
+          : [],
+        // Add camelCase versions for compatibility
+        useAllDates: false,
+        fromDate: startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate,
+        toDate: endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate,
+        sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
+          ? selectedSailingNumbers 
           : []
       };
-    }    
+    }
     console.log('BasicFilter sending filter data:', filterData);
     
     // Show applied feedback
