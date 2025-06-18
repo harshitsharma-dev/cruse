@@ -7,6 +7,15 @@ class ApiService {
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
   }
+
+  private sanitizeJsonString(jsonString: string): string {
+    // Replace various invalid JSON values with valid ones
+    return jsonString
+      .replace(/:\s*NaN/g, ': null')           // NaN -> null
+      .replace(/:\s*Infinity/g, ': null')      // Infinity -> null
+      .replace(/:\s*-Infinity/g, ': null')     // -Infinity -> null
+      .replace(/:\s*undefined/g, ': null');    // undefined -> null
+  }
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -29,9 +38,23 @@ class ApiService {
         const errorText = await response.text();
         console.error(`API Error ${response.status}:`, errorText);
         throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }      // Get response text first to sanitize invalid JSON values
+      const responseText = await response.text();
+      console.log(`Raw API Response for ${endpoint}:`, responseText);
+      
+      // Sanitize the response to fix invalid JSON values
+      const sanitizedText = this.sanitizeJsonString(responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(sanitizedText);
+      } catch (parseError) {
+        console.error(`JSON Parse Error for ${endpoint}:`, parseError);
+        console.error('Original text:', responseText);
+        console.error('Sanitized text:', sanitizedText);
+        throw new Error(`Invalid JSON response from ${endpoint}: ${parseError}`);
       }
-
-      const data = await response.json();
+      
       console.log(`API Response for ${endpoint}:`, data);
       return data;
     } catch (error) {
