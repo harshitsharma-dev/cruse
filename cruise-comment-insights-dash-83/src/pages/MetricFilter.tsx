@@ -52,21 +52,15 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
     }    setIsLoading(true);
     try {
       const searchData = {
-        filter_by: filters.useAllDates ? 'all' : 'date',
-        filters: {
-          // Only include dates if not using "All Dates" mode
-          ...(filters.useAllDates ? {} : {
-            fromDate: filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            toDate: filters.toDate || new Date().toISOString().split('T')[0],
-          }),
-          fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : undefined,
-          ships: filters.ships && filters.ships.length > 0 ? filters.ships : undefined,
-          sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : undefined
-        },
-        metric: selectedMetric, // Changed back to single metric
+        fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : [],
+        ships: filters.ships && filters.ships.length > 0 ? filters.ships : [],
+        start_date: filters.useAllDates ? null : (filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
+        end_date: filters.useAllDates ? null : (filters.toDate || new Date().toISOString().split('T')[0]),
+        sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : [],
+        metric: selectedMetric,
         filterBelow: ratingRange[1], // Use upper bound of rating range as filter
         compareToAverage: true
-      };      console.log('Sending metric filter request:', searchData);
+      };console.log('Sending metric filter request:', searchData);
       const response = await apiService.getMetricRating(searchData);
       console.log('Metric filter response:', response);
       
@@ -94,17 +88,22 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
       setIsLoading(false);
     }
   };
-
   const exportResults = () => {
     if (results.length === 0) {
       alert('No data to export');
       return;
     }
 
-    const headers = ['Fleet', 'Ship', 'Sailing Number', 'Rating', 'Comment'];
-    const csvContent = results.map(row => 
-      headers.map(header => `"${row[header] || 'N/A'}"`).join(',')
-    ).join('\n');
+    const headers = ['Fleet', 'Ship', 'Sailing Number', 'Metric', 'Average Rating', 'Rating Count', 'Comparison To Overall'];
+    const csvContent = results.map(row => [
+      row.fleet || 'N/A',
+      row.ship || 'N/A', 
+      row.sailingNumber || 'N/A',
+      row.metric || 'N/A',
+      row.averageRating?.toFixed(2) || 'N/A',
+      row.ratingCount || '0',
+      row.comparisonToOverall?.toFixed(2) || 'N/A'
+    ].map(field => `"${field}"`).join(',')).join('\n');
     
     const blob = new Blob([`${headers.join(',')}\n${csvContent}`], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -233,8 +232,7 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
             <div className="space-y-4">
               {results.map((result, index) => (
                 <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+                  <div className="flex justify-between items-start mb-3">                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
                       <div>
                         <div className="text-sm font-medium text-gray-500">Fleet</div>
                         <div className="text-sm capitalize">{result.fleet || 'N/A'}</div>
@@ -245,12 +243,12 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-500">Sailing</div>
-                        <div className="text-sm">{result.sailing_number || 'N/A'}</div>
+                        <div className="text-sm">{result.sailingNumber || 'N/A'}</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-500">Rating</div>
-                        <Badge className={getRatingColor(result.rating)} variant="secondary">
-                          {result.rating?.toFixed(1) || 'N/A'}
+                        <div className="text-sm font-medium text-gray-500">Average Rating</div>
+                        <Badge className={getRatingColor(result.averageRating)} variant="secondary">
+                          {result.averageRating?.toFixed(1) || 'N/A'}
                         </Badge>
                       </div>
                     </div>

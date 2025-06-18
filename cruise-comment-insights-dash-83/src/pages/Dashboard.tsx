@@ -41,24 +41,22 @@ const Dashboard = () => {
         const today = new Date();
         const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
         const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-
-        console.log('Testing current month rating summary...');
+        const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);        console.log('Testing current month rating summary...');
         const currentRatingsResponse = await apiService.getRatingSummary({
-          filter_by: 'date',
-          filters: {
-            fromDate: currentMonthStart.toISOString().split('T')[0],
-            toDate: today.toISOString().split('T')[0]
-          }
+          fleets: [],
+          ships: [],
+          start_date: currentMonthStart.toISOString().split('T')[0],
+          end_date: today.toISOString().split('T')[0],
+          sailing_numbers: []
         });
         
         console.log('Testing previous month rating summary...');
         const prevRatingsResponse = await apiService.getRatingSummary({
-          filter_by: 'date',
-          filters: {
-            fromDate: prevMonthStart.toISOString().split('T')[0],
-            toDate: prevMonthEnd.toISOString().split('T')[0]
-          }
+          fleets: [],
+          ships: [],
+          start_date: prevMonthStart.toISOString().split('T')[0],
+          end_date: prevMonthEnd.toISOString().split('T')[0],
+          sailing_numbers: []
         });
 
         console.log('Current month ratings:', currentRatingsResponse);

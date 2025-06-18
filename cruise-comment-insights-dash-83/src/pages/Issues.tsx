@@ -48,18 +48,12 @@ const Issues = () => {
     setLoading(true);
     try {
       const requestData = {
-        filter_by: filters.useAllDates ? 'all' : 'issues',
-        filters: {
-          // Only include dates if not using "All Dates" mode
-          ...(filters.useAllDates ? {} : {
-            start_date: filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            end_date: filters.toDate || new Date().toISOString().split('T')[0],
-          }),
-          fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : undefined,
-          ships: filters.ships && filters.ships.length > 0 ? filters.ships : undefined,
-          sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : undefined,
-          sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || []
-        }
+        fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : [],
+        ships: filters.ships && filters.ships.length > 0 ? filters.ships : [],
+        start_date: filters.useAllDates ? null : (filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
+        end_date: filters.useAllDates ? null : (filters.toDate || new Date().toISOString().split('T')[0]),
+        sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : [],
+        sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || []
       };
 
       console.log('Sending issues request:', requestData);
