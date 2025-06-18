@@ -64,13 +64,11 @@ const RatingSummary = () => {
     };
 
     loadDefaultData();
-  }, []);
-
-  // Rating groups as per specifications
+  }, []);  // Rating groups as per specifications
   const ratingGroups = {
     'overall': {
       title: 'Overall & Pre/Post',
-      metrics: ['Overall Holiday', 'Embarkation/Disembarkation', 'Value for Money', 'Pre-Cruise Hotel Accommodation']
+      metrics: ['Overall Holiday', 'Embarkation/Disembarkation', 'Value for Money', 'Pre-Cruise Hotel Accomodation', 'Sentiment Score']
     },
     'accommodation': {
       title: 'Onboard Accommodation', 
@@ -78,7 +76,7 @@ const RatingSummary = () => {
     },
     'food': {
       title: 'Food & Beverage',
-      metrics: ['F&B Quality', 'F&B Staff Service', 'Bar Service', 'Drinks Offering and Menu']
+      metrics: ['F&B Quality', 'F&B Service', 'Bar Service', 'Drinks Offerings and Menu']
     },
     'activities': {
       title: 'Activities & Services',
@@ -88,7 +86,9 @@ const RatingSummary = () => {
       title: 'Other Services',
       metrics: ['Prior Customer Service', 'Flight', 'App Booking']
     }
-  };  const handleFilterChange = async (newFilters: any) => {
+  };
+
+  const handleFilterChange = async (newFilters: any) => {
     console.log('RatingSummary handleFilterChange called with:', newFilters);
     setFilters(newFilters);
     setLoading(true);
@@ -146,7 +146,7 @@ const RatingSummary = () => {
     
     // Get current group metrics
     const currentMetrics = ratingGroups[activeGroup as keyof typeof ratingGroups].metrics;
-    const headers = ['Ship Name', 'Sailing Number', 'Fleet', 'Start', 'End', ...currentMetrics];
+    const headers = ['Ship', 'Sailing Number', 'Fleet', 'Start', 'End', ...currentMetrics];
     
     const csvContent = ratingsData.map(row => 
       headers.map(header => `"${row[header] || 'N/A'}"`).join(',')
@@ -175,9 +175,8 @@ const RatingSummary = () => {
     }
     
     return ratingsData.map((rating, index) => {
-      const chartItem: any = {
-        ship: `${rating['Ship Name'] || 'Unknown'} (${rating['Sailing Number'] || 'N/A'})`,
-        shipShort: rating['Ship Name'] || 'Unknown',
+      const chartItem: any = {        ship: `${rating['Ship'] || 'Unknown'} (${rating['Sailing Number'] || 'N/A'})`,
+        shipShort: rating['Ship'] || 'Unknown',
         sailing: rating['Sailing Number'] || 'N/A',
         fleet: rating['Fleet'] || 'N/A',
       };
@@ -308,7 +307,7 @@ const RatingSummary = () => {
                 <table className="min-w-full bg-white border border-gray-200 rounded-lg">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Ship Name</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Ship</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Sailing</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Fleet</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Period</th>
@@ -318,11 +317,10 @@ const RatingSummary = () => {
                         </th>
                       ))}
                     </tr>
-                  </thead>                  <tbody className="divide-y divide-gray-200">
-                    {Array.isArray(ratingsData) && ratingsData.map((rating, index) => (
+                  </thead>                  <tbody className="divide-y divide-gray-200">                    {Array.isArray(ratingsData) && ratingsData.map((rating, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {rating['Ship Name'] || 'N/A'}
+                          {rating['Ship'] || 'N/A'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {rating['Sailing Number'] || 'N/A'}
