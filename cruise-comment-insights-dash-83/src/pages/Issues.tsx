@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,11 +108,20 @@ const Issues = () => {
     console.error('Error loading sheets:', sheetsError);
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Issues Summary</h1>
-        <p className="text-gray-600 mt-2">Analyze and track issues across sailings</p>      </div>
+  return (    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-white/80 to-blue-50/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 apollo-shadow">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg shadow-lg">
+            <AlertTriangle className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Issues Summary & Analysis
+            </h1>
+            <p className="text-gray-600 mt-1">Comprehensive analysis and tracking of issues across all sailings</p>
+          </div>
+        </div>
+      </div>
 
       {/* Filters Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -122,13 +130,17 @@ const Issues = () => {
           showTitle={true}
           compact={false}
         />
-        
-        {/* Sheet Selection */}
-        <Card>
-          <CardHeader>
+          {/* Sheet Selection */}
+        <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
+          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-100">
             <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Issues Configuration
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <span className="text-lg font-bold text-gray-900">Issues Configuration</span>
+                <p className="text-sm text-gray-600 font-normal">Select sheets and parameters for analysis</p>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">            <div>
@@ -159,7 +171,7 @@ const Issues = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
-                      <div className="p-4 space-y-2 max-h-60 overflow-y-auto">
+                      <div className="p-4 space-y-2 max-h-60 overflow-y-auto apollo-scrollbar">
                         <div 
                           className="flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer"
                           onClick={handleSelectAllSheets}
@@ -202,50 +214,96 @@ const Issues = () => {
                     </div>
                   )}
                 </div>
-              )}            </div>            
-            <Button 
-              onClick={fetchIssues} 
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading || sheetsLoading}
-            >
-              {loading ? 'Loading...' : 'Get Issues Summary'}
-            </Button>
+              )}            </div>            <div className="pt-2">
+              <Button 
+                onClick={fetchIssues} 
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                disabled={loading || sheetsLoading}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Analyzing Issues...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Get Issues Summary</span>
+                  </div>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>      {/* Results Section */}
       {issuesData ? (
         <div className="space-y-6">
-          {/* Sailing Summaries Section - First */}
-          <Card>
-            <CardHeader>
+          {/* Sailing Summaries Section - First */}          <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
-                Sailing Summaries
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <span className="text-lg font-bold text-gray-900">Sailing Summaries</span>
+                  <p className="text-sm text-gray-600 font-normal">Overview of sailing performance</p>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">                {/* Display sailing summaries if available */}
                 {issuesData?.sailing_summaries && Array.isArray(issuesData.sailing_summaries) && issuesData.sailing_summaries.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {issuesData.sailing_summaries.map((sailing: any, index: number) => (
-                      <div key={index} className="p-6 border border-gray-200 rounded-lg hover:shadow-md transition-shadow bg-white">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h4 className="font-bold text-lg text-gray-900 capitalize">
-                              {sailing.ship_name || 'Unknown Ship'}
-                            </h4>
-                            <Badge variant="outline" className="mt-1">
-                              {sailing.sailing_number || 'N/A'}
+                      <div key={index} className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:border-green-200">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="h-3 w-3 bg-green-500 rounded-full shadow-sm"></div>
+                              <h4 className="font-bold text-lg text-gray-900 capitalize">
+                                {sailing.ship_name || 'Unknown Ship'}
+                              </h4>
+                            </div>
+                            <Badge variant="outline" className="text-xs font-medium bg-green-50 text-green-700 border-green-200">
+                              Sailing: {sailing.sailing_number || 'N/A'}
                             </Badge>
+                          </div>
+                          
+                          {/* Sailing Number Indicator */}
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <BarChart3 className="h-4 w-4 text-blue-500" />
+                            <span>Summary #{index + 1}</span>
                           </div>
                         </div>
                         
                         {/* Sailing Summary Text */}
                         <div className="mt-4">
-                          <h5 className="font-medium text-gray-800 mb-2">Summary:</h5>
-                          <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg">
-                            {sailing.sailing_summary || 'No summary available'}
-                          </p>
+                          <div className="border-l-4 border-green-400 pl-4">
+                            <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                              <span className="h-2 w-2 bg-green-400 rounded-full"></span>
+                              Sailing Summary
+                            </h5>
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg p-4 shadow-sm">
+                              <div className="text-sm text-gray-800 leading-relaxed">
+                                {sailing.sailing_summary ? (
+                                  <div className="prose prose-sm max-w-none">
+                                    {sailing.sailing_summary.split('\n').map((line: string, lineIndex: number) => (
+                                      <p key={lineIndex} className="mb-2 last:mb-0">
+                                        {line.trim() || '\u00A0'}
+                                      </p>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-500 italic">No summary available</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Hover Effect Indicator */}
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
                         </div>
                       </div>
                     ))}
@@ -295,43 +353,61 @@ const Issues = () => {
                   </div>
                 )}
               </div>
-            </CardContent>          </Card>
-
-          {/* Detailed Issues Analysis - All Issues */}
-          <Card>
-            <CardHeader>
+            </CardContent>          </Card>          {/* Detailed Issues Analysis - All Issues */}
+          <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
+            <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 border-b border-orange-100">
               <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
-                All Issues - Detailed Analysis
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <span className="text-lg font-bold text-gray-900">All Issues - Detailed Analysis</span>
+                  <p className="text-sm text-gray-600 font-normal">Comprehensive breakdown of identified issues</p>
+                </div>
               </CardTitle>
-            </CardHeader>            <CardContent>
-              <div className="space-y-4">                <p className="text-gray-600">
-                  <strong>Complete Issues Breakdown:</strong> Analysis of {issuesData?.sailing_summaries ? issuesData.sailing_summaries.length : 0} sailings 
-                  revealing {issuesData?.all_issues ? issuesData.all_issues.length : 0} detailed issue reports across 
-                  {(() => {
-                    try {
-                      if (!issuesData?.all_issues || !Array.isArray(issuesData.all_issues)) return 0;
-                      const categories = [...new Set(issuesData.all_issues.map((issue: any) => issue?.sheet_name).filter(Boolean))];
-                      return categories.length;
-                    } catch (error) {
-                      console.error('Error calculating categories count:', error);
-                      return 0;
-                    }
-                  })()} different categories.
-                </p>{/* Category breakdown */}
+            </CardHeader><CardContent>
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    <span className="font-semibold text-gray-900">Complete Issues Breakdown:</span> Analysis of{' '}
+                    <span className="font-medium text-blue-600">{issuesData?.sailing_summaries ? issuesData.sailing_summaries.length : 0} sailings</span>{' '}
+                    revealing{' '}
+                    <span className="font-medium text-red-600">{issuesData?.all_issues ? issuesData.all_issues.length : 0} detailed issue reports</span>{' '}
+                    across{' '}
+                    <span className="font-medium text-orange-600">
+                      {(() => {
+                        try {
+                          if (!issuesData?.all_issues || !Array.isArray(issuesData.all_issues)) return 0;
+                          const categories = [...new Set(issuesData.all_issues.map((issue: any) => issue?.sheet_name).filter(Boolean))];
+                          return categories.length;
+                        } catch (error) {
+                          console.error('Error calculating categories count:', error);
+                          return 0;
+                        }
+                      })()} different categories
+                    </span>.
+                  </p>
+                </div>
+
+                {/* Category breakdown */}
                 {issuesData?.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-medium mb-2">Issue Categories Found:</h4>
+                  <div className="bg-white border border-orange-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
+                      Issue Categories Found
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {(() => {
                         try {
                           const categories = [...new Set(issuesData.all_issues.map((issue: any) => issue?.sheet_name).filter(Boolean))];
                           return categories.map((category: string, index: number) => (
-                            <Badge key={index} variant="outline">{category}</Badge>
+                            <Badge key={index} variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                              {category}
+                            </Badge>
                           ));
                         } catch (error) {
                           console.error('Error rendering categories:', error);
-                          return <Badge variant="outline">Error loading categories</Badge>;
+                          return <Badge variant="outline" className="text-red-600">Error loading categories</Badge>;
                         }
                       })()}
                     </div>
@@ -340,82 +416,166 @@ const Issues = () => {
                 
                 {/* Ships breakdown */}
                 {issuesData?.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-medium mb-2">Ships Analyzed:</h4>
+                  <div className="bg-white border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                      Ships Analyzed
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {(() => {
                         try {
                           const ships = [...new Set(issuesData.all_issues.map((issue: any) => issue?.ship_name).filter(Boolean))];
                           return ships.map((ship: string, index: number) => (
-                            <Badge key={index} variant="secondary" className="capitalize">{ship}</Badge>
+                            <Badge key={index} variant="secondary" className="capitalize bg-blue-50 text-blue-700 border-blue-200">
+                              {ship}
+                            </Badge>
                           ));
                         } catch (error) {
                           console.error('Error rendering ships:', error);
-                          return <Badge variant="secondary">Error loading ships</Badge>;
+                          return <Badge variant="secondary" className="text-red-600">Error loading ships</Badge>;
                         }
                       })()}
                     </div>
                   </div>
                 )}
-                  {/* All Issues List - if available */}
+
+                {/* All Issues List - if available */}
                 {issuesData.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
                   <div className="mt-6">
-                    <h4 className="font-medium mb-4 text-lg">All Issues Details</h4>
-                    <div className="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-lg text-gray-900">Detailed Issue Reports</h4>
+                      <Badge variant="secondary" className="text-sm px-3 py-1">
+                        {issuesData.all_issues.length} Total Issues
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-6 max-h-[600px] overflow-y-auto apollo-scrollbar pr-2">
                       {issuesData.all_issues.map((issue: any, index: number) => (
-                        <div key={index} className="p-4 bg-gray-50 rounded-lg border-l-4 border-red-400">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <div className="font-bold text-gray-900 capitalize">
-                                {issue.ship_name || 'Unknown Ship'}
+                        <div key={index} className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-200">
+                          {/* Issue Header */}
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="h-3 w-3 bg-red-500 rounded-full shadow-sm"></div>
+                                <h5 className="font-bold text-lg text-gray-900 capitalize">
+                                  {issue.ship_name || 'Unknown Ship'}
+                                </h5>
                               </div>
-                              <Badge variant="outline" className="mt-1 text-xs">
-                                {issue.sailing_number || 'N/A'}
-                              </Badge>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              {issue.sheet_name && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {issue.sheet_name}
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
+                                  Sailing: {issue.sailing_number || 'N/A'}
                                 </Badge>
-                              )}
+                                {issue.sheet_name && (
+                                  <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700">
+                                    {issue.sheet_name}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Issue Priority Indicator */}
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              <span>Issue #{index + 1}</span>
                             </div>
                           </div>
                           
                           {/* Issue Content */}
-                          <div className="mt-3">
-                            <h5 className="font-medium text-gray-800 mb-2">Issues Identified:</h5>
-                            <div className="text-sm text-gray-700 leading-relaxed bg-white p-3 rounded border max-h-32 overflow-y-auto">
-                              {issue.issues || 'No detailed issues available'}
+                          <div className="space-y-3">
+                            <div className="border-l-4 border-red-400 pl-4">
+                              <h6 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                                <span className="h-2 w-2 bg-red-400 rounded-full"></span>
+                                Issue Details
+                              </h6>
+                              <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-lg p-4 shadow-sm">
+                                <div className="text-sm text-gray-800 leading-relaxed max-h-32 overflow-y-auto apollo-scrollbar">
+                                  {issue.issues ? (
+                                    <div className="prose prose-sm max-w-none">
+                                      {issue.issues.split('\n').map((line: string, lineIndex: number) => (
+                                        <p key={lineIndex} className="mb-2 last:mb-0">
+                                          {line.trim() || '\u00A0'}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-gray-500 italic">No detailed issues available</p>
+                                  )}
+                                </div>
+                              </div>
                             </div>
+                          </div>
+                          
+                          {/* Hover Effect Indicator */}
+                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>                )}
+                    
+                    {/* Issues Summary Footer */}
+                    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 text-blue-700">
+                          <BarChart3 className="h-4 w-4" />
+                          <span className="font-medium">Analysis Complete</span>
+                        </div>
+                        <div className="text-blue-600">
+                          {issuesData.all_issues.length} issues analyzed across {
+                            (() => {
+                              try {
+                                const ships = [...new Set(issuesData.all_issues.map((issue: any) => issue?.ship_name).filter(Boolean))];
+                                return ships.length;
+                              } catch (error) {
+                                return 0;
+                              }
+                            })()
+                          } ships
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
-        </div>
-      ) : loading ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-2 text-gray-600">Loading issues data...</span>
+        </div>      ) : loading ? (
+        <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+                <div className="absolute inset-0 rounded-full h-12 w-12 border-4 border-transparent border-r-orange-400 animate-spin" style={{animationDirection: 'reverse', animationDuration: '1.5s'}}></div>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-medium text-gray-700 mb-1">Loading Issues Data</p>
+                <p className="text-sm text-gray-500">Analyzing your selected criteria...</p>
+              </div>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center text-gray-500">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium mb-2">No data yet</p>
-              <p className="text-sm">Configure your filters and click "Get Issues Summary" to view issues data</p>
-              <p className="text-xs mt-2 text-gray-400">
-                Select ships, date ranges, and issue sheets to analyze
-              </p>
+        <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
+          <CardContent className="py-16">
+            <div className="text-center">
+              <div className="relative inline-block mb-6">
+                <AlertTriangle className="h-16 w-16 text-gray-300" />
+                <div className="absolute -top-2 -right-2 h-6 w-6 bg-blue-100 rounded-full flex items-center justify-center">
+                  <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-gray-900 mb-2">Ready to Analyze Issues</p>
+                <p className="text-gray-600 mb-4">Configure your filters and click "Get Issues Summary" to view comprehensive issues data</p>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 max-w-md mx-auto">
+                  <p className="text-sm text-blue-700 font-medium mb-2">Getting Started:</p>
+                  <ul className="text-xs text-blue-600 space-y-1 text-left">
+                    <li>• Select ships and date ranges</li>
+                    <li>• Choose issue sheets to analyze</li>
+                    <li>• Click "Get Issues Summary"</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
