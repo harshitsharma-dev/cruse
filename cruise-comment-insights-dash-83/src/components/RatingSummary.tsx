@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Download, BarChart3, Loader2, Table, ChartBar } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { apiService } from '../services/api';
 import BasicFilter from './BasicFilter';
 import { useQuery } from '@tanstack/react-query';
@@ -143,31 +143,49 @@ const RatingSummary = () => {
       alert('No data to export');
       return;
     }
+
+    // Get all metrics from all groups
+    const allMetrics = Object.values(ratingGroups).flatMap(group => group.metrics);
+    const headers = ['Ship', 'Sailing Number', 'Fleet', ...allMetrics];
     
-    // Get current group metrics
-    const currentMetrics = ratingGroups[activeGroup as keyof typeof ratingGroups].metrics;
-    const headers = ['Ship', 'Sailing Number', 'Fleet', 'Start', 'End', ...currentMetrics];
-    
-    const csvContent = ratingsData.map(row => 
-      headers.map(header => `"${row[header] || 'N/A'}"`).join(',')
-    ).join('\n');
-    
-    const blob = new Blob([`${headers.join(',')}\n${csvContent}`], { type: 'text/csv' });
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...ratingsData.map(rating => 
+        headers.map(header => {
+          const value = rating[header];
+          return value !== null && value !== undefined ? value : 'N/A';
+        }).join(',')
+      )
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `rating-summary-${activeGroup}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'rating_summary.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
-  const getRatingColor = (rating: number | string) => {
-    const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
-    if (isNaN(numRating)) return 'bg-gray-100 text-gray-800';
-    if (numRating >= 8) return 'bg-green-100 text-green-800';
-    if (numRating >= 6) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
-  const generateChartData = (groupKey: string) => {
+  // Helper function to get color based on rating value
+  const getRatingColor = (rating: number | null) => {
+    if (rating === null || rating === undefined) {
+      return 'bg-gray-100 text-gray-500';
+    }
+    
+    if (rating >= 8) {
+      return 'bg-green-100 text-green-800';
+    } else if (rating >= 6) {
+      return 'bg-yellow-100 text-yellow-800';
+    } else if (rating >= 4) {
+      return 'bg-orange-100 text-orange-800';
+    } else {
+      return 'bg-red-100 text-red-800';
+    }
+  };  const generateChartData = (groupKey: string) => {
     const group = ratingGroups[groupKey as keyof typeof ratingGroups];
     
     if (!Array.isArray(ratingsData) || ratingsData.length === 0) {
@@ -175,73 +193,144 @@ const RatingSummary = () => {
     }
     
     return ratingsData.map((rating, index) => {
-      const chartItem: any = {        ship: `${rating['Ship'] || 'Unknown'} (${rating['Sailing Number'] || 'N/A'})`,
-        shipShort: rating['Ship'] || 'Unknown',
-        sailing: rating['Sailing Number'] || 'N/A',
+      const chartItem: any = {
+        sailingNumber: rating['Sailing Number'] || 'N/A',
+        ship: rating['Ship'] || 'Unknown',
         fleet: rating['Fleet'] || 'N/A',
+        fullShipName: `${rating['Ship'] || 'Unknown'} (${rating['Sailing Number'] || 'N/A'})`,
       };
       
       // Add all metrics for the group
       group.metrics.forEach(metric => {
-        chartItem[metric] = rating[metric] ? parseFloat(rating[metric]) : 0;
+        chartItem[metric] = rating[metric] ? parseFloat(rating[metric]) : null;
       });
       
       return chartItem;
     });
   };
 
-  const renderChart = (groupKey: string) => {
-    const group = ratingGroups[groupKey as keyof typeof ratingGroups];
-    const chartData = generateChartData(groupKey);
+  // Generate unique colors for each ship
+  const getShipColors = () => {
+    const uniqueShips = [...new Set(ratingsData.map(r => r['Ship']))];
+    const shipColors: { [key: string]: string } = {};
+    const colors = [
+      '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
+      '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+    ];
     
-    // Color palette for different metrics
-    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'];
+    uniqueShips.forEach((ship, index) => {
+      shipColors[ship] = colors[index % colors.length];
+    });
+    
+    return shipColors;
+  };
+
+  const renderMetricChart = (metric: string, groupKey: string) => {
+    const chartData = generateChartData(groupKey);
+    const shipColors = getShipColors();
+    
+    if (!chartData || chartData.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">No data available for {metric}</p>
+        </div>
+      );
+    }
+
+    // Filter out entries where the metric value is null
+    const filteredData = chartData.filter(item => item[metric] !== null);
     
     return (
-      <div className="h-96 w-full">
+      <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={chartData}
+            data={filteredData}
             margin={{
               top: 20,
               right: 30,
               left: 20,
-              bottom: 5,
+              bottom: 60,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
             <XAxis 
-              dataKey="shipShort" 
+              dataKey="sailingNumber" 
               angle={-45}
               textAnchor="end"
-              height={100}
+              height={80}
               interval={0}
+              tick={{ fontSize: 10 }}
             />
             <YAxis 
               domain={[0, 10]}
               label={{ value: 'Rating', angle: -90, position: 'insideLeft' }}
             />
             <Tooltip 
-              formatter={(value: any, name: string) => [value?.toFixed(1), name]}
+              formatter={(value: any) => [value?.toFixed(1), metric]}
               labelFormatter={(label) => {
-                const item = chartData.find(d => d.shipShort === label);
-                return item ? `${item.ship} (${item.fleet} Fleet)` : label;
+                const item = filteredData.find(d => d.sailingNumber === label);
+                return item ? `${item.ship} - ${label}` : label;
               }}
-            />
-            <Legend />
-            {group.metrics.map((metric, index) => (
-              <Bar 
-                key={metric} 
-                dataKey={metric} 
-                fill={colors[index % colors.length]}
-                name={metric}
-              />
-            ))}
+              contentStyle={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px'
+              }}
+            />            <Bar 
+              dataKey={metric} 
+              radius={[4, 4, 0, 0]}
+            >
+              {filteredData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={shipColors[entry.ship] || '#3B82F6'} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
     );
   };
+  const renderChartsForGroup = (groupKey: string) => {
+    const group = ratingGroups[groupKey as keyof typeof ratingGroups];
+    const shipColors = getShipColors();
+    const uniqueShips = [...new Set(ratingsData.map(r => r['Ship']))];
+    
+    return (
+      <div className="space-y-8">
+        {/* Ship Color Legend */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">Ship Colors:</h4>
+          <div className="flex flex-wrap gap-3">
+            {uniqueShips.map(ship => (
+              <div key={ship} className="flex items-center gap-2">
+                <div 
+                  className="w-4 h-4 rounded" 
+                  style={{ backgroundColor: shipColors[ship] }}
+                ></div>
+                <span className="text-sm text-gray-700">{ship}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Individual Metric Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {group.metrics.map((metric) => (
+            <Card key={metric} className="apollo-shadow bg-white/90 backdrop-blur-sm border-white/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  {metric}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {renderMetricChart(metric, groupKey)}
+              </CardContent>
+            </Card>          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderRatingGroup = (groupKey: string) => {
     const group = ratingGroups[groupKey as keyof typeof ratingGroups];
     
@@ -295,13 +384,8 @@ const RatingSummary = () => {
             </CardContent>
           </Card>
         ) : (
-          <div>
-            {viewMode === 'chart' ? (
-              <Card>
-                <CardContent className="pt-6">
-                  {renderChart(groupKey)}
-                </CardContent>
-              </Card>
+          <div>            {viewMode === 'chart' ? (
+              renderChartsForGroup(groupKey)
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full bg-white border border-gray-200 rounded-lg">
