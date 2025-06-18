@@ -54,8 +54,7 @@ const Issues = () => {
     console.log('Available sheets from API:', sheetsData);
     
     setLoading(true);
-    try {
-      // Payload for the current backend /sailing/issuesSmry endpoint
+    try {      // Payload for the current backend /sailing/issuesSmry endpoint
       const requestData = {
         // Include all filter data for the backend to process
         ships: filters.ships && filters.ships.length > 0 
@@ -67,23 +66,20 @@ const Issues = () => {
         sheets: selectedSheets.length > 0 
           ? selectedSheets 
           : (sheetsData?.data && sheetsData.data.length > 0 ? sheetsData.data : []),
-        // Include date filters if not using all dates
-        use_all_dates: filters.useAllDates,
-        from_date: filters.useAllDates ? null : filters.fromDate,
-        to_date: filters.useAllDates ? null : filters.toDate,
+        // Use start_date, end_date with "-1" for all dates instead of use_all_dates
+        start_date: filters.useAllDates ? "-1" : filters.fromDate,
+        end_date: filters.useAllDates ? "-1" : filters.toDate,
         fleets: filters.fleets || []
-      };
-
-      console.log('=== ISSUES PAYLOAD DEBUG ===');
+      };      console.log('=== ISSUES PAYLOAD DEBUG ===');
       console.log('Raw filters.ships:', filters.ships);
       console.log('Processed ships:', requestData.ships);
       console.log('Raw filters.sailingNumbers:', filters.sailingNumbers);
       console.log('Processed sailing_numbers:', requestData.sailing_numbers);
       console.log('Selected sheets:', selectedSheets);
       console.log('Processed sheets:', requestData.sheets);
-      console.log('Date filters - useAllDates:', requestData.use_all_dates);
-      console.log('Date filters - fromDate:', requestData.from_date);
-      console.log('Date filters - toDate:', requestData.to_date);
+      console.log('Date filters - useAllDates:', filters.useAllDates);
+      console.log('Date filters - start_date:', requestData.start_date);
+      console.log('Date filters - end_date:', requestData.end_date);
       console.log('Final issues payload:', requestData);
       console.log('=== END PAYLOAD DEBUG ===');
       
