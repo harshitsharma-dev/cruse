@@ -1,19 +1,14 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiService } from '../services/api';
-
-interface User {
-  username: string;
-  role: string;
-  name?: string;
-  email?: string;
-}
+import { apiService, User } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  hasPermission: (permission: string) => boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,56 +23,88 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);  const login = async (username: string, password: string): Promise<boolean> => {
+    // Check for existing session on app start
+    checkExistingSession();
+  }, []);
+  const checkExistingSession = async () => {
     try {
-      // HARDCODED AUTHENTICATION - No real API calls
-      // Predefined users with different roles
-      const hardcodedUsers = {
-        'superadmin': { role: 'superadmin', name: 'Super Administrator' },
-        'admin': { role: 'admin', name: 'Administrator' },
-        'user': { role: 'user', name: 'Regular User' },
-        'demo': { role: 'user', name: 'Demo User' },
-        'guest': { role: 'user', name: 'Guest User' },
-        // Allow empty/any credentials to default to admin
-        '': { role: 'admin', name: 'Default Admin' }
-      };
-
-      // Get user info based on username, default to admin if not found
-      const userInfo = hardcodedUsers[username.toLowerCase()] || hardcodedUsers['admin'];
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        // Validate session with server
+        const sessionResponse = await apiService.validateSession();
+        if (sessionResponse.valid && sessionResponse.user) {
+          setUser(sessionResponse.user);
+        } else {
+          localStorage.removeItem('user');
+        }
+      }
+    } catch (error) {
+      console.error('Session validation error:', error);
+      localStorage.removeItem('user');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.authenticate(username, password);
       
-      const response = {
-        authenticated: true,
-        user: username || 'admin',
-        role: userInfo.role,
-        name: userInfo.name
-      };
-      
-      if (response.authenticated && response.user) {
-        const userData = { 
-          username: response.user, 
-          role: response.role || 'user',
-          name: response.name
-        };
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
+      if (response.success && response.user) {
+        setUser(response.user);
+        localStorage.setItem('user', JSON.stringify(response.user));
         return true;
       }
       return false;
     } catch (error) {
       console.error('Login error:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async (): Promise<void> => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('user');
+    }
+  };
+  const hasPermission = (permission: string): boolean => {
+    if (!user) return false;
+    
+    // Check permissions array first
+    if (user.permissions && user.permissions.includes(permission)) {
+      return true;
+    }
+    
+    // Fallback to role-based permissions
+    switch (permission) {
+      case 'manage_all_users':
+        return user.role === 'superadmin';
+      case 'manage_users':
+        return user.role === 'superadmin' || user.role === 'admin';
+      case 'create_users':
+        return user.role === 'superadmin' || user.role === 'admin';
+      case 'manage_permissions':
+        return user.role === 'superadmin' || user.role === 'admin';
+      case 'view_admin_panel':
+        return user.role === 'superadmin' || user.role === 'admin';
+      case 'access_all_data':
+        return user.role === 'superadmin';
+      case 'view_analytics':
+        return true; // All authenticated users can view analytics
+      default:
+        return false;
+    }
   };
 
   return (
@@ -85,7 +112,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       login,
       logout,
-      isAuthenticated: !!user
+      isAuthenticated: !!user,
+      hasPermission,
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>

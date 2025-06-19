@@ -1,0 +1,106 @@
+-- Fleets and Ships
+CREATE TABLE Fleets (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE Ships (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    fleet_id INTEGER NOT NULL,
+    FOREIGN KEY (fleet_id) REFERENCES Fleets(id)
+);
+
+-- Sailings
+CREATE TABLE Sailings (
+    id INTEGER PRIMARY KEY,
+    ship_id INTEGER NOT NULL,
+    sailing_number TEXT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    start_date_dt REAL NOT NULL, -- UNIX timestamp of start_date
+    end_date_dt REAL NOT NULL,
+    FOREIGN KEY (ship_id) REFERENCES Ships(id)
+);
+
+-- Sheets and Comments
+CREATE TABLE Sheets (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE Issues (
+    id INTEGER PRIMARY KEY,
+    sailing_id INTEGER NOT NULL,
+    sheet_id INTEGER NOT NULL,
+    issues TEXT NOT NULL, -- could be JSON/text blob
+    FOREIGN KEY (sailing_id) REFERENCES Sailings(id),
+    FOREIGN KEY (sheet_id) REFERENCES Sheets(id)
+);
+
+CREATE TABLE `Cruise_Ratings` (
+	`Sailing Number`	TEXT,
+	`Fleet`	TEXT,
+	`Ship`	TEXT,
+	`Overall Holiday`	REAL,
+	`Prior Customer Service`	REAL,
+	`Flight`	REAL,
+	`Embarkation/Disembarkation`	REAL,
+	`Value for Money`	REAL,
+	`App Booking`	REAL,
+	`Pre-Cruise Hotel Accomodation`	REAL,
+	`Cabins`	REAL,
+	`Cabin Cleanliness`	REAL,
+	`F&B Quality`	REAL,
+	`F&B Service`	REAL,
+	`Bar Service`	REAL,
+	`Drinks Offerings and Menu`	REAL,
+	`Entertainment`	REAL,
+	`Excursions`	REAL,
+	`Crew Friendliness`	REAL,
+	`Ship Condition/Cleanliness (Public Areas)`	REAL,
+	`Sentiment Score`	REAL
+);
+
+-- Users and Roles
+CREATE TABLE Roles (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE -- e.g., 'superadmin', 'admin', 'user'
+);
+
+CREATE TABLE Users (
+    id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role_id INTEGER NOT NULL,
+    created_by INTEGER, -- who created this user
+    FOREIGN KEY (role_id) REFERENCES Roles(id),
+    FOREIGN KEY (created_by) REFERENCES Users(id)
+);
+
+-- Data Access Control
+CREATE TABLE UserFleetAccess (
+    user_id INTEGER NOT NULL,
+    fleet_id INTEGER NOT NULL,
+    PRIMARY KEY (user_id, fleet_id),
+    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (fleet_id) REFERENCES Fleets(id)
+);
+
+CREATE TABLE UserShipAccess (
+    user_id INTEGER NOT NULL,
+    ship_id INTEGER NOT NULL,
+    PRIMARY KEY (user_id, ship_id),
+    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (ship_id) REFERENCES Ships(id)
+);
+
+CREATE TABLE UserSailingSheetAccess (
+    user_id INTEGER NOT NULL,
+    sailing_id INTEGER NOT NULL,
+    sheet_id INTEGER NOT NULL,
+    PRIMARY KEY (user_id, sailing_id, sheet_id),
+    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (sailing_id) REFERENCES Sailings(id),
+    FOREIGN KEY (sheet_id) REFERENCES Sheets(id)
+);
