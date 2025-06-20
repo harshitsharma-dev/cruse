@@ -28,9 +28,9 @@ const Layout = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
+  };  const navigation = [
+    // Dashboard temporarily hidden
+    // { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Rating Summary', href: '/ratings', icon: BarChart3 },
     { name: 'Metric Filter', href: '/metrics', icon: TrendingUp },
     { name: 'Search', href: '/search', icon: Search },

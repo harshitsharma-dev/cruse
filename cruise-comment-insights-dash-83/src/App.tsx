@@ -12,7 +12,7 @@ import { Preloader } from "./components/Preloader";
 import { Suspense, lazy } from "react";
 
 // Lazy load components to reduce initial bundle size
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+// const Dashboard = lazy(() => import("./pages/Dashboard")); // Dashboard hidden temporarily
 const RatingSummary = lazy(() => import("./components/RatingSummary"));
 const MetricFilter = lazy(() => import("./pages/MetricFilter"));
 const Search = lazy(() => import("./pages/Search"));
@@ -47,16 +47,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
   
-  return (
-    <Routes>
-      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+  return (    <Routes>
+      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/ratings" />} />
+      <Route path="/" element={<Navigate to="/ratings" />} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route path="/dashboard" element={
+        {/* Dashboard route temporarily hidden */}
+        {/* <Route path="/dashboard" element={
           <Suspense fallback={<LoadingSpinner />}>
             <Dashboard />
           </Suspense>
-        } />
+        } /> */}
         <Route path="/ratings" element={
           <Suspense fallback={<LoadingSpinner />}>
             <RatingSummary />
