@@ -31,12 +31,14 @@ class ApiService {
           console.log('Request body type:', typeof options.body);
         }
       }
-      
-      const response = await fetch(url, {
+        const response = await fetch(url, {
         mode: 'cors',
         credentials: 'include', // Add credentials for CORS
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Accept-Encoding': 'gzip, deflate, br', // Request compressed responses
+          'Cache-Control': 'no-cache',
           ...options.headers,
         },
         ...options,

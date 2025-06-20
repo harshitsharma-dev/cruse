@@ -9,6 +9,7 @@ import { FilterProvider } from "./contexts/FilterContext";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import { Preloader } from "./components/Preloader";
+import { PerformanceMonitor } from "./hooks/usePerformanceMonitoring";
 import { Suspense, lazy } from "react";
 
 // Lazy load components to reduce initial bundle size
@@ -102,6 +103,7 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <FilterProvider>
+          <PerformanceMonitor />
           <Preloader />
           <Toaster />
           <Sonner />
