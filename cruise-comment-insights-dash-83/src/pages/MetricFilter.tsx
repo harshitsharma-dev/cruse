@@ -52,10 +52,10 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
       return;
     }    setIsLoading(true);
     try {      const searchData = {
-        filter_by: filters.useAllDates ? 'sailing' : 'date', // Use 'sailing' when All Dates is selected
+        filter_by: (filters.useAllDates && filters.sailingNumbers && filters.sailingNumbers.length > 0) ? 'sailing' : 'date',
         filters: {
-          // Only include dates if not using "All Dates" mode
-          ...(filters.useAllDates ? {} : {
+          // Include dates if not using "All Dates" mode OR if using All Dates but no sailing numbers are selected
+          ...((filters.useAllDates && filters.sailingNumbers && filters.sailingNumbers.length > 0) ? {} : {
             fromDate: filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             toDate: filters.toDate || new Date().toISOString().split('T')[0],
           }),
