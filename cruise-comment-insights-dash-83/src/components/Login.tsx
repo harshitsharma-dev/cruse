@@ -97,19 +97,23 @@ const Login = () => {
             <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
               <div className="text-sm font-semibold text-blue-900 mb-4 text-center">Available Test Accounts (Click to Fill)</div>
               <div className="grid grid-cols-1 gap-3 text-sm">
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-red-200 hover:shadow-md transition-all cursor-pointer" onClick={() => handleQuickLogin('superadmin', 'admin123')}>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('jayne', 'jayneApollo')}>
+                  <span className="font-medium"><strong>jayne</strong> / <strong>jayneApollo</strong></span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">✅ Tested Working</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-red-200 hover:shadow-md transition-all cursor-pointer hover:bg-red-50" onClick={() => handleQuickLogin('superadmin', 'admin123')}>
                   <span className="font-medium"><strong>superadmin</strong> / <strong>admin123</strong></span>
                   <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Super Admin</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer" onClick={() => handleQuickLogin('admin', 'admin123')}>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer hover:bg-blue-50" onClick={() => handleQuickLogin('admin', 'admin123')}>
                   <span className="font-medium"><strong>admin</strong> / <strong>admin123</strong></span>
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer" onClick={() => handleQuickLogin('demo', 'admin123')}>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('demo', 'admin123')}>
                   <span className="font-medium"><strong>demo</strong> / <strong>admin123</strong></span>
                   <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">User</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer" onClick={() => handleQuickLogin('guest', 'admin123')}>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('guest', 'admin123')}>
                   <span className="font-medium"><strong>guest</strong> / <strong>admin123</strong></span>
                   <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">User</span>
                 </div>

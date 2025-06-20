@@ -1,5 +1,5 @@
 // const API_BASE_URL = 'http://localhost:5000'; // Changed to localhost for local testing
-const API_BASE_URL = 'http://13.126.187.166:5000'; // Original remote server
+const API_BASE_URL = 'http://ag.api.deepthoughtconsultech.com:5000'; // Original remote server
 
 class ApiService {
   private baseUrl: string;
@@ -15,18 +15,23 @@ class ApiService {
       .replace(/:\s*Infinity/g, ': null')      // Infinity -> null
       .replace(/:\s*-Infinity/g, ': null')     // -Infinity -> null
       .replace(/:\s*undefined/g, ': null');    // undefined -> null
-  }
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  }  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
     try {
       console.log(`API Request: ${options.method || 'GET'} ${url}`);
+      console.log('Request headers:', {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      });
       if (options.body) {
         console.log('Request body:', options.body);
+        console.log('Request body type:', typeof options.body);
       }
       
       const response = await fetch(url, {
         mode: 'cors',
+        credentials: 'include', // Add credentials for CORS
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
@@ -34,11 +39,16 @@ class ApiService {
         ...options,
       });
 
+      console.log(`Response status: ${response.status} ${response.statusText}`);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`API Error ${response.status}:`, errorText);
         throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
-      }      // Get response text first to sanitize invalid JSON values
+      }
+
+      // Get response text first to sanitize invalid JSON values
       const responseText = await response.text();
       console.log(`Raw API Response for ${endpoint}:`, responseText);
       
@@ -59,13 +69,24 @@ class ApiService {
       return data;
     } catch (error) {
       console.error(`API Request failed for ${endpoint}:`, error);
-      throw error;
+      
+      // Add more detailed error information
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('Network error - check if backend is running and CORS is configured correctly');
+        console.error('Backend URL:', this.baseUrl);
+      }
+        throw error;
     }
   }
+
   async authenticate(credentials: { username: string; password: string }) {
     console.log('=== AUTHENTICATION API CALL ===');
+    console.log('API Base URL:', this.baseUrl);
     console.log('Credentials being sent:', credentials);
     console.log('JSON stringified credentials:', JSON.stringify(credentials));
+    
+    const requestBody = JSON.stringify(credentials);
+    console.log('Request body length:', requestBody.length);
     
     try {
       const result = await this.request<{
@@ -75,10 +96,11 @@ class ApiService {
         error?: string;
       }>('/sailing/auth', {
         method: 'POST',
-        body: JSON.stringify(credentials),
+        body: requestBody,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
         },
       });
       
@@ -86,6 +108,13 @@ class ApiService {
       return result;
     } catch (error) {
       console.error('Authentication API error:', error);
+      
+      // Log additional debug info
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
       throw error;
     }
   }
