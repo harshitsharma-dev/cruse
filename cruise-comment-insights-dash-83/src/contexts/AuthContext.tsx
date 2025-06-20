@@ -48,23 +48,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  };
-  const login = async (username: string, password: string): Promise<boolean> => {
+  };  const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      setIsLoading(true);
-      const response = await apiService.authenticate(username, password);
+      console.log('=== AUTHENTICATION ATTEMPT ===');
+      console.log('Username:', username);
+      console.log('Password length:', password.length);
+      console.log('Attempting to authenticate with backend API...');
       
-      if (response.success && response.user) {
-        setUser(response.user);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        return true;
+      // Validate credentials before sending
+      if (!username || !password) {
+        console.error('Missing username or password');
+        return false;
       }
-      return false;
+      
+      // Use actual authentication API with correct parameter structure
+      const response = await apiService.authenticate({ 
+        username: username.trim(), 
+        password: password.trim() 
+      });
+      
+      console.log('Authentication response received:', response);
+      console.log('Response type:', typeof response);
+      
+      if (response && response.authenticated && response.user) {
+        const userData = { 
+          username: response.user, 
+          role: response.role || 'user',
+          name: response.user,
+          permissions: [] // Add default permissions array
+        };
+        
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        console.log('Authentication successful:', userData);
+        return true;
+      } else {
+        console.log('Authentication failed:', response?.error || 'Invalid credentials');
+        return false;
+      }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Authentication error details:', error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 

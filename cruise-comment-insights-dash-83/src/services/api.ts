@@ -1,5 +1,5 @@
 // const API_BASE_URL = 'http://localhost:5000'; // Changed to localhost for local testing
-const API_BASE_URL = 'http://ag.api.deepthoughtconsultech.com'; // Original remote server
+const API_BASE_URL = 'http://13.126.187.166:5000'; // Original remote server
 
 class ApiService {
   private baseUrl: string;
@@ -62,17 +62,32 @@ class ApiService {
       throw error;
     }
   }
-
   async authenticate(credentials: { username: string; password: string }) {
-    return this.request<{
-      authenticated: boolean;
-      user?: string;
-      role?: string;
-      error?: string;
-    }>('/sailing/auth', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+    console.log('=== AUTHENTICATION API CALL ===');
+    console.log('Credentials being sent:', credentials);
+    console.log('JSON stringified credentials:', JSON.stringify(credentials));
+    
+    try {
+      const result = await this.request<{
+        authenticated: boolean;
+        user?: string;
+        role?: string;
+        error?: string;
+      }>('/sailing/auth', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+      
+      console.log('Authentication result:', result);
+      return result;
+    } catch (error) {
+      console.error('Authentication API error:', error);
+      throw error;
+    }
   }
 
   async getFleets() {
