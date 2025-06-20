@@ -15,6 +15,7 @@ import { Search as SearchIcon, Download, Loader2, MessageSquare, ChevronDown, X 
 import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
 import BasicFilter from '../components/BasicFilter';
+import { FormattedText } from '../components/FormattedText';
 import { useQuery } from '@tanstack/react-query';
 
 const Search = () => {
@@ -450,10 +451,17 @@ const Search = () => {
                         </span>
                       </div>
                     )}
-                    
-                    <p className="text-sm text-gray-700 leading-relaxed mb-2">
-                      <span className="font-medium">Comment:</span> {result.Comment || 'No comment available'}
-                    </p>
+                      <div className="text-sm text-gray-700 leading-relaxed mb-2">
+                      <span className="font-medium mb-1 block">Comment:</span>
+                      {result.Comment ? (
+                        <FormattedText 
+                          text={result.Comment} 
+                          className="text-gray-700"
+                        />
+                      ) : (
+                        <p className="text-gray-500 italic">No comment available</p>
+                      )}
+                    </div>
                     
                     {/* Debug info in development */}
                     {process.env.NODE_ENV === 'development' && (

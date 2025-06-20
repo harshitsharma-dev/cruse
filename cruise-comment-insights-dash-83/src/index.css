@@ -158,7 +158,6 @@
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
   }
-
   /* Custom scrollbar */
   .apollo-scrollbar::-webkit-scrollbar {
     width: 8px;
@@ -176,5 +175,42 @@
   
   .apollo-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--apollo-primary-light));
+  }
+
+  /* Formatted Text Styles */
+  .formatted-text {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.6;
+  }
+  
+  .formatted-text p {
+    margin-bottom: 0.75rem;
+  }
+  
+  .formatted-text p:last-child {
+    margin-bottom: 0;
+  }
+  
+  .formatted-text strong {
+    font-weight: 600;
+    color: rgb(17 24 39); /* gray-900 */
+  }
+  
+  .formatted-text em {
+    font-style: italic;
+    color: rgb(55 65 81); /* gray-700 */
+  }
+  
+  .formatted-text .bullet-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }  
+  .formatted-text .bullet-marker {
+    color: rgb(37 99 235); /* blue-600 */
+    font-weight: 700;
+    margin-top: 0.125rem;
+    flex-shrink: 0;
   }
 }

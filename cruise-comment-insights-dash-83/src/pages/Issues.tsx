@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, ChevronDown, X, BarChart3 } from 'lucide-react';
 import { apiService } from '../services/api';
 import BasicFilter from '../components/BasicFilter';
+import { FormattedText } from '../components/FormattedText';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
@@ -282,17 +283,13 @@ const Issues = () => {
                             <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
                               <span className="h-2 w-2 bg-green-400 rounded-full"></span>
                               Sailing Summary
-                            </h5>
-                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg p-4 shadow-sm">
-                              <div className="text-sm text-gray-800 leading-relaxed">
+                            </h5>                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg p-4 shadow-sm">
+                              <div className="text-sm text-gray-800 leading-relaxed max-h-32 overflow-y-auto apollo-scrollbar">
                                 {sailing.sailing_summary ? (
-                                  <div className="prose prose-sm max-w-none">
-                                    {sailing.sailing_summary.split('\n').map((line: string, lineIndex: number) => (
-                                      <p key={lineIndex} className="mb-2 last:mb-0">
-                                        {line.trim() || '\u00A0'}
-                                      </p>
-                                    ))}
-                                  </div>
+                                  <FormattedText 
+                                    text={sailing.sailing_summary} 
+                                    className="text-gray-800"
+                                  />
                                 ) : (
                                   <p className="text-gray-500 italic">No summary available</p>
                                 )}
@@ -486,17 +483,13 @@ const Issues = () => {
                               <h6 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
                                 <span className="h-2 w-2 bg-red-400 rounded-full"></span>
                                 Issue Details
-                              </h6>
-                              <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-lg p-4 shadow-sm">
-                                <div className="text-sm text-gray-800 leading-relaxed max-h-32 overflow-y-auto apollo-scrollbar">
+                              </h6>                              <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-lg p-4 shadow-sm">
+                                <div className="text-sm text-gray-800 leading-relaxed max-h-40 overflow-y-auto apollo-scrollbar">
                                   {issue.issues ? (
-                                    <div className="prose prose-sm max-w-none">
-                                      {issue.issues.split('\n').map((line: string, lineIndex: number) => (
-                                        <p key={lineIndex} className="mb-2 last:mb-0">
-                                          {line.trim() || '\u00A0'}
-                                        </p>
-                                      ))}
-                                    </div>
+                                    <FormattedText 
+                                      text={issue.issues} 
+                                      className="text-gray-800"
+                                    />
                                   ) : (
                                     <p className="text-gray-500 italic">No detailed issues available</p>
                                   )}

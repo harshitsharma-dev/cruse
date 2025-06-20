@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp, Filter, Loader2, Download } from 'lucide-react';
 import BasicFilter from '@/components/BasicFilter';
+import { FormattedText } from '@/components/FormattedText';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 
@@ -270,11 +271,17 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
                   </div>
                   
                   <Collapsible open={expandedRows.has(index)}>
-                    <CollapsibleContent>
-                      <div className="border-t pt-3 mt-3">
+                    <CollapsibleContent>                      <div className="border-t pt-3 mt-3">
                         <div className="text-sm font-medium text-gray-500 mb-2">Comment:</div>
-                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                          {result.comment || 'No comment available'}
+                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded max-h-32 overflow-y-auto apollo-scrollbar">
+                          {result.comment ? (
+                            <FormattedText 
+                              text={result.comment} 
+                              className="text-gray-700"
+                            />
+                          ) : (
+                            <p className="text-gray-500 italic">No comment available</p>
+                          )}
                         </div>
                       </div>
                     </CollapsibleContent>
