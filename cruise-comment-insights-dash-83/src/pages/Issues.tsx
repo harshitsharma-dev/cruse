@@ -362,80 +362,8 @@ const Issues = () => {
                   <p className="text-sm text-gray-600 font-normal">Comprehensive breakdown of identified issues</p>
                 </div>
               </CardTitle>
-            </CardHeader><CardContent>
+            </CardHeader>            <CardContent>
               <div className="space-y-4">
-                <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    <span className="font-semibold text-gray-900">Complete Issues Breakdown:</span> Analysis of{' '}
-                    <span className="font-medium text-blue-600">{issuesData?.sailing_summaries ? issuesData.sailing_summaries.length : 0} sailings</span>{' '}
-                    revealing{' '}
-                    <span className="font-medium text-red-600">{issuesData?.all_issues ? issuesData.all_issues.length : 0} detailed issue reports</span>{' '}
-                    across{' '}
-                    <span className="font-medium text-orange-600">
-                      {(() => {
-                        try {
-                          if (!issuesData?.all_issues || !Array.isArray(issuesData.all_issues)) return 0;
-                          const categories = [...new Set(issuesData.all_issues.map((issue: any) => issue?.sheet_name).filter(Boolean))];
-                          return categories.length;
-                        } catch (error) {
-                          console.error('Error calculating categories count:', error);
-                          return 0;
-                        }
-                      })()} different categories
-                    </span>.
-                  </p>
-                </div>
-
-                {/* Category breakdown */}
-                {issuesData?.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
-                  <div className="bg-white border border-orange-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
-                      Issue Categories Found
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {(() => {
-                        try {
-                          const categories = [...new Set(issuesData.all_issues.map((issue: any) => issue?.sheet_name).filter(Boolean))];
-                          return categories.map((category: string, index: number) => (
-                            <Badge key={index} variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                              {category}
-                            </Badge>
-                          ));
-                        } catch (error) {
-                          console.error('Error rendering categories:', error);
-                          return <Badge variant="outline" className="text-red-600">Error loading categories</Badge>;
-                        }
-                      })()}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Ships breakdown */}
-                {issuesData?.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
-                  <div className="bg-white border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                      Ships Analyzed
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {(() => {
-                        try {
-                          const ships = [...new Set(issuesData.all_issues.map((issue: any) => issue?.ship_name).filter(Boolean))];
-                          return ships.map((ship: string, index: number) => (
-                            <Badge key={index} variant="secondary" className="capitalize bg-blue-50 text-blue-700 border-blue-200">
-                              {ship}
-                            </Badge>
-                          ));
-                        } catch (error) {
-                          console.error('Error rendering ships:', error);
-                          return <Badge variant="secondary" className="text-red-600">Error loading ships</Badge>;
-                        }
-                      })()}
-                    </div>
-                  </div>
-                )}
-
                 {/* All Issues List - if available */}
                 {issuesData.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
                   <div className="mt-6">
