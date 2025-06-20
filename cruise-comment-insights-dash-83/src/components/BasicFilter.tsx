@@ -671,9 +671,11 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
-        </div>{/* Current Filter Summary */}
+        </div>        {/* Current Filter Summary */}
         {(safeFilterState.fleets.length > 0 || safeFilterState.ships.length > 0 || 
-          safeFilterState.dateRange.startDate || safeFilterState.dateRange.endDate || filtersApplied || useAllDates) && (
+          safeFilterState.dateRange.startDate || safeFilterState.dateRange.endDate || 
+          (selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1')) ||
+          filtersApplied || useAllDates) && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               {filtersApplied && <CheckCircle className="h-4 w-4 text-green-600" />}
@@ -701,8 +703,7 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
                     </span>
                   ))}
                 </div>
-              )}
-              {/* Date Range Display */}
+              )}              {/* Date Range Display */}
               <div>
                 <span className="font-medium">Date Range:</span> {' '}
                 {useAllDates ? (
@@ -723,6 +724,17 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
                   </span>
                 )}
               </div>
+              {/* Sailing Numbers Display */}
+              {selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') && (
+                <div className="flex flex-wrap gap-1">
+                  <span className="font-medium">Sailing Numbers:</span>
+                  {selectedSailingNumbers.map(sailing => (
+                    <span key={sailing} className="bg-purple-200 px-2 py-1 rounded text-xs">
+                      {sailing}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
