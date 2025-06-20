@@ -11,3 +11,9 @@ users:
   guest:
     password: "$2b$12$LQv3c1yqBWVHxkd0LQ4YCOdCpGWzxHEFSMeAqkY9YF9k5U6e3X.O6"  # password: admin123
     role: user
+  test1:
+    password: "pbkdf2:sha256:1000000$odIcnVfny4pNxPZC$d9506d6dddd8e8472e592b126e4aad897f3fcedef2364e625e20bf8ae1021710"
+    role: user
+  testAdmin:
+    password: "pbkdf2:sha256:1000000$ckLZSO6jG2ilX7KF$c687dd5d75d6b564463dab1ab871af14d8d2bb664b922d4ef506e02d7c7c7734"
+    role: admin

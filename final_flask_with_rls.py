@@ -18,6 +18,7 @@ CORS(app, resources={
         "origins": [
             "http://44.243.87.16:8080",
             "http://localhost:8080",
+            "http://localhost:3000",  # Add your new port here
             "http://192.168.48.1:8081",
             "http://172.16.150.127:8081",
             "http://192.168.48.1:8080",

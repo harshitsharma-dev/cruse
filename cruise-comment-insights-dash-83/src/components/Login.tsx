@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,78 +14,50 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isLoading: authLoading } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Quick login function for credential cards
+  const handleQuickLogin = (user: string, pass: string) => {
+    setUsername(user);
+    setPassword(pass);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
+    // Validate input
     if (!username.trim()) {
       setError('Username is required');
       setIsLoading(false);
       return;
     }
-
+    
     if (!password.trim()) {
       setError('Password is required');
       setIsLoading(false);
       return;
     }
 
-    try {
-      const success = await login(username, password);
-      
-      if (success) {
-        navigate('/dashboard');
-      } else {
-        setError('Invalid credentials. Please check your username and password.');
-      }
-    } catch (err) {
-      setError('Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickLogin = async (role: string) => {
-    setIsLoading(true);
-    setError('');
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log('Username:', username);
+    console.log('Attempting authentication...');
     
-    const credentials = {
-      superadmin: { username: 'superadmin', password: 'admin123' },
-      admin: { username: 'admin', password: 'admin123' },
-      user: { username: 'user', password: 'user123' }
-    };
-
-    const creds = credentials[role as keyof typeof credentials];
+    // Use actual authentication
+    const success = await login(username, password);
     
-    try {
-      const success = await login(creds.username, creds.password);
-      
-      if (success) {
-        navigate('/dashboard');
-      } else {
-        setError(`Failed to login as ${role}. Please try again.`);
-      }
-    } catch (err) {
-      setError(`Login failed. Please try again.`);
-    } finally {
-      setIsLoading(false);
+    if (success) {
+      console.log('Login successful, redirecting to dashboard...');
+      navigate('/dashboard');
+    } else {
+      console.log('Login failed');
+      setError('Invalid username or password. Please try again.');
     }
+    
+    setIsLoading(false);
   };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center apollo-gradient-hero">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center apollo-gradient-hero py-12 px-4 sm:px-6 lg:px-8">
@@ -115,82 +86,66 @@ const Login = () => {
               Transform guest feedback into actionable insights
             </p>
           </div>
-        </div>
-
-        <Card className="mt-8 apollo-shadow-lg bg-white/95 backdrop-blur-md border-white/20">
+        </div>        <Card className="mt-8 apollo-shadow-lg bg-white/95 backdrop-blur-md border-white/20">
           <CardHeader className="pb-6">
             <CardTitle className="text-center text-2xl font-bold text-gray-900">Sign In</CardTitle>
             <CardDescription className="text-center text-gray-600">
-              Enter your credentials to access Apollo Analytics
+              Demo Authentication - Choose your role below
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {/* Quick Login Options for Demo */}
-            <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-              <div className="text-sm font-semibold text-blue-900 mb-4 text-center">Demo Accounts</div>
+          <CardContent>            {/* Quick Login Options - Updated for actual authentication */}
+            <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">              <div className="text-sm font-semibold text-blue-900 mb-4 text-center">Production Accounts Available (Click to Fill)</div>
               <div className="grid grid-cols-1 gap-3 text-sm">
-                <button
-                  onClick={() => handleQuickLogin('superadmin')}
-                  disabled={isLoading}
-                  className="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-all hover:bg-blue-50 disabled:opacity-50"
-                >
-                  <span className="font-medium">Super Admin</span>
-                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Full Access</span>
-                </button>
-                <button
-                  onClick={() => handleQuickLogin('admin')}
-                  disabled={isLoading}
-                  className="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-all hover:bg-blue-50 disabled:opacity-50"
-                >
-                  <span className="font-medium">Admin</span>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Limited Management</span>
-                </button>
-                <button
-                  onClick={() => handleQuickLogin('user')}
-                  disabled={isLoading}
-                  className="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-all hover:bg-blue-50 disabled:opacity-50"
-                >
-                  <span className="font-medium">User</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">View Only</span>
-                </button>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-red-200 hover:shadow-md transition-all cursor-pointer hover:bg-red-50" onClick={() => handleQuickLogin('superadmin', 'admin123')}>
+                  <span className="font-medium"><strong>superadmin</strong> / <strong>admin123</strong></span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Super Admin</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer hover:bg-blue-50" onClick={() => handleQuickLogin('admin', 'admin123')}>
+                  <span className="font-medium"><strong>admin</strong> / <strong>admin123</strong></span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer hover:bg-blue-50" onClick={() => handleQuickLogin('testAdmin', 'test')}>
+                  <span className="font-medium"><strong>testAdmin</strong> / <strong>test</strong></span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('demo', 'admin123')}>
+                  <span className="font-medium"><strong>demo</strong> / <strong>admin123</strong></span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">User</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('guest', 'admin123')}>
+                  <span className="font-medium"><strong>guest</strong> / <strong>admin123</strong></span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">User</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('test1', 'test')}>
+                  <span className="font-medium"><strong>test1</strong> / <strong>test</strong></span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">User</span>
+                </div>
               </div>
-            </div>
-
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
+              <div className="mt-3 text-xs text-blue-600 text-center">
+                <p>💡 Click any account card above to auto-fill the login form</p>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Or sign in manually</span>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
+            </div><form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="username" className="text-gray-700 font-medium">Username</Label>
-                <Input
+                <Label htmlFor="username" className="text-gray-700 font-medium">Username</Label>                <Input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
+                  placeholder="Enter username (e.g., admin, demo, guest)"
                   disabled={isLoading}
                   className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
-                  required
                 />
               </div>
               
               <div className="space-y-3">
-                <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
-                <Input
+                <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>                <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Enter password (admin123 for test accounts)"
                   disabled={isLoading}
                   className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
-                  required
                 />
               </div>
 
@@ -205,21 +160,14 @@ const Login = () => {
                 className="w-full h-12 text-lg font-semibold apollo-gradient-primary hover:opacity-90 transition-all duration-200 rounded-lg"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  'Sign In to Apollo'
-                )}
+                {isLoading ? 'Signing in...' : 'Sign In to Apollo'}
               </Button>
             </form>
 
             <div className="mt-8 text-center">
-              <div className="text-sm text-gray-500">
-                Demo credentials: superadmin/admin123, admin/admin123, user/user123
-              </div>
+              <button className="text-sm text-blue-600 hover:text-blue-500 hover:underline font-medium">
+                Need help signing in?
+              </button>
             </div>
           </CardContent>
         </Card>
