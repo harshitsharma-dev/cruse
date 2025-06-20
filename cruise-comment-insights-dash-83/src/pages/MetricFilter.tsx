@@ -71,15 +71,35 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
       const response = await apiService.getMetricRating(searchData);
       console.log('Metric filter response:', response);
       
-      // Validate response data and handle any NaN values
-      const sanitizedResults = (response.results || []).map(result => ({
-        ...result,
-        averageRating: isNaN(result.averageRating) ? 0 : result.averageRating,
-        comparisonToOverall: isNaN(result.comparisonToOverall) ? 0 : result.comparisonToOverall,
-        filteredMetric: (result.filteredMetric || []).map(val => isNaN(val) ? 0 : val)
-      }));
+      // Transform and sanitize the API response to match expected structure
+      const transformedResults: any[] = [];
       
-      setResults(sanitizedResults);    } catch (error) {
+      (response.results || []).forEach(result => {
+        // Skip results with errors or no data
+        if (result.error || result.filteredCount === 0 || !result.filteredReviews?.length) {
+          return;
+        }
+        
+        // Create entries for each filtered review
+        result.filteredReviews.forEach((comment: string, index: number) => {
+          const rating = result.filteredMetric?.[index];
+          if (rating !== undefined && rating >= ratingRange[0] && rating <= ratingRange[1]) {
+            transformedResults.push({
+              ship: result.ship,
+              sailingNumber: result.sailingNumber,
+              metric: result.metric,
+              averageRating: result.averageRating || 0,
+              rating: rating,
+              comment: comment,
+              comparisonToOverall: result.comparisonToOverall || 0,
+              ratingCount: result.ratingCount || 0,
+              filteredCount: result.filteredCount || 0
+            });
+          }
+        });
+      });
+      
+      setResults(transformedResults);} catch (error) {
       console.error('Metric filter error:', error);
       let errorMessage = 'Failed to fetch metric data. Please try again.';
       
@@ -95,17 +115,22 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
       setIsLoading(false);
     }
   };
-
   const exportResults = () => {
     if (results.length === 0) {
       alert('No data to export');
       return;
     }
 
-    const headers = ['Fleet', 'Ship', 'Sailing Number', 'Rating', 'Comment'];
-    const csvContent = results.map(row => 
-      headers.map(header => `"${row[header] || 'N/A'}"`).join(',')
-    ).join('\n');
+    const headers = ['Ship', 'Sailing Number', 'Metric', 'Rating', 'Average Rating', 'Comparison to Overall', 'Comment'];
+    const csvContent = results.map(row => [
+      `"${row.ship || 'N/A'}"`,
+      `"${row.sailingNumber || 'N/A'}"`,
+      `"${row.metric || 'N/A'}"`,
+      `"${row.rating || 'N/A'}"`,
+      `"${row.averageRating?.toFixed(2) || 'N/A'}"`,
+      `"${row.comparisonToOverall?.toFixed(2) || 'N/A'}"`,
+      `"${(row.comment || 'N/A').replace(/"/g, '""')}"`
+    ].join(',')).join('\n');
     
     const blob = new Blob([`${headers.join(',')}\n${csvContent}`], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -231,28 +256,34 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
             <CardTitle>Filtered Results ({results.length} entries)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {results.map((result, index) => (
+            <div className="space-y-4">              {results.map((result, index) => (
                 <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex justify-between items-start mb-3">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
-                      <div>
-                        <div className="text-sm font-medium text-gray-500">Fleet</div>
-                        <div className="text-sm capitalize">{result.fleet || 'N/A'}</div>
-                      </div>
                       <div>
                         <div className="text-sm font-medium text-gray-500">Ship</div>
                         <div className="text-sm">{result.ship || 'N/A'}</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-500">Sailing</div>
-                        <div className="text-sm">{result.sailing_number || 'N/A'}</div>
+                        <div className="text-sm font-medium text-gray-500">Sailing Number</div>
+                        <div className="text-sm">{result.sailingNumber || 'N/A'}</div>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-500">Rating</div>
                         <Badge className={getRatingColor(result.rating)} variant="secondary">
                           {result.rating?.toFixed(1) || 'N/A'}
                         </Badge>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Average Rating</div>
+                        <div className="text-sm">
+                          {result.averageRating?.toFixed(2) || 'N/A'}
+                          {result.comparisonToOverall !== undefined && (
+                            <span className={`ml-2 text-xs ${result.comparisonToOverall >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              ({result.comparisonToOverall > 0 ? '+' : ''}{result.comparisonToOverall.toFixed(2)})
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
