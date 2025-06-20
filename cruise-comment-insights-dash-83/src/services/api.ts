@@ -17,16 +17,19 @@ class ApiService {
       .replace(/:\s*undefined/g, ': null');    // undefined -> null
   }  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const isDevelopment = import.meta.env.DEV;
     
     try {
-      console.log(`API Request: ${options.method || 'GET'} ${url}`);
-      console.log('Request headers:', {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      });
-      if (options.body) {
-        console.log('Request body:', options.body);
-        console.log('Request body type:', typeof options.body);
+      if (isDevelopment) {
+        console.log(`API Request: ${options.method || 'GET'} ${url}`);
+        console.log('Request headers:', {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        });
+        if (options.body) {
+          console.log('Request body:', options.body);
+          console.log('Request body type:', typeof options.body);
+        }
       }
       
       const response = await fetch(url, {
@@ -39,18 +42,24 @@ class ApiService {
         ...options,
       });
 
-      console.log(`Response status: ${response.status} ${response.statusText}`);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      if (isDevelopment) {
+        console.log(`Response status: ${response.status} ${response.statusText}`);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`API Error ${response.status}:`, errorText);
+        if (isDevelopment) {
+          console.error(`API Error ${response.status}:`, errorText);
+        }
         throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       // Get response text first to sanitize invalid JSON values
       const responseText = await response.text();
-      console.log(`Raw API Response for ${endpoint}:`, responseText);
+      if (isDevelopment) {
+        console.log(`Raw API Response for ${endpoint}:`, responseText);
+      }
       
       // Sanitize the response to fix invalid JSON values
       const sanitizedText = this.sanitizeJsonString(responseText);
@@ -59,34 +68,45 @@ class ApiService {
       try {
         data = JSON.parse(sanitizedText);
       } catch (parseError) {
-        console.error(`JSON Parse Error for ${endpoint}:`, parseError);
-        console.error('Original text:', responseText);
-        console.error('Sanitized text:', sanitizedText);
+        if (isDevelopment) {
+          console.error(`JSON Parse Error for ${endpoint}:`, parseError);
+          console.error('Original text:', responseText);
+          console.error('Sanitized text:', sanitizedText);
+        }
         throw new Error(`Invalid JSON response from ${endpoint}: ${parseError}`);
       }
       
-      console.log(`API Response for ${endpoint}:`, data);
+      if (isDevelopment) {
+        console.log(`API Response for ${endpoint}:`, data);
+      }
       return data;
     } catch (error) {
-      console.error(`API Request failed for ${endpoint}:`, error);
-      
-      // Add more detailed error information
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        console.error('Network error - check if backend is running and CORS is configured correctly');
-        console.error('Backend URL:', this.baseUrl);
+      if (isDevelopment) {
+        console.error(`API Request failed for ${endpoint}:`, error);
+        
+        // Add more detailed error information
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          console.error('Network error - check if backend is running and CORS is configured correctly');
+          console.error('Backend URL:', this.baseUrl);
+        }
       }
         throw error;
     }
   }
-
   async authenticate(credentials: { username: string; password: string }) {
-    console.log('=== AUTHENTICATION API CALL ===');
-    console.log('API Base URL:', this.baseUrl);
-    console.log('Credentials being sent:', credentials);
-    console.log('JSON stringified credentials:', JSON.stringify(credentials));
+    const isDevelopment = import.meta.env.DEV;
+    
+    if (isDevelopment) {
+      console.log('=== AUTHENTICATION API CALL ===');
+      console.log('API Base URL:', this.baseUrl);
+      console.log('Credentials being sent:', credentials);
+      console.log('JSON stringified credentials:', JSON.stringify(credentials));
+    }
     
     const requestBody = JSON.stringify(credentials);
-    console.log('Request body length:', requestBody.length);
+    if (isDevelopment) {
+      console.log('Request body length:', requestBody.length);
+    }
     
     try {
       const result = await this.request<{
@@ -104,15 +124,19 @@ class ApiService {
         },
       });
       
-      console.log('Authentication result:', result);
+      if (isDevelopment) {
+        console.log('Authentication result:', result);
+      }
       return result;
     } catch (error) {
-      console.error('Authentication API error:', error);
-      
-      // Log additional debug info
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
+      if (isDevelopment) {
+        console.error('Authentication API error:', error);
+        
+        // Log additional debug info
+        if (error instanceof Error) {
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+        }
       }
       
       throw error;
@@ -181,7 +205,10 @@ class ApiService {
       body: JSON.stringify(searchData),
     });
   }  async getIssuesSummary(filters: any) {
-    console.log('API: Calling getIssuesList endpoint with filters:', filters);
+    const isDevelopment = import.meta.env.DEV;
+    if (isDevelopment) {
+      console.log('API: Calling getIssuesList endpoint with filters:', filters);
+    }
     return this.request<{ 
       status: string; 
       data: any; // Handle any data structure from endpoint
