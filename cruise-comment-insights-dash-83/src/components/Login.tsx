@@ -46,11 +46,10 @@ const Login = () => {
     console.log('Attempting authentication...');
     
     // Use actual authentication
-    const success = await login(username, password);
-    
+    const success = await login(username, password);    
     if (success) {
-      console.log('Login successful, redirecting to dashboard...');
-      navigate('/dashboard');
+      console.log('Login successful, redirecting to ratings...');
+      navigate('/ratings');
     } else {
       console.log('Login failed');
       setError('Invalid username or password. Please try again.');
