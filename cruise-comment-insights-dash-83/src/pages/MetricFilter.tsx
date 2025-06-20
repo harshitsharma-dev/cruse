@@ -51,9 +51,8 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
       alert('Please select a metric');
       return;
     }    setIsLoading(true);
-    try {
-      const searchData = {
-        filter_by: filters.useAllDates ? 'all' : 'date',
+    try {      const searchData = {
+        filter_by: filters.useAllDates ? 'sailing' : 'date', // Use 'sailing' when All Dates is selected
         filters: {
           // Only include dates if not using "All Dates" mode
           ...(filters.useAllDates ? {} : {
@@ -67,7 +66,7 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
         metric: selectedMetric, // Changed back to single metric
         filterBelow: ratingRange[1], // Use upper bound of rating range as filter
         compareToAverage: true
-      };      console.log('Sending metric filter request:', searchData);
+      };console.log('Sending metric filter request:', searchData);
       const response = await apiService.getMetricRating(searchData);
       console.log('Metric filter response:', response);
       
