@@ -2,6 +2,14 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// Hide initial loader when React app loads
+const hideInitialLoader = () => {
+  const loader = document.querySelector('.initial-loader');
+  if (loader) {
+    loader.classList.add('hidden');
+  }
+};
+
 // Register service worker for caching
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
@@ -15,4 +23,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = createRoot(document.getElementById("root")!);
+root.render(<App />);
+
+// Hide the initial loader after React has loaded
+setTimeout(hideInitialLoader, 100);

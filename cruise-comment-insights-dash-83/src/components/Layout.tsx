@@ -84,9 +84,9 @@ const Layout = () => {
           </div>
         </div>
       </header>      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Navigation */}
-          <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} flex-shrink-0 transition-all duration-300`}>
+          <aside className={`${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'} flex-shrink-0 transition-all duration-300 w-full lg:w-auto`}>
             <Card className="p-4 h-fit bg-white/70 backdrop-blur-sm border-white/20 apollo-shadow">
               {/* Sidebar Toggle */}
               <div className="flex justify-end mb-4">
@@ -129,10 +129,8 @@ const Layout = () => {
                 })}
               </nav>
             </Card>
-          </aside>
-
-          {/* Main Content */}
-          <main className="flex-1 min-w-0">
+          </aside>          {/* Main Content */}
+          <main className="flex-1 min-w-0 w-full">
             <Outlet />
           </main>
         </div>
