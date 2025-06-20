@@ -1,250 +1,176 @@
-// API Service for Apollo Intelligence Cruise Analytics
-// Handles authentication, session management, and data fetching
-
-export interface User {
-  id: string;
-  username: string;
-  email?: string;
-  role: 'superadmin' | 'admin' | 'user';
-  permissions: string[];
-  created_at?: string;
-  last_login?: string;
-}
-
-export interface LoginResponse {
-  success: boolean;
-  user?: User;
-  message?: string;
-  error?: string;
-}
-
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-}
+// const API_BASE_URL = 'http://localhost:5000'; // Changed to localhost for local testing
+const API_BASE_URL = 'http://13.126.187.166:5000'; // Original remote server
 
 class ApiService {
   private baseUrl: string;
 
-  constructor() {
-    // Use environment variable or fallback to localhost
-    this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  constructor(baseUrl: string = API_BASE_URL) {
+    this.baseUrl = baseUrl;
   }
 
-  private async request<T = any>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private sanitizeJsonString(jsonString: string): string {
+    // Replace various invalid JSON values with valid ones
+    return jsonString
+      .replace(/:\s*NaN/g, ': null')           // NaN -> null
+      .replace(/:\s*Infinity/g, ': null')      // Infinity -> null
+      .replace(/:\s*-Infinity/g, ': null')     // -Infinity -> null
+      .replace(/:\s*undefined/g, ': null');    // undefined -> null
+  }
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    const config: RequestInit = {
-      credentials: 'include', // Include cookies for session management
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    };
-
     try {
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      console.log(`API Request: ${options.method || 'GET'} ${url}`);
+      if (options.body) {
+        console.log('Request body:', options.body);
       }
+      
+      const response = await fetch(url, {
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
 
-      const data = await response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error ${response.status}:`, errorText);
+        throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }      // Get response text first to sanitize invalid JSON values
+      const responseText = await response.text();
+      console.log(`Raw API Response for ${endpoint}:`, responseText);
+      
+      // Sanitize the response to fix invalid JSON values
+      const sanitizedText = this.sanitizeJsonString(responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(sanitizedText);
+      } catch (parseError) {
+        console.error(`JSON Parse Error for ${endpoint}:`, parseError);
+        console.error('Original text:', responseText);
+        console.error('Sanitized text:', sanitizedText);
+        throw new Error(`Invalid JSON response from ${endpoint}: ${parseError}`);
+      }
+      
+      console.log(`API Response for ${endpoint}:`, data);
       return data;
     } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
+      console.error(`API Request failed for ${endpoint}:`, error);
       throw error;
     }
   }
 
-  // Authentication Methods
-  async authenticate(username: string, password: string): Promise<LoginResponse> {
-    try {
-      const response = await this.request<LoginResponse>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ username, password }),
-      });
-
-      return response;
-    } catch (error) {
-      console.error('Authentication failed:', error);
-      return {
-        success: false,
-        error: 'Authentication failed. Please check your credentials.',
-      };
-    }
+  async authenticate(credentials: { username: string; password: string }) {
+    return this.request<{
+      authenticated: boolean;
+      user?: string;
+      role?: string;
+      error?: string;
+    }>('/sailing/auth', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
   }
 
-  async logout(): Promise<ApiResponse> {
-    try {
-      const response = await this.request<ApiResponse>('/auth/logout', {
-        method: 'POST',
-      });
-
-      return response;
-    } catch (error) {
-      console.error('Logout failed:', error);
-      return {
-        success: false,
-        error: 'Logout failed.',
-      };
-    }
+  async getFleets() {
+    return this.request<{ status: string; data: Array<{ fleet: string; ships: string[] }> }>('/sailing/fleets');
   }
 
-  async validateSession(): Promise<{ valid: boolean; user?: User }> {
-    try {
-      const response = await this.request<{ valid: boolean; user?: User }>('/auth/validate');
-      return response;
-    } catch (error) {
-      console.error('Session validation failed:', error);
-      return { valid: false };
-    }
+  async getMetrics() {
+    return this.request<{ status: string; data: string[] }>('/sailing/metrics');
   }
 
-  async getCurrentUser(): Promise<User | null> {
-    try {
-      const response = await this.request<{ user: User }>('/auth/user');
-      return response.user || null;
-    } catch (error) {
-      console.error('Failed to get current user:', error);
-      return null;
-    }
+  async getSheets() {
+    return this.request<{ status: string; data: string[] }>('/sailing/sheets');
   }
 
-  // User Management Methods (for admin/superadmin)
-  async getUsers(): Promise<User[]> {
-    try {
-      const response = await this.request<{ users: User[] }>('/admin/users');
-      return response.users || [];
-    } catch (error) {
-      console.error('Failed to get users:', error);
-      return [];
-    }
+  async getRatingSummary(filters: any) {
+    return this.request<{ status: string; count: number; data: any[] }>('/sailing/getRatingSmry', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
   }
 
-  async createUser(userData: Partial<User>): Promise<ApiResponse<User>> {
-    try {
-      const response = await this.request<ApiResponse<User>>('/admin/users', {
-        method: 'POST',
-        body: JSON.stringify(userData),
-      });
-
-      return response;
-    } catch (error) {
-      console.error('Failed to create user:', error);
-      return {
-        success: false,
-        error: 'Failed to create user.',
-      };
-    }
+  async getMetricRating(data: any) {
+    return this.request<{ 
+      status: string; 
+      metric: string;
+      results: Array<{
+        ship: string;
+        sailingNumber: string;
+        metric: string;
+        averageRating: number;
+        ratingCount: number;
+        filteredReviews: string[];
+        filteredMetric: number[];
+        filteredCount: number;
+        comparisonToOverall?: number;
+        error?: string;
+      }>;
+      filterBelow?: number;
+      comparedToAverage: boolean;
+    }>('/sailing/getMetricRating', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
-  async updateUser(userId: string, userData: Partial<User>): Promise<ApiResponse<User>> {
-    try {
-      const response = await this.request<ApiResponse<User>>(`/admin/users/${userId}`, {
-        method: 'PUT',
-        body: JSON.stringify(userData),
-      });
-
-      return response;
-    } catch (error) {
-      console.error('Failed to update user:', error);
-      return {
-        success: false,
-        error: 'Failed to update user.',
-      };
-    }
+  async semanticSearch(searchData: any) {
+    return this.request<{ 
+      status: string; 
+      results: Array<{
+        comment: string;
+        sheet_name: string;
+        meal_time: string;
+        metadata: {
+          fleet: string;
+          ship: string;
+          sailing_number: string;
+          date: string;
+        };
+      }>;
+    }>('/sailing/semanticSearch', {
+      method: 'POST',
+      body: JSON.stringify(searchData),
+    });
+  }  async getIssuesSummary(filters: any) {
+    console.log('API: Calling getIssuesList endpoint with filters:', filters);
+    return this.request<{ 
+      status: string; 
+      data: any; // Handle any data structure from endpoint
+    }>('/sailing/getIssuesList', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
   }
 
-  async deleteUser(userId: string): Promise<ApiResponse> {
-    try {
-      const response = await this.request<ApiResponse>(`/admin/users/${userId}`, {
-        method: 'DELETE',
-      });
-
-      return response;
-    } catch (error) {
-      console.error('Failed to delete user:', error);
-      return {
-        success: false,
-        error: 'Failed to delete user.',
-      };
-    }
+  async getShips() {
+    return this.request<{ 
+      status: string; 
+      data: Array<{
+        name: string;
+        id: number;
+      }>;
+    }>('/sailing/ships');
   }
 
-  // Data Fetching Methods
-  async getCruiseData(filters?: any): Promise<any[]> {
-    try {
-      const queryString = filters ? `?${new URLSearchParams(filters).toString()}` : '';
-      const response = await this.request<{ data: any[] }>(`/api/cruise-data${queryString}`);
-      return response.data || [];
-    } catch (error) {
-      console.error('Failed to get cruise data:', error);
-      return [];
-    }
+  async checkConnection() {
+    return this.request<string>('/sailing/check');
   }
 
-  async getRatingsData(filters?: any): Promise<any[]> {
-    try {
-      const queryString = filters ? `?${new URLSearchParams(filters).toString()}` : '';
-      const response = await this.request<{ data: any[] }>(`/api/ratings${queryString}`);
-      return response.data || [];
-    } catch (error) {
-      console.error('Failed to get ratings data:', error);
-      return [];
-    }
+  async getSailingNumbers() {
+    return this.request<{ status: string; data: string[] }>('/sailing/sailing_numbers');
   }
 
-  async getShipData(): Promise<any[]> {
-    try {
-      const response = await this.request<{ ships: any[] }>('/api/ships');
-      return response.ships || [];
-    } catch (error) {
-      console.error('Failed to get ship data:', error);
-      return [];
-    }
-  }
-
-  async getSailingData(filters?: any): Promise<any[]> {
-    try {
-      const queryString = filters ? `?${new URLSearchParams(filters).toString()}` : '';
-      const response = await this.request<{ sailings: any[] }>(`/api/sailings${queryString}`);
-      return response.sailings || [];
-    } catch (error) {
-      console.error('Failed to get sailing data:', error);
-      return [];
-    }
-  }
-
-  // Permission checking
-  async checkPermission(permission: string): Promise<boolean> {
-    try {
-      const response = await this.request<{ hasPermission: boolean }>(`/auth/permission/${permission}`);
-      return response.hasPermission;
-    } catch (error) {
-      console.error('Failed to check permission:', error);
-      return false;
-    }
-  }
-
-  // Health check
-  async healthCheck(): Promise<boolean> {
-    try {
-      const response = await this.request<{ status: string }>('/health');
-      return response.status === 'ok';
-    } catch (error) {
-      console.error('Health check failed:', error);
-      return false;
-    }
+  async getSailingNumbersFiltered(filters: { ships: string[], start_date: string, end_date: string }) {
+    return this.request<{ status: string; data: string[] }>('/sailing/sailing_numbers_filter', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
   }
 }
 
-// Export singleton instance
 export const apiService = new ApiService();
-export default apiService;
