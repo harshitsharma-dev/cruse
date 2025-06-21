@@ -1,6 +1,8 @@
 // const API_BASE_URL = 'http://localhost:5000'; // Changed to localhost for local testing
 const API_BASE_URL = 'http://ag.api.deepthoughtconsultech.com:5000'; // Original remote server
 
+import CryptoService from './crypto';
+
 class ApiService {
   private baseUrl: string;
 
@@ -94,23 +96,39 @@ class ApiService {
       }
         throw error;
     }
-  }
-  async authenticate(credentials: { username: string; password: string }) {
+  }  async authenticate(credentials: { username: string; password: string }) {
     const isDevelopment = import.meta.env.DEV;
     
     if (isDevelopment) {
       console.log('=== AUTHENTICATION API CALL ===');
       console.log('API Base URL:', this.baseUrl);
-      console.log('Credentials being sent:', credentials);
-      console.log('JSON stringified credentials:', JSON.stringify(credentials));
-    }
-    
-    const requestBody = JSON.stringify(credentials);
-    if (isDevelopment) {
-      console.log('Request body length:', requestBody.length);
+      console.log('Original credentials:', { username: credentials.username, password: '[REDACTED]' });
     }
     
     try {
+      // Encrypt the credentials before sending
+      const encryptedPayload = await CryptoService.encryptCredentials(credentials);
+      
+      if (isDevelopment) {
+        console.log('Encrypted payload structure:', {
+          hasEncryptedData: !!encryptedPayload.encryptedData,
+          hasIV: !!encryptedPayload.iv,
+          hasSessionKey: !!encryptedPayload.sessionKey,
+          encryptedDataLength: encryptedPayload.encryptedData.length,
+        });
+      }
+      
+      // Send encrypted data to the server
+      const requestBody = JSON.stringify({
+        encrypted: true,
+        ...encryptedPayload
+      });
+      
+      if (isDevelopment) {
+        console.log('Request body length:', requestBody.length);
+        console.log('Sending encrypted authentication request...');
+      }
+      
       const result = await this.request<{
         authenticated: boolean;
         user?: string;
@@ -123,6 +141,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Cache-Control': 'no-cache',
+          'X-Encryption-Enabled': 'true', // Signal to backend that data is encrypted
         },
       });
       
@@ -141,6 +160,46 @@ class ApiService {
         }
       }
       
+      throw error;
+    }
+  }
+
+  // Fallback authentication method (non-encrypted) for backwards compatibility
+  async authenticateUnencrypted(credentials: { username: string; password: string }) {
+    const isDevelopment = import.meta.env.DEV;
+    
+    if (isDevelopment) {
+      console.log('=== FALLBACK AUTHENTICATION (UNENCRYPTED) ===');
+      console.log('API Base URL:', this.baseUrl);
+      console.log('Using unencrypted credentials for backwards compatibility');
+    }
+    
+    const requestBody = JSON.stringify(credentials);
+    
+    try {
+      const result = await this.request<{
+        authenticated: boolean;
+        user?: string;
+        role?: string;
+        error?: string;
+      }>('/sailing/auth', {
+        method: 'POST',
+        body: requestBody,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      });
+      
+      if (isDevelopment) {
+        console.log('Fallback authentication result:', result);
+      }
+      return result;
+    } catch (error) {
+      if (isDevelopment) {
+        console.error('Fallback authentication error:', error);
+      }
       throw error;
     }
   }
@@ -243,6 +302,30 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(filters),
     });
+  }
+
+  async logout() {
+    // For now, just return success as logout is handled client-side
+    // In the future, this could invalidate server-side sessions
+    const isDevelopment = import.meta.env.DEV;
+    
+    if (isDevelopment) {
+      console.log('Logout called - clearing client-side session');
+    }
+    
+    return { success: true };
+  }
+
+  async validateSession() {
+    // For now, return false as we don't have server-side session validation
+    // In the future, this could check server-side session validity
+    const isDevelopment = import.meta.env.DEV;
+    
+    if (isDevelopment) {
+      console.log('validateSession called - no server-side session validation implemented');
+    }
+    
+    return { valid: false };
   }
 }
 

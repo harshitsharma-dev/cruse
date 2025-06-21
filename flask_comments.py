@@ -10,6 +10,7 @@ import yaml
 from werkzeug.security import check_password_hash
 from pathlib import Path
 import sql_ops as SQLOP
+from crypto_service import CryptoService
 
 app = Flask(__name__)
 # CORS(app)
@@ -462,10 +463,35 @@ def get_ships():
 @app.route('/sailing/auth', methods=['POST'])
 def authenticate():
     try:
-        # Get credentials from request
+        # Get data from request
         data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
+        
+        # Check if request is encrypted
+        if CryptoService.is_encrypted_request(data):
+            print("Processing encrypted authentication request")
+            
+            # Extract encrypted data
+            encrypted_data = data.get('encryptedData')
+            iv = data.get('iv')
+            session_key = data.get('sessionKey')
+            
+            # Decrypt credentials
+            try:
+                credentials = CryptoService.decrypt_credentials(encrypted_data, iv, session_key)
+                username = credentials.get('username')
+                password = credentials.get('password')
+                print(f"Decrypted credentials for user: {username}")
+            except ValueError as e:
+                print(f"Decryption error: {str(e)}")
+                return jsonify({
+                    "authenticated": False,
+                    "error": "Failed to decrypt credentials"
+                }), 400
+        else:
+            print("Processing unencrypted authentication request")
+            # Handle unencrypted legacy request
+            username = data.get('username')
+            password = data.get('password')
         
         if not username or not password:
             return jsonify({
@@ -479,11 +505,21 @@ def authenticate():
         
         # Verify user exists and password matches
         if user_data and check_password_hash(user_data['password'], password):
-            return jsonify({
+            response_data = {
                 "authenticated": True,
                 "user": username,
                 "role": user_data.get('role')
-            })
+            }
+            
+            # Add encryption status to response
+            if CryptoService.is_encrypted_request(data):
+                response_data["encryption"] = "enabled"
+                print(f"Authentication successful for encrypted request: {username}")
+            else:
+                response_data["encryption"] = "disabled"
+                print(f"Authentication successful for unencrypted request: {username}")
+            
+            return jsonify(response_data)
         
         return jsonify({
             "authenticated": False,
@@ -491,11 +527,12 @@ def authenticate():
         }), 401
         
     except Exception as e:
+        print(f"Authentication error: {str(e)}")
         return jsonify({
             "authenticated": False,
             "error": f"Authentication failed: {str(e)}"
         }), 500
-    
+        
 @app.route('/sailing/semanticSearch', methods=['POST'])
 def get_semantic_search():
     """Endpoint for semantic search based on user query and filters"""
@@ -556,6 +593,12 @@ def get_semantic_search():
         "results": data
     })
 
+
+def add_sailing_summaries(issues_list):
+    """Add sailing summaries to issues list"""
+    # Simple implementation - return the issues list as-is for now
+    # This function can be enhanced later to add additional summary data
+    return issues_list
 
 @app.route('/sailing/getIssuesList', methods=['POST'])
 def get_issues_list():

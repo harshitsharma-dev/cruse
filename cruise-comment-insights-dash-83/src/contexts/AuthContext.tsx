@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('=== AUTHENTICATION ATTEMPT ===');
       console.log('Username:', username);
       console.log('Password length:', password.length);
-      console.log('Attempting to authenticate with backend API...');
+      console.log('Attempting encrypted authentication with backend API...');
       
       // Validate credentials before sending
       if (!username || !password) {
@@ -61,13 +61,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      // Use actual authentication API with correct parameter structure
-      const response = await apiService.authenticate({ 
+      let response;
+      const credentials = { 
         username: username.trim(), 
         password: password.trim() 
-      });
+      };
       
-      console.log('Authentication response received:', response);
+      try {
+        // Try encrypted authentication first
+        console.log('Attempting encrypted authentication...');
+        response = await apiService.authenticate(credentials);
+        console.log('Encrypted authentication response received:', response);
+      } catch (encryptedError) {
+        console.warn('Encrypted authentication failed, falling back to unencrypted:', encryptedError);
+        
+        try {
+          // Fallback to unencrypted authentication
+          console.log('Attempting fallback unencrypted authentication...');
+          response = await apiService.authenticateUnencrypted(credentials);
+          console.log('Fallback authentication response received:', response);
+        } catch (fallbackError) {
+          console.error('Both encrypted and unencrypted authentication failed:', fallbackError);
+          throw fallbackError;
+        }
+      }
+      
+      console.log('Final authentication response:', response);
       console.log('Response type:', typeof response);
       
       if (response && response.authenticated && response.user) {
