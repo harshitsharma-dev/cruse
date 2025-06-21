@@ -5,13 +5,15 @@
   "type": "module",  "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:prod": "NODE_ENV=production vite build --mode production",
-    "build:analyze": "vite build --mode production && npx serve dist",
+    "build:prod": "cross-env NODE_ENV=production vite build --mode production",
+    "build:analyze": "cross-env NODE_ENV=production vite build --mode production && npx serve dist",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "clean": "rm -rf dist",
-    "build:clean": "npm run clean && npm run build:prod"
+    "clean": "rmdir /s /q dist 2>nul || echo Directory cleaned",
+    "clean:unix": "rm -rf dist",
+    "build:clean": "npm run clean && npm run build:prod",
+    "build:clean:unix": "npm run clean:unix && npm run build:prod"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -72,6 +74,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",

@@ -22,6 +22,18 @@
     AddOutputFilterByType DEFLATE text/javascript
     AddOutputFilterByType DEFLATE text/plain
     AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE application/json
+
+    # Aggressive compression for JS modules and chunks
+    SetEnvIfNoCase Request_URI "\.js$" COMPRESS_JS
+    SetEnvIfNoCase Request_URI "assets.*\.js$" COMPRESS_JS_ASSETS
+    SetEnvIfNoCase Request_URI "chunk.*\.js$" COMPRESS_JS_CHUNKS
+    
+    # Higher compression level for UI library chunks
+    <FilesMatch "\.(js|css)$">
+        SetOutputFilter DEFLATE
+        SetEnvIfNoCase Request_URI "(react|radix|lucide|tanstack)" HEAVY_COMPRESS
+    </FilesMatch>
 
     # Remove browser bugs (only needed for really old browsers)
     BrowserMatch ^Mozilla/4 gzip-only-text/html
@@ -78,7 +90,13 @@
 
 # Add cache control headers
 <IfModule mod_headers.c>
-    # Cache static assets for 1 year
+    # Cache UI library chunks for 1 year (they have content hashes)
+    <FilesMatch "assets/js/(react|radix|lucide|tanstack|query|icons|utils|forms).*\.js$">
+        Header set Cache-Control "max-age=31536000, public, immutable"
+        Header set X-Content-Type-Options "nosniff"
+    </FilesMatch>
+    
+    # Cache other static assets for 1 year
     <FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf|woff|woff2|ttf|svg)$">
         Header set Cache-Control "max-age=31536000, public"
     </FilesMatch>
@@ -86,6 +104,19 @@
     # Cache HTML for 1 hour
     <FilesMatch "\.(html|htm)$">
         Header set Cache-Control "max-age=3600, public, must-revalidate"
+    </FilesMatch>
+    
+    # Special caching for font files (longer cache)
+    <FilesMatch "\.(woff|woff2|ttf|otf|eot)$">
+        Header set Cache-Control "max-age=63072000, public, immutable"
+        Header set Access-Control-Allow-Origin "*"
+    </FilesMatch>
+    
+    # Enable CORS for assets to allow CDN usage
+    <FilesMatch "\.(js|css|woff|woff2|ttf|otf|eot|svg)$">
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        Header set Access-Control-Allow-Headers "Content-Type"
     </FilesMatch>
     
     # Add security headers
@@ -96,4 +127,10 @@
     # Remove server signature
     Header unset Server
     Header unset X-Powered-By
+    
+    # Add preload hints for critical resources
+    <FilesMatch "index\.html$">
+        Header add Link "</assets/js/react-core-[a-f0-9]+\.js>; rel=preload; as=script"
+        Header add Link "</assets/css/index-[a-f0-9]+\.css>; rel=preload; as=style"
+    </FilesMatch>
 </IfModule>
