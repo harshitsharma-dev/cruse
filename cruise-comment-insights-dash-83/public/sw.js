@@ -10,9 +10,9 @@ const STATIC_CACHE_URLS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/apollo-intelligence.jpg',
-  '/dtc.jpg',
-  '/favicon.ico',
+  'https://ap-grp-ai.s3.us-west-2.amazonaws.com/assets/ag-logo.svg',
+  'https://ap-grp-ai.s3.us-west-2.amazonaws.com/assets/dtc-logo.svg',
+  'https://ap-grp-ai.s3.us-west-2.amazonaws.com/assets/dtc-favicon.png',
 ];
 
 // UI Library chunks to prioritize for caching

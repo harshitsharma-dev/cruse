@@ -17,12 +17,11 @@ const DTCLogo: React.FC<DTCLogoProps> = ({ size = 'sm', className = '' }) => {
     md: 'text-sm',
     lg: 'text-base'
   };
-
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
       <div className={`${sizeClasses[size]}`}>
         <img 
-          src="/dtc.jpg" 
+          src="https://ap-grp-ai.s3.us-west-2.amazonaws.com/assets/dtc-logo.svg" 
           alt="DTC"
           className={`${sizeClasses[size]} object-contain rounded apollo-shadow`}
         />

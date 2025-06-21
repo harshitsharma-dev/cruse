@@ -19,12 +19,11 @@ const ApolloLogo: React.FC<ApolloLogoProps> = ({ size = 'md', variant = 'full', 
     md: 'text-2xl',
     lg: 'text-3xl',
     xl: 'text-5xl'
-  };
-  if (variant === 'icon') {
+  };  if (variant === 'icon') {
     return (
       <div className={`${sizeClasses[size]} ${className}`}>
         <img 
-          src="/apollo-intelligence.jpg" 
+          src="https://ap-grp-ai.s3.us-west-2.amazonaws.com/assets/ag-logo.svg" 
           alt="Apollo Intelligence"
           className={`${sizeClasses[size]} object-contain rounded-lg apollo-shadow`}
         />
@@ -40,12 +39,11 @@ const ApolloLogo: React.FC<ApolloLogoProps> = ({ size = 'md', variant = 'full', 
         </h1>
       </div>
     );
-  }
-  return (
+  }  return (
     <div className={`flex items-center space-x-3 ${className}`}>
       <div className={`${sizeClasses[size]}`}>
         <img 
-          src="/apollo-intelligence.jpg" 
+          src="https://ap-grp-ai.s3.us-west-2.amazonaws.com/assets/ag-logo.svg" 
           alt="Apollo Intelligence"
           className={`${sizeClasses[size]} object-contain rounded-lg apollo-shadow apollo-animate-float`}
         />
