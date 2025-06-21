@@ -1,3 +1,55 @@
+# Force correct MIME types for JavaScript modules
+<IfModule mod_mime.c>
+    # Remove any existing MIME type and force correct ones
+    RemoveType .js
+    RemoveType .mjs
+    RemoveType .css
+    
+    # JavaScript and JSON files - use most compatible MIME type
+    AddType text/javascript .js
+    AddType text/javascript .mjs
+    AddType application/json .json
+    
+    # CSS files
+    AddType text/css .css
+    
+    # Font files
+    AddType font/woff .woff
+    AddType font/woff2 .woff2
+    AddType font/ttf .ttf
+    AddType font/otf .otf
+    AddType application/font-woff .woff
+    AddType application/font-woff2 .woff2
+    
+    # Image files
+    AddType image/svg+xml .svg
+    AddType image/webp .webp
+    
+    # Ensure module scripts are served with correct MIME type
+    <FilesMatch "\.m?js$">
+        ForceType text/javascript
+        Header set Content-Type "text/javascript; charset=utf-8"
+    </FilesMatch>
+    
+    # Force correct MIME type for CSS
+    <FilesMatch "\.css$">
+        ForceType text/css
+        Header set Content-Type "text/css; charset=utf-8"
+    </FilesMatch>
+    
+    # Prevent serving unknown file types with octet-stream
+    <FilesMatch "\.(js|mjs|css)$">
+        Header unset Content-Type
+        Header set Content-Type "text/javascript; charset=utf-8" env=MATCH_JS
+        Header set Content-Type "text/css; charset=utf-8" env=MATCH_CSS
+    </FilesMatch>
+    
+    # Set environment variables for proper MIME matching
+    SetEnvIf Request_URI "\.js$" MATCH_JS
+    SetEnvIf Request_URI "\.mjs$" MATCH_JS
+    SetEnvIf Request_URI "\.css$" MATCH_CSS
+</IfModule>
+
 # Enable compression for static files
 <IfModule mod_deflate.c>
     # Compress HTML, CSS, JavaScript, Text, XML and fonts

@@ -57,10 +57,12 @@ export default defineConfig(({ mode }) => ({
     // Optimize CSS
     cssMinify: true,
     // Report compressed file sizes
-    reportCompressedSize: true,
-    // Optimize asset inlining
+    reportCompressedSize: true,    // Optimize asset inlining
     assetsInlineLimit: 4096, // Inline assets smaller than 4kb
-  },  // Enhanced dependency optimization for faster cold starts and better compression
+    
+    // Prevent problematic modulepreload generation
+    modulePreload: false,
+  },// Enhanced dependency optimization for faster cold starts and better compression
   optimizeDeps: {
     // Pre-bundle these dependencies for faster loading
     include: [
