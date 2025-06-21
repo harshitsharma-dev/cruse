@@ -8,9 +8,10 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { FilterProvider } from "./contexts/FilterContext";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
+import CookieConsentBanner from "./components/CookieConsentBanner";
 import { Preloader } from "./components/Preloader";
 import { PerformanceMonitor } from "./hooks/usePerformanceMonitoring";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState } from "react";
 
 // Lazy load components to reduce initial bundle size
 // const Dashboard = lazy(() => import("./pages/Dashboard")); // Dashboard hidden temporarily
@@ -20,6 +21,7 @@ const Search = lazy(() => import("./pages/Search"));
 const Issues = lazy(() => import("./pages/Issues"));
 const UserProfile = lazy(() => import("./components/UserProfile"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
+const GDPRCompliance = lazy(() => import("./components/GDPRCompliance"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading component for better UX during code splitting
@@ -82,10 +84,14 @@ const AppRoutes = () => {
           <Suspense fallback={<LoadingSpinner />}>
             <UserProfile />
           </Suspense>
-        } />
-        <Route path="/users" element={
+        } />        <Route path="/users" element={
           <Suspense fallback={<LoadingSpinner />}>
             <UserManagement />
+          </Suspense>
+        } />
+        <Route path="/privacy" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <GDPRCompliance />
           </Suspense>
         } />
       </Route>
@@ -98,24 +104,48 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <FilterProvider>
-          <PerformanceMonitor />
-          <Preloader />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<LoadingSpinner />}>
-              <AppRoutes />
-            </Suspense>
-          </BrowserRouter>
-        </FilterProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showCookieCustomization, setShowCookieCustomization] = useState(false);
+
+  const handleAcceptAllCookies = () => {
+    console.log('All cookies accepted');
+    // Enable all analytics and tracking
+  };
+
+  const handleRejectAllCookies = () => {
+    console.log('All non-essential cookies rejected');
+    // Disable analytics and tracking
+  };
+
+  const handleCustomizeCookies = () => {
+    setShowCookieCustomization(true);
+    // Navigate to privacy page or show customization modal
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <FilterProvider>
+            <PerformanceMonitor />
+            <Preloader />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Suspense fallback={<LoadingSpinner />}>
+                <AppRoutes />
+              </Suspense>
+              <CookieConsentBanner
+                onAcceptAll={handleAcceptAllCookies}
+                onRejectAll={handleRejectAllCookies}
+                onCustomize={handleCustomizeCookies}
+              />
+            </BrowserRouter>
+          </FilterProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

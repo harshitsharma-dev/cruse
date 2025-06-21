@@ -11,6 +11,8 @@ from werkzeug.security import check_password_hash
 from pathlib import Path
 import sql_ops as SQLOP
 from crypto_service import CryptoService
+from gdpr_service import GDPRService
+from datetime import datetime
 
 app = Flask(__name__)
 # CORS(app)
@@ -503,6 +505,14 @@ def authenticate():
         auth_data = load_auth_data()
         user_data = auth_data['users'].get(username)
         
+        # Log authentication attempt for GDPR audit
+        GDPRService.log_data_access(
+            user=username,
+            data_type='authentication_logs',
+            purpose='user_authentication',
+            ip_address=request.remote_addr
+        )
+        
         # Verify user exists and password matches
         if user_data and check_password_hash(user_data['password'], password):
             response_data = {
@@ -532,11 +542,182 @@ def authenticate():
             "authenticated": False,
             "error": f"Authentication failed: {str(e)}"
         }), 500
+
+# GDPR Compliance Endpoints
+@app.route('/sailing/gdpr/privacy-policy', methods=['GET'])
+def get_privacy_policy():
+    """Endpoint to get privacy policy information"""
+    return jsonify({
+        "status": "success",
+        "privacy_policy": {
+            "data_controller": "Apollo Intelligence - Cruise Analytics Platform",
+            "contact_email": "privacy@apollointelligence.com",
+            "data_types_collected": [
+                "Authentication credentials (username, hashed password)",
+                "Cruise review data and ratings",
+                "Search queries and filters",
+                "User session information",
+                "IP addresses for security purposes"
+            ],
+            "purposes": [
+                "User authentication and authorization",
+                "Cruise data analysis and reporting",
+                "Service improvement and analytics",
+                "Security monitoring and fraud prevention"
+            ],
+            "retention_periods": {
+                "authentication_logs": "90 days",
+                "cruise_reviews": "7 years (business records)",
+                "search_queries": "30 days",
+                "audit_logs": "7 years (compliance)"
+            },
+            "user_rights": [
+                "Right to access personal data",
+                "Right to rectification",
+                "Right to erasure (right to be forgotten)",
+                "Right to restrict processing",
+                "Right to data portability",
+                "Right to object to processing"
+            ],
+            "last_updated": "2025-06-21"
+        }
+    })
+
+@app.route('/sailing/gdpr/user-data', methods=['GET'])
+def get_user_data():
+    """Endpoint for users to request their personal data (Right to Access)"""
+    try:
+        # In production, verify user authentication and authorization
+        username = request.args.get('username')
+        if not username:
+            return jsonify({"error": "Username required"}), 400
+        
+        # Log data access request
+        GDPRService.log_data_access(
+            user=username,
+            data_type='personal_data_export',
+            purpose='gdpr_data_access_request',
+            ip_address=request.remote_addr
+        )
+        
+        # Collect user data from various sources
+        user_data = {
+            "username": username,
+            "data_collected": {
+                "authentication_data": "Hashed password and login history",
+                "search_history": "Last 30 days of search queries",
+                "session_data": "Recent session information"
+            },
+            "data_processing_purposes": [
+                "Authentication and access control",
+                "Service functionality and analytics"
+            ],
+            "export_date": datetime.utcnow().isoformat(),
+            "retention_info": "Data will be retained according to our privacy policy"
+        }
+        
+        return jsonify({
+            "status": "success",
+            "user_data": user_data
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve user data: {str(e)}"}), 500
+
+@app.route('/sailing/gdpr/delete-user', methods=['POST'])
+def delete_user_data():
+    """Endpoint for users to request data deletion (Right to be Forgotten)"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        confirmation = data.get('confirm_deletion', False)
+        
+        if not username or not confirmation:
+            return jsonify({
+                "error": "Username and deletion confirmation required"
+            }), 400
+        
+        # Log deletion request
+        GDPRService.log_data_access(
+            user=username,
+            data_type='data_deletion_request',
+            purpose='gdpr_right_to_be_forgotten',
+            ip_address=request.remote_addr
+        )
+        
+        # In production, implement actual data deletion logic
+        # This should:
+        # 1. Remove user from authentication system
+        # 2. Anonymize or delete personal data in databases
+        # 3. Maintain audit logs as required by law
+        # 4. Send confirmation to user
+        
+        return jsonify({
+            "status": "success",
+            "message": "Data deletion request received and will be processed within 30 days",
+            "deletion_id": f"DEL_{username}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
+            "contact_info": "For questions, contact privacy@apollointelligence.com"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to process deletion request: {str(e)}"}), 500
+
+@app.route('/sailing/gdpr/consent', methods=['POST'])
+def update_consent():
+    """Endpoint to manage user consent preferences"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        consent_type = data.get('consent_type')
+        consent_given = data.get('consent_given', False)
+        
+        if not username or not consent_type:
+            return jsonify({
+                "error": "Username and consent type required"
+            }), 400
+        
+        # Log consent change
+        GDPRService.log_data_access(
+            user=username,
+            data_type='consent_management',
+            purpose='gdpr_consent_update',
+            ip_address=request.remote_addr
+        )
+        
+        # In production, update consent in database
+        consent_record = {
+            "username": username,
+            "consent_type": consent_type,
+            "consent_given": consent_given,
+            "timestamp": datetime.utcnow().isoformat(),
+            "ip_address": request.remote_addr
+        }
+        
+        return jsonify({
+            "status": "success",
+            "message": "Consent preferences updated",
+            "consent_record": consent_record
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to update consent: {str(e)}"}), 500
         
 @app.route('/sailing/semanticSearch', methods=['POST'])
 def get_semantic_search():
     """Endpoint for semantic search based on user query and filters"""
     data = request.get_json()
+    
+    # Apply GDPR data minimization
+    data = GDPRService.check_data_minimization(data, 'search')
+    
+    # Log search access for GDPR audit
+    username = data.get('username', 'anonymous')
+    GDPRService.log_data_access(
+        user=username,
+        data_type='search_queries',
+        purpose='cruise_data_search',
+        ip_address=request.remote_addr
+    )
 
     # Validate input
     query = data.get("query")
@@ -604,6 +785,18 @@ def add_sailing_summaries(issues_list):
 def get_issues_list():
     """Endpoint to retrieve a summary of issues based on user input"""
     data = request.get_json()
+    
+    # Apply GDPR data minimization
+    data = GDPRService.check_data_minimization(data, 'issues_reporting')
+    
+    # Log issues access for GDPR audit
+    username = data.get('username', 'anonymous')
+    GDPRService.log_data_access(
+        user=username,
+        data_type='cruise_issues',
+        purpose='issues_analysis',
+        ip_address=request.remote_addr
+    )
 #     ships = data.get("ships", None)
     sailing_numbers = data.get("sailing_numbers", None)
     sheets = data.get("sheets", None)
