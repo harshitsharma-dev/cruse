@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, ChevronDown, X, BarChart3 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { AlertTriangle, ChevronDown, ChevronUp, X, BarChart3, Expand, Minimize2 } from 'lucide-react';
 import { apiService } from '../services/api';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
@@ -18,6 +19,8 @@ const Issues = () => {
   const [filters, setFilters] = useState<any>({
     useAllDates: true // Default to "All Dates" mode
   });
+  const [expandedIssues, setExpandedIssues] = useState<Record<string, boolean>>({});
+  const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({});
 
   // Fetch available sheets from API
   const { data: sheetsData, isLoading: sheetsLoading, error: sheetsError } = useQuery({
@@ -39,13 +42,39 @@ const Issues = () => {
     } else {
       setSelectedSheets(allSheets);
     }
-  };
-  const handleFilterChange = (newFilters: any) => {
+  };  const handleFilterChange = (newFilters: any) => {
     console.log('=== FILTER CHANGE IN ISSUES ===');
     console.log('New filters received:', newFilters);
     console.log('Previous filters:', filters);
     setFilters(newFilters);
     console.log('Filters updated in Issues component');
+  };
+
+  const toggleIssueExpansion = (issueId: string) => {
+    setExpandedIssues(prev => ({
+      ...prev,
+      [issueId]: !prev[issueId]
+    }));
+  };
+
+  const toggleSummaryExpansion = (summaryId: string) => {
+    setExpandedSummaries(prev => ({
+      ...prev,
+      [summaryId]: !prev[summaryId]
+    }));
+  };
+
+  const expandAllIssues = () => {
+    if (!issuesData?.all_issues) return;
+    const allExpanded: Record<string, boolean> = {};
+    issuesData.all_issues.forEach((_: any, index: number) => {
+      allExpanded[`issue-${index}`] = true;
+    });
+    setExpandedIssues(allExpanded);
+  };
+
+  const collapseAllIssues = () => {
+    setExpandedIssues({});
   };
   const fetchIssues = async () => {    console.log('=== ISSUES FETCH DEBUG START ===');
     console.log('Current filters object:', filters);
@@ -276,25 +305,50 @@ const Issues = () => {
                             <span>Summary #{index + 1}</span>
                           </div>
                         </div>
-                        
-                        {/* Sailing Summary Text */}
+                          {/* Sailing Summary Text */}
                         <div className="mt-4">
                           <div className="border-l-4 border-green-400 pl-4">
-                            <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
-                              <span className="h-2 w-2 bg-green-400 rounded-full"></span>
-                              Sailing Summary
-                            </h5>                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg p-4 shadow-sm">
-                              <div className="text-sm text-gray-800 leading-relaxed max-h-32 overflow-y-auto apollo-scrollbar">
-                                {sailing.sailing_summary ? (
-                                  <FormattedText 
-                                    text={sailing.sailing_summary} 
-                                    className="text-gray-800"
-                                  />
-                                ) : (
-                                  <p className="text-gray-500 italic">No summary available</p>
-                                )}
-                              </div>
-                            </div>
+                            <Collapsible 
+                              open={expandedSummaries[`summary-${index}`]} 
+                              onOpenChange={() => toggleSummaryExpansion(`summary-${index}`)}
+                            >
+                              <CollapsibleTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  className="flex items-center justify-between w-full p-0 h-auto hover:bg-transparent"
+                                >
+                                  <h5 className="font-medium text-gray-800 flex items-center gap-2">
+                                    <span className="h-2 w-2 bg-green-400 rounded-full"></span>
+                                    Sailing Summary
+                                  </h5>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {expandedSummaries[`summary-${index}`] ? 'Click to collapse' : 'Click to expand'}
+                                    </Badge>
+                                    {expandedSummaries[`summary-${index}`] ? (
+                                      <ChevronUp className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4 text-green-600" />
+                                    )}
+                                  </div>
+                                </Button>
+                              </CollapsibleTrigger>
+                              
+                              <CollapsibleContent className="mt-3">
+                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg p-4 shadow-sm">
+                                  <div className="text-sm text-gray-800 leading-relaxed">
+                                    {sailing.sailing_summary ? (
+                                      <FormattedText 
+                                        text={sailing.sailing_summary} 
+                                        className="text-gray-800"
+                                      />
+                                    ) : (
+                                      <p className="text-gray-500 italic">No summary available</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
                           </div>
                         </div>
                         
@@ -365,16 +419,37 @@ const Issues = () => {
             </CardHeader>            <CardContent>
               <div className="space-y-4">
                 {/* All Issues List - if available */}
-                {issuesData.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (
-                  <div className="mt-6">
+                {issuesData.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (                  <div className="mt-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-semibold text-lg text-gray-900">Detailed Issue Reports</h4>
-                      <Badge variant="secondary" className="text-sm px-3 py-1">
-                        {issuesData.all_issues.length} Total Issues
-                      </Badge>
+                      <div className="flex items-center gap-3">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={expandAllIssues}
+                            className="text-xs hover:bg-blue-50"
+                          >
+                            <Expand className="h-3 w-3 mr-1" />
+                            Expand All
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={collapseAllIssues}
+                            className="text-xs hover:bg-gray-50"
+                          >
+                            <Minimize2 className="h-3 w-3 mr-1" />
+                            Collapse All
+                          </Button>
+                        </div>
+                        <Badge variant="secondary" className="text-sm px-3 py-1">
+                          {issuesData.all_issues.length} Total Issues
+                        </Badge>
+                      </div>
                     </div>
                     
-                    <div className="space-y-6 max-h-[600px] overflow-y-auto apollo-scrollbar pr-2">
+                    <div className="space-y-6 pr-2">
                       {issuesData.all_issues.map((issue: any, index: number) => (
                         <div key={index} className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-200">
                           {/* Issue Header */}
@@ -404,25 +479,58 @@ const Issues = () => {
                               <span>Issue #{index + 1}</span>
                             </div>
                           </div>
-                          
-                          {/* Issue Content */}
+                            {/* Issue Content */}
                           <div className="space-y-3">
                             <div className="border-l-4 border-red-400 pl-4">
-                              <h6 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
-                                <span className="h-2 w-2 bg-red-400 rounded-full"></span>
-                                Issue Details
-                              </h6>                              <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-lg p-4 shadow-sm">
-                                <div className="text-sm text-gray-800 leading-relaxed max-h-40 overflow-y-auto apollo-scrollbar">
-                                  {issue.issues ? (
-                                    <FormattedText 
-                                      text={issue.issues} 
-                                      className="text-gray-800"
-                                    />
-                                  ) : (
-                                    <p className="text-gray-500 italic">No detailed issues available</p>
-                                  )}
-                                </div>
-                              </div>
+                              <Collapsible 
+                                open={expandedIssues[`issue-${index}`]} 
+                                onOpenChange={() => toggleIssueExpansion(`issue-${index}`)}
+                              >
+                                <CollapsibleTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    className="flex items-center justify-between w-full p-0 h-auto hover:bg-transparent"
+                                  >
+                                    <h6 className="font-medium text-gray-800 flex items-center gap-2">
+                                      <span className="h-2 w-2 bg-red-400 rounded-full"></span>
+                                      Issue Details
+                                    </h6>
+                                    <div className="flex items-center gap-2">
+                                      <Badge 
+                                        variant="outline" 
+                                        className={cn(
+                                          "text-xs transition-colors",
+                                          expandedIssues[`issue-${index}`] 
+                                            ? "bg-red-50 text-red-700 border-red-200" 
+                                            : "bg-gray-50 text-gray-600 border-gray-200"
+                                        )}
+                                      >
+                                        {expandedIssues[`issue-${index}`] ? 'Click to collapse' : 'Click to expand'}
+                                      </Badge>
+                                      {expandedIssues[`issue-${index}`] ? (
+                                        <ChevronUp className="h-4 w-4 text-red-600" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4 text-red-600" />
+                                      )}
+                                    </div>
+                                  </Button>
+                                </CollapsibleTrigger>
+                                
+                                <CollapsibleContent className="mt-3">
+                                  <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-lg p-4 shadow-sm">
+                                    <div className="text-sm text-gray-800 leading-relaxed">
+                                      {issue.issues ? (
+                                        <FormattedText 
+                                          text={issue.issues} 
+                                          className="text-gray-800"
+                                        />
+                                      ) : (
+                                        <p className="text-gray-500 italic">No detailed issues available</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
                             </div>
                           </div>
                           
