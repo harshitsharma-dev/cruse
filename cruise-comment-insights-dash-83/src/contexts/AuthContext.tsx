@@ -28,23 +28,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check for existing session on app start
     checkExistingSession();
-  }, []);
-  const checkExistingSession = async () => {
+  }, []);  const checkExistingSession = async () => {
     try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        // Validate session with server
-        const sessionResponse = await apiService.validateSession();
-        if (sessionResponse.valid && sessionResponse.user) {
-          setUser(sessionResponse.user);
+      // Check if we have tokens in localStorage
+      if (apiService.isAuthenticated()) {
+        // Verify token with server
+        const verificationResponse = await apiService.verifyToken();
+        if (verificationResponse.authenticated && verificationResponse.user) {
+          setUser({
+            username: verificationResponse.user,
+            role: verificationResponse.role || 'user',
+            permissions: verificationResponse.permissions || []
+          });
         } else {
-          localStorage.removeItem('user');
+          // Token is invalid, clear it
+          await apiService.logout();
         }
       }
     } catch (error) {
       console.error('Session validation error:', error);
-      localStorage.removeItem('user');
+      await apiService.logout();
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +55,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('=== AUTHENTICATION ATTEMPT ===');
       console.log('Username:', username);
-      console.log('Password length:', password.length);
       console.log('Attempting to authenticate with backend API...');
       
       // Validate credentials before sending
@@ -61,27 +63,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      // Use actual authentication API with correct parameter structure
+      // Use actual authentication API with JWT support
       const response = await apiService.authenticate({ 
         username: username.trim(), 
         password: password.trim() 
       });
       
       console.log('Authentication response received:', response);
-      console.log('Response type:', typeof response);
       
-      if (response && response.authenticated && response.user) {
+      if (response && response.authenticated && response.user && response.access_token) {
         const userData = { 
           username: response.user, 
           role: response.role || 'user',
           name: response.user,
-          permissions: [] // Add default permissions array
+          permissions: [] // Will be loaded from token verification
         };
         
         setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
         
-        console.log('Authentication successful:', userData);
+        console.log('JWT Authentication successful:', userData);
+        console.log('Access token expires in:', response.expires_in, 'seconds');
         return true;
       } else {
         console.log('Authentication failed:', response?.error || 'Invalid credentials');
@@ -92,15 +93,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
   };
-
   const logout = async (): Promise<void> => {
     try {
+      // Call API logout to blacklist JWT token
       await apiService.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Clear local state regardless of API call result
       setUser(null);
-      localStorage.removeItem('user');
     }
   };
   const hasPermission = (permission: string): boolean => {

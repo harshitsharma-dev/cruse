@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
+from flask_compress import Compress
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, create_refresh_token, get_jwt_identity, get_jwt
 from typing import Dict, List
 from test_data import *
 from navigate_search import *
@@ -10,35 +12,88 @@ import yaml
 from werkzeug.security import check_password_hash
 from pathlib import Path
 import sql_ops as SQLOP
-
-# Try to import CryptoService, fall back to a simple version if it fails
-try:
-    from crypto_service import CryptoService
-    print("✅ CryptoService imported successfully")
-except ImportError as e:
-    print(f"❌ Failed to import CryptoService: {e}")
-    print("🔄 Using fallback crypto service (encryption disabled)")
-    
-    class CryptoService:
-        """Fallback crypto service when cryptography library has issues"""
-        
-        @staticmethod
-        def decrypt_credentials(encrypted_data: str, iv: str, session_key: str) -> dict:
-            print("❌ CryptoService fallback: Encryption temporarily disabled")
-            raise ValueError("Encryption temporarily disabled due to library compatibility issues")
-        
-        @staticmethod
-        def is_encrypted_request(data: dict) -> bool:
-            if not isinstance(data, dict):
-                return False
-            result = (data.get('encrypted') is True and 
-                     'encryptedData' in data and 
-                     'iv' in data and 
-                     'sessionKey' in data)
-            print(f"Fallback is_encrypted_request result: {result}")
-            return result
+import gzip
+import json
+import datetime
+from functools import wraps
 
 app = Flask(__name__)
+
+# JWT Configuration
+app.config['JWT_SECRET_KEY'] = 'your-super-secret-jwt-key-change-in-production'  # Change this in production!
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=1)  # Token expires in 1 hour
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(days=30)  # Refresh token expires in 30 days
+app.config['JWT_ALGORITHM'] = 'HS256'
+app.config['JWT_BLACKLIST_ENABLED'] = True
+app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
+
+# Initialize JWT
+jwt = JWTManager(app)
+
+# Blacklist for storing revoked tokens (in production, use Redis or database)
+blacklisted_tokens = set()
+
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    """Check if token is in blacklist"""
+    jti = jwt_payload['jti']
+    return jti in blacklisted_tokens
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    """Handle expired tokens"""
+    return jsonify({
+        'authenticated': False,
+        'error': 'Token has expired',
+        'code': 'token_expired'
+    }), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    """Handle invalid tokens"""
+    return jsonify({
+        'authenticated': False,
+        'error': 'Invalid token',
+        'code': 'invalid_token'
+    }), 401
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    """Handle missing tokens"""
+    return jsonify({
+        'authenticated': False,
+        'error': 'Authorization token required',
+        'code': 'missing_token'
+    }), 401
+
+@jwt.revoked_token_loader
+def revoked_token_callback(jwt_header, jwt_payload):
+    """Handle revoked tokens"""
+    return jsonify({
+        'authenticated': False,
+        'error': 'Token has been revoked',
+        'code': 'token_revoked'
+    }), 401
+
+# Enable compression for all responses
+compress = Compress()
+compress.init_app(app)
+
+# Configure compression settings
+app.config['COMPRESS_MIMETYPES'] = [
+    'text/html',
+    'text/css',
+    'text/xml',
+    'text/javascript',
+    'application/json',
+    'application/javascript',
+    'application/xml+rss',
+    'application/atom+xml',
+    'image/svg+xml'
+]
+app.config['COMPRESS_LEVEL'] = 6  # Good balance between compression and speed
+app.config['COMPRESS_MIN_SIZE'] = 500  # Only compress responses larger than 500 bytes
+
 # CORS(app)
 CORS(app, resources={
     r"/*": {
@@ -48,9 +103,15 @@ CORS(app, resources={
             "http://192.168.48.1:8081",
             "http://172.16.150.127:8081",
             "http://192.168.48.1:8080",
-            "http://172.16.150.127:8080"          # Optional: For local testing
+            "http://172.16.150.127:8080",
+            "http://44.244.127.80",
+            "http://apollo.deepthoughtconsultech.com/",
+            "apollo.deepthoughtconsultech.com",
+            "ag.api.deepthoughtconsultech.com"
         ],
-        "supports_credentials": True
+        "supports_credentials": True,
+        "allow_headers": ["Content-Type", "Authorization", "Content-Encoding"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     }
 })
 
@@ -196,6 +257,21 @@ def not_found(e):
     return {"error": "Not Found"}, 404
 
 @app.before_request
+def decompress_request():
+    """Handle compressed request bodies"""
+    if request.headers.get('Content-Encoding') == 'gzip':
+        try:
+            # Decompress gzipped request data
+            compressed_data = request.get_data()
+            if compressed_data:
+                decompressed_data = gzip.decompress(compressed_data)
+                # Replace the request data with decompressed data
+                request._cached_data = decompressed_data
+        except Exception as e:
+            app.logger.error(f"Failed to decompress request: {str(e)}")
+            return jsonify({"error": "Invalid compressed data"}), 400
+
+@app.before_request
 def whitelist_sailing_routes():
     path = request.path
     ip = request.remote_addr
@@ -206,7 +282,19 @@ def whitelist_sailing_routes():
 
 @app.after_request
 def remove_server_header(response):
+    """Add compression and security headers"""
     response.headers["Server"] = ""
+    
+    # Add compression headers for better caching
+    if response.status_code == 200 and response.content_length and response.content_length > 500:
+        response.headers["Vary"] = "Accept-Encoding"
+    
+    # Add performance headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
     return response
 
 
@@ -220,16 +308,18 @@ def handle_options(path):
         'http://localhost:8080', 
         'http://127.0.0.1:8080',
         "http://44.243.87.16:8080",
-
+        "http://apollo.deepthoughtconsultech.com",
+        "http://172.16.150.127:8080",
     ]
     if origin and any(origin.startswith(allowed.rsplit(':', 1)[0]) for allowed in allowed_origins):
         response.headers.add('Access-Control-Allow-Origin', origin)
     else:
         response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8081')
     
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Content-Encoding')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Max-Age', '3600')  # Cache preflight for 1 hour
     return response
 
 
@@ -298,6 +388,7 @@ def get_sailing_numbers_filter():
 
 
 @app.route('/sailing/getRatingSmry', methods=['POST'])
+@jwt_required()
 def get_rating_summary():
     data = request.get_json()
     fleets = data.get("fleets")
@@ -370,6 +461,7 @@ def is_empty_or_nan(value):
     return False #added this
 
 @app.route('/sailing/getMetricRating', methods=['POST'])
+@jwt_required()
 def get_metric_comparison():
     """Enhanced endpoint with metric value filtering"""
     data = request.get_json()
@@ -489,166 +581,136 @@ def get_ships():
 @app.route('/sailing/auth', methods=['POST'])
 def authenticate():
     try:
-        # Get data from request
+        # Get credentials from request
         data = request.get_json()
-        
-        print("=== AUTHENTICATION DEBUG START ===")
-        print(f"Request data keys: {list(data.keys()) if data else 'None'}")
-        print(f"Request data types: {type(data)}")
-        
-        # Debug encryption detection
-        if data:
-            print(f"data.get('encrypted'): {data.get('encrypted')} (type: {type(data.get('encrypted'))})")
-            print(f"'encryptedData' in data: {'encryptedData' in data}")
-            print(f"'iv' in data: {'iv' in data}")
-            print(f"'sessionKey' in data: {'sessionKey' in data}")
-        
-        # Check if CryptoService import is working
-        try:
-            print(f"CryptoService class available: {CryptoService}")
-            print(f"is_encrypted_request method: {hasattr(CryptoService, 'is_encrypted_request')}")
-            print(f"decrypt_credentials method: {hasattr(CryptoService, 'decrypt_credentials')}")
-        except Exception as crypto_import_error:
-            print(f"CryptoService import error: {crypto_import_error}")
-            print("Falling back to unencrypted mode due to import issues")
-            username = data.get('username') if data else None
-            password = data.get('password') if data else None
-        else:
-            # Check if request is encrypted
-            try:
-                is_encrypted = CryptoService.is_encrypted_request(data)
-                print(f"CryptoService.is_encrypted_request(data) result: {is_encrypted}")
-            except Exception as check_error:
-                print(f"Error checking if request is encrypted: {check_error}")
-                is_encrypted = False
-            
-            if is_encrypted:
-                print("✅ Processing encrypted authentication request")
-                
-                # Extract encrypted data
-                encrypted_data = data.get('encryptedData')
-                iv = data.get('iv')
-                session_key = data.get('sessionKey')
-                
-                print(f"Encrypted data length: {len(encrypted_data) if encrypted_data else 'None'}")
-                print(f"IV length: {len(iv) if iv else 'None'}")
-                print(f"Session key length: {len(session_key) if session_key else 'None'}")
-                print(f"Encrypted data sample: {encrypted_data[:50]}..." if encrypted_data else "No encrypted data")
-                print(f"IV sample: {iv[:20]}..." if iv else "No IV")
-                print(f"Session key sample: {session_key[:20]}..." if session_key else "No session key")
-                
-                # Decrypt credentials
-                try:
-                    print("Attempting to decrypt credentials...")
-                    credentials = CryptoService.decrypt_credentials(encrypted_data, iv, session_key)
-                    print(f"✅ Decryption successful! Credentials type: {type(credentials)}")
-                    print(f"Credentials keys: {list(credentials.keys()) if isinstance(credentials, dict) else 'Not a dict'}")
-                    
-                    username = credentials.get('username') if isinstance(credentials, dict) else None
-                    password = credentials.get('password') if isinstance(credentials, dict) else None
-                    print(f"Extracted username: {username}")
-                    print(f"Password extracted: {'Yes' if password else 'No'}")
-                    
-                except Exception as decrypt_error:
-                    print(f"❌ Decryption error: {str(decrypt_error)}")
-                    print(f"Decryption error type: {type(decrypt_error)}")
-                    import traceback
-                    print(f"Decryption traceback: {traceback.format_exc()}")
-                    return jsonify({
-                        "authenticated": False,
-                        "error": f"Failed to decrypt credentials: {str(decrypt_error)}"
-                    }), 400
-            else:
-                print("Processing unencrypted authentication request")
-                # Handle unencrypted legacy request
-                username = data.get('username') if data else None
-                password = data.get('password') if data else None
-                print(f"Unencrypted username: {username}")
-                print(f"Unencrypted password provided: {'Yes' if password else 'No'}")
-        
-        print(f"Final username for authentication: {username}")
-        print(f"Final password available: {'Yes' if password else 'No'}")
+        username = data.get('username')
+        password = data.get('password')
         
         if not username or not password:
-            print("❌ Missing username or password")
             return jsonify({
                 "authenticated": False,
                 "error": "Username and password required"
             }), 400
         
         # Load auth data
-        print("Loading auth data from YAML...")
-        try:
-            auth_data = load_auth_data()
-            print(f"Auth data loaded successfully. Users available: {list(auth_data.get('users', {}).keys())}")
-        except Exception as auth_load_error:
-            print(f"❌ Error loading auth data: {auth_load_error}")
-            return jsonify({
-                "authenticated": False,
-                "error": f"Auth data loading failed: {str(auth_load_error)}"
-            }), 500
-            
+        auth_data = load_auth_data()
         user_data = auth_data['users'].get(username)
-        print(f"User data found for '{username}': {'Yes' if user_data else 'No'}")
         
         # Verify user exists and password matches
-        if user_data:
-            print(f"User role: {user_data.get('role')}")
-            try:
-                password_valid = check_password_hash(user_data['password'], password)
-                print(f"Password validation result: {password_valid}")
-            except Exception as pwd_check_error:
-                print(f"❌ Password check error: {pwd_check_error}")
-                return jsonify({
-                    "authenticated": False,
-                    "error": f"Password validation failed: {str(pwd_check_error)}"
-                }), 500
-                
-            if password_valid:
-                response_data = {
-                    "authenticated": True,
-                    "user": username,
-                    "role": user_data.get('role')
+        if user_data and check_password_hash(user_data['password'], password):
+            # Create JWT tokens
+            access_token = create_access_token(
+                identity=username,
+                additional_claims={
+                    'role': user_data.get('role', 'user'),
+                    'permissions': user_data.get('permissions', [])
                 }
-                
-                # Add encryption status to response
-                try:
-                    if CryptoService.is_encrypted_request(data):
-                        response_data["encryption"] = "enabled"
-                        print(f"✅ Authentication successful for encrypted request: {username}")
-                    else:
-                        response_data["encryption"] = "disabled"
-                        print(f"✅ Authentication successful for unencrypted request: {username}")
-                except Exception as final_check_error:
-                    print(f"Warning: Error checking encryption status for response: {final_check_error}")
-                    response_data["encryption"] = "unknown"
-                
-                print(f"Final response data: {response_data}")
-                print("=== AUTHENTICATION DEBUG END ===")
-                return jsonify(response_data)
-            else:
-                print("❌ Password validation failed")
-        else:
-            print(f"❌ User '{username}' not found in auth data")
+            )
+            refresh_token = create_refresh_token(identity=username)
+            
+            return jsonify({
+                "authenticated": True,
+                "user": username,
+                "role": user_data.get('role', 'user'),
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "Bearer",
+                "expires_in": app.config['JWT_ACCESS_TOKEN_EXPIRES'].total_seconds()
+            })
         
-        print("=== AUTHENTICATION DEBUG END ===")
         return jsonify({
             "authenticated": False,
             "error": "Invalid credentials"
         }), 401
         
     except Exception as e:
-        print(f"❌ Authentication error: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Full traceback: {traceback.format_exc()}")
-        print("=== AUTHENTICATION DEBUG END (ERROR) ===")
         return jsonify({
             "authenticated": False,
             "error": f"Authentication failed: {str(e)}"
         }), 500
+
+@app.route('/sailing/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """Refresh access token using refresh token"""
+    try:
+        current_user = get_jwt_identity()
         
+        # Load user data to get role and permissions
+        auth_data = load_auth_data()
+        user_data = auth_data['users'].get(current_user)
+        
+        if not user_data:
+            return jsonify({
+                "authenticated": False,
+                "error": "User not found"
+            }), 404
+        
+        # Create new access token
+        new_access_token = create_access_token(
+            identity=current_user,
+            additional_claims={
+                'role': user_data.get('role', 'user'),
+                'permissions': user_data.get('permissions', [])
+            }
+        )
+        
+        return jsonify({
+            "access_token": new_access_token,
+            "token_type": "Bearer",
+            "expires_in": app.config['JWT_ACCESS_TOKEN_EXPIRES'].total_seconds()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Token refresh failed: {str(e)}"
+        }), 500
+
+@app.route('/sailing/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """Logout user and blacklist tokens"""
+    try:
+        # Get current token's JTI (JWT ID)
+        token = get_jwt()
+        jti = token['jti']
+        
+        # Add token to blacklist
+        blacklisted_tokens.add(jti)
+        
+        return jsonify({
+            "message": "Successfully logged out"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Logout failed: {str(e)}"
+        }), 500
+
+@app.route('/sailing/verify', methods=['GET'])
+@jwt_required()
+def verify_token():
+    """Verify if the current token is valid"""
+    try:
+        current_user = get_jwt_identity()
+        token_claims = get_jwt()
+        
+        return jsonify({
+            "authenticated": True,
+            "user": current_user,
+            "role": token_claims.get('role', 'user'),
+            "permissions": token_claims.get('permissions', []),
+            "expires_at": token_claims.get('exp')
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "authenticated": False,
+            "error": f"Token verification failed: {str(e)}"
+        }), 401
+    
 @app.route('/sailing/semanticSearch', methods=['POST'])
+@jwt_required()
 def get_semantic_search():
     """Endpoint for semantic search based on user query and filters"""
     data = request.get_json()
@@ -710,12 +772,45 @@ def get_semantic_search():
 
 
 def add_sailing_summaries(issues_list):
-    """Add sailing summaries to issues list"""
-    # Simple implementation - return the issues list as-is for now
-    # This function can be enhanced later to add additional summary data
-    return issues_list
+    """Add sailing summaries to issues list for better presentation"""
+    if not issues_list:
+        return {"sailing_summaries": [], "total_issues": 0}
+    
+    # Group issues by sailing
+    sailing_groups = {}
+    total_issues = 0
+    
+    for issue in issues_list:
+        sailing_key = f"{issue.get('ship_name', 'Unknown')}_{issue.get('sailing_number', 'Unknown')}"
+        
+        if sailing_key not in sailing_groups:
+            sailing_groups[sailing_key] = {
+                "ship_name": issue.get('ship_name', 'Unknown'),
+                "sailing_number": issue.get('sailing_number', 'Unknown'),
+                "start_date": issue.get('start_date', 'Unknown'),
+                "end_date": issue.get('end_date', 'Unknown'),
+                "issues": [],
+                "issue_count": 0
+            }
+        
+        sailing_groups[sailing_key]["issues"].append({
+            "sheet_name": issue.get('sheet_name', 'Unknown'),
+            "issues": issue.get('issues', 'No issues found')
+        })
+        sailing_groups[sailing_key]["issue_count"] += 1
+        total_issues += 1
+    
+    # Convert to list format
+    sailing_summaries = list(sailing_groups.values())
+    
+    return {
+        "sailing_summaries": sailing_summaries,
+        "total_issues": total_issues,
+        "sailing_count": len(sailing_summaries)
+    }
 
 @app.route('/sailing/getIssuesList', methods=['POST'])
+@jwt_required()
 def get_issues_list():
     """Endpoint to retrieve a summary of issues based on user input"""
     data = request.get_json()
@@ -732,51 +827,59 @@ def get_issues_list():
         "data": final_list
     })
 
-# Test endpoint to verify encryption works
-@app.route('/sailing/test-encryption', methods=['POST'])
-def test_encryption():
-    """Test endpoint to verify backend encryption capabilities"""
-    try:
-        data = request.get_json()
-        print("=== ENCRYPTION TEST START ===")
-        print(f"Test data received: {data}")
-        
-        # Test if we can process encrypted data
-        if CryptoService.is_encrypted_request(data):
-            print("✅ Request detected as encrypted")
+# Role-based access control decorator
+def require_role(required_role):
+    """Decorator to require specific role for access"""
+    def decorator(f):
+        @wraps(f)
+        @jwt_required()
+        def decorated_function(*args, **kwargs):
+            token_claims = get_jwt()
+            user_role = token_claims.get('role', 'user')
             
-            encrypted_data = data.get('encryptedData')
-            iv = data.get('iv')
-            session_key = data.get('sessionKey')
+            # Admin can access everything
+            if user_role == 'admin':
+                return f(*args, **kwargs)
             
-            try:
-                result = CryptoService.decrypt_credentials(encrypted_data, iv, session_key)
-                print(f"✅ Decryption successful: {result}")
+            # Check if user has required role
+            if user_role != required_role:
                 return jsonify({
-                    "status": "success",
-                    "message": "Backend encryption working correctly",
-                    "decrypted": result
-                })
-            except Exception as decrypt_error:
-                print(f"❌ Decryption failed: {decrypt_error}")
-                return jsonify({
-                    "status": "error",
-                    "message": f"Decryption failed: {str(decrypt_error)}"
-                }), 400
-        else:
-            print("❌ Request not detected as encrypted")
-            return jsonify({
-                "status": "error", 
-                "message": "Request is not encrypted or missing required fields",
-                "required": ["encrypted: true", "encryptedData", "iv", "sessionKey"]
-            }), 400
+                    'error': f'Access denied. Required role: {required_role}',
+                    'code': 'insufficient_permissions'
+                }), 403
             
-    except Exception as e:
-        print(f"❌ Test encryption error: {e}")
-        return jsonify({
-            "status": "error",
-            "message": f"Test failed: {str(e)}"
-        }), 500
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def require_permission(required_permission):
+    """Decorator to require specific permission for access"""
+    def decorator(f):
+        @wraps(f)
+        @jwt_required()
+        def decorated_function(*args, **kwargs):
+            token_claims = get_jwt()
+            user_permissions = token_claims.get('permissions', [])
+            
+            # Check if user has required permission
+            if required_permission not in user_permissions:
+                return jsonify({
+                    'error': f'Access denied. Required permission: {required_permission}',
+                    'code': 'insufficient_permissions'
+                }), 403
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+@app.route('/sailing/health', methods=['GET'])
+def health_check():
+    """Health check endpoint - no authentication required"""
+    return jsonify({
+        "status": "healthy",
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "service": "Apollo Intelligence API"
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

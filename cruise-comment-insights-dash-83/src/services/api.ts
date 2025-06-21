@@ -3,9 +3,80 @@ const API_BASE_URL = 'http://ag.api.deepthoughtconsultech.com:5000'; // Original
 
 class ApiService {
   private baseUrl: string;
+  private accessToken: string | null = null;
+  private refreshToken: string | null = null;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
+    // Load tokens from localStorage on initialization
+    this.loadTokensFromStorage();
+  }
+
+  private loadTokensFromStorage(): void {
+    this.accessToken = localStorage.getItem('access_token');
+    this.refreshToken = localStorage.getItem('refresh_token');
+  }
+
+  private saveTokensToStorage(accessToken: string, refreshToken: string): void {
+    this.accessToken = accessToken;
+    this.refreshToken = refreshToken;
+    localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
+  }
+
+  private clearTokensFromStorage(): void {
+    this.accessToken = null;
+    this.refreshToken = null;
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+  }
+
+  private getAuthHeaders(): Record<string, string> {
+    if (this.accessToken) {
+      return {
+        'Authorization': `Bearer ${this.accessToken}`
+      };
+    }
+    return {};
+  }
+
+  public isAuthenticated(): boolean {
+    return !!this.accessToken;
+  }
+
+  public async refreshAccessToken(): Promise<boolean> {
+    if (!this.refreshToken) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/sailing/refresh`, {
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.refreshToken}`
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.accessToken = data.access_token;
+        localStorage.setItem('access_token', data.access_token);
+        return true;
+      } else {
+        // Refresh token is invalid, clear all tokens
+        this.clearTokensFromStorage();
+        return false;
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      this.clearTokensFromStorage();
+      return false;
+    }
   }
 
   private sanitizeJsonString(jsonString: string): string {
@@ -15,30 +86,24 @@ class ApiService {
       .replace(/:\s*Infinity/g, ': null')      // Infinity -> null
       .replace(/:\s*-Infinity/g, ': null')     // -Infinity -> null
       .replace(/:\s*undefined/g, ': null');    // undefined -> null
-  }  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  }  private async request<T>(endpoint: string, options: RequestInit = {}, retryOnAuth = true): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const isDevelopment = import.meta.env.DEV;
     
     try {
       if (isDevelopment) {
         console.log(`API Request: ${options.method || 'GET'} ${url}`);
-        console.log('Request headers:', {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        });
-        if (options.body) {
-          console.log('Request body:', options.body);
-          console.log('Request body type:', typeof options.body);
-        }
       }
-        const response = await fetch(url, {
+
+      const response = await fetch(url, {
         mode: 'cors',
-        credentials: 'include', // Add credentials for CORS
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Accept-Encoding': 'gzip, deflate, br', // Request compressed responses
+          'Accept-Encoding': 'gzip, deflate, br',
           'Cache-Control': 'no-cache',
+          ...this.getAuthHeaders(), // Add JWT token
           ...options.headers,
         },
         ...options,
@@ -46,7 +111,25 @@ class ApiService {
 
       if (isDevelopment) {
         console.log(`Response status: ${response.status} ${response.statusText}`);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      }
+
+      // Handle token expiration
+      if (response.status === 401 && retryOnAuth) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (errorData.code === 'token_expired') {
+          // Try to refresh token
+          const refreshed = await this.refreshAccessToken();
+          if (refreshed) {
+            // Retry the request with new token
+            return this.request<T>(endpoint, options, false);
+          }
+        }
+        
+        // Token refresh failed or other auth error, clear tokens and redirect to login
+        this.clearTokensFromStorage();
+        window.location.href = '/login';
+        throw new Error('Authentication required');
       }
 
       if (!response.ok) {
@@ -86,28 +169,20 @@ class ApiService {
       if (isDevelopment) {
         console.error(`API Request failed for ${endpoint}:`, error);
         
-        // Add more detailed error information
         if (error instanceof TypeError && error.message.includes('fetch')) {
           console.error('Network error - check if backend is running and CORS is configured correctly');
           console.error('Backend URL:', this.baseUrl);
         }
       }
-        throw error;
+      throw error;
     }
-  }
-  async authenticate(credentials: { username: string; password: string }) {
+  }  async authenticate(credentials: { username: string; password: string }) {
     const isDevelopment = import.meta.env.DEV;
     
     if (isDevelopment) {
       console.log('=== AUTHENTICATION API CALL ===');
       console.log('API Base URL:', this.baseUrl);
-      console.log('Credentials being sent:', credentials);
-      console.log('JSON stringified credentials:', JSON.stringify(credentials));
-    }
-    
-    const requestBody = JSON.stringify(credentials);
-    if (isDevelopment) {
-      console.log('Request body length:', requestBody.length);
+      console.log('Credentials being sent:', { username: credentials.username });
     }
     
     try {
@@ -115,33 +190,86 @@ class ApiService {
         authenticated: boolean;
         user?: string;
         role?: string;
+        access_token?: string;
+        refresh_token?: string;
+        token_type?: string;
+        expires_in?: number;
         error?: string;
       }>('/sailing/auth', {
         method: 'POST',
-        body: requestBody,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
+        body: JSON.stringify(credentials),
       });
-      
+
       if (isDevelopment) {
+        console.log('=== AUTHENTICATION RESPONSE ===');
         console.log('Authentication result:', result);
       }
+
+      if (result.authenticated && result.access_token && result.refresh_token) {
+        // Save tokens and user info
+        this.saveTokensToStorage(result.access_token, result.refresh_token);
+        
+        // Save user info
+        if (result.user) {
+          localStorage.setItem('user', result.user);
+        }
+        if (result.role) {
+          localStorage.setItem('role', result.role);
+        }
+
+        if (isDevelopment) {
+          console.log('JWT tokens saved successfully');
+          console.log('Access token expires in:', result.expires_in, 'seconds');
+        }
+      }
+
       return result;
     } catch (error) {
       if (isDevelopment) {
-        console.error('Authentication API error:', error);
-        
-        // Log additional debug info
-        if (error instanceof Error) {
-          console.error('Error message:', error.message);
-          console.error('Error stack:', error.stack);
-        }
+        console.error('=== AUTHENTICATION ERROR ===');
+        console.error('Error details:', error);
       }
-      
       throw error;
+    }
+  }
+
+  async logout(): Promise<void> {
+    try {
+      // Call logout endpoint to blacklist the token
+      await this.request('/sailing/logout', {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with local cleanup even if API call fails
+    } finally {
+      // Clear local tokens regardless of API call result
+      this.clearTokensFromStorage();
+    }
+  }
+
+  async verifyToken(): Promise<{
+    authenticated: boolean;
+    user?: string;
+    role?: string;
+    permissions?: string[];
+  }> {
+    if (!this.accessToken) {
+      return { authenticated: false };
+    }
+
+    try {
+      const result = await this.request<{
+        authenticated: boolean;
+        user?: string;
+        role?: string;
+        permissions?: string[];
+        expires_at?: number;
+      }>('/sailing/verify');      return result;
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      this.clearTokensFromStorage();
+      return { authenticated: false };
     }
   }
 
