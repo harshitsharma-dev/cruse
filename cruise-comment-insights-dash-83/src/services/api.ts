@@ -373,6 +373,45 @@ class ApiService {
       body: JSON.stringify(filters),
     });
   }
+
+  // User Management API methods
+  async addUser(userData: { username: string; password: string; role?: string }) {
+    return this.request<{ 
+      status: string; 
+      message: string; 
+      user?: { username: string; role: string }; 
+    }>('/sailing/admin/add-user', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async resetUserPassword(resetData: { username: string; new_password: string }) {
+    return this.request<{ 
+      status: string; 
+      message: string; 
+    }>('/sailing/admin/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(resetData),
+    });
+  }
+
+  async resetOwnPassword(passwordData: { current_password: string; new_password: string }) {
+    return this.request<{ 
+      status: string; 
+      message: string; 
+    }>('/sailing/reset-own-password', {
+      method: 'POST',
+      body: JSON.stringify(passwordData),
+    });
+  }
+
+  async listUsers() {
+    return this.request<{ 
+      status: string; 
+      data: Array<{ username: string; role: string }>; 
+    }>('/sailing/admin/list-users');
+  }
 }
 
 export const apiService = new ApiService();

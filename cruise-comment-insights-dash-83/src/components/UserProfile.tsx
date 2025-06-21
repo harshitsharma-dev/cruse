@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Save, Key, Mail } from 'lucide-react';
+import { apiService } from '../services/api';
+import { User, Save, Key, Mail, AlertCircle } from 'lucide-react';
 
 const UserProfile = () => {
   const { user } = useAuth();  const [profileData, setProfileData] = useState({
@@ -16,6 +18,16 @@ const UserProfile = () => {
     department: '',
     role: user?.role || 'user'
   });
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   // Available departments as per specifications
   const departments = [
     'Guest Services',
@@ -29,7 +41,6 @@ const UserProfile = () => {
     'Administration',
     'Other'
   ];
-
   const handleInputChange = (field: string, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
@@ -40,10 +51,46 @@ const UserProfile = () => {
     alert('Profile updated successfully!');
   };
 
-  const handlePasswordReset = () => {
-    // Implementation for password reset
-    alert('Password reset instructions have been sent to your email address.');
-  };  return (
+  const handlePasswordReset = async () => {
+    setError('');
+    
+    // Validate password fields
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setError('All password fields are required');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setError('New password must be at least 8 characters long');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiService.resetOwnPassword({
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword
+      });
+      
+      // Reset form and close dialog
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setIsPasswordDialogOpen(false);
+      alert('Password reset successfully!');
+    } catch (error: any) {
+      setError(error.message || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
+  };return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="apollo-gradient-primary rounded-2xl p-8 text-white apollo-shadow-lg">
         <div className="flex items-center justify-between">
@@ -143,17 +190,91 @@ const UserProfile = () => {
             <Key className="h-5 w-5" />
             Security Settings
           </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </CardHeader>        <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
               <h4 className="font-medium">Password Reset</h4>
-              <p className="text-sm text-gray-600">Reset your account password</p>
+              <p className="text-sm text-gray-600">Change your account password</p>
             </div>
-            <Button onClick={handlePasswordReset} variant="outline">
-              <Key className="h-4 w-4 mr-2" />
-              Reset Password
-            </Button>
+            <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Key className="h-4 w-4 mr-2" />
+                  Change Password
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Change Password</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {error && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      <span className="text-sm text-red-700">{error}</span>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder="Enter your current password"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="Enter new password (min 8 characters)"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2 pt-4">
+                    <Button 
+                      onClick={handlePasswordReset} 
+                      disabled={loading}
+                      className="flex-1"
+                    >
+                      {loading ? 'Changing...' : 'Change Password'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsPasswordDialogOpen(false);
+                        setError('');
+                        setPasswordData({
+                          currentPassword: '',
+                          newPassword: '',
+                          confirmPassword: ''
+                        });
+                      }}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>

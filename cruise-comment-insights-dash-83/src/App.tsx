@@ -19,6 +19,7 @@ const MetricFilter = lazy(() => import("./pages/MetricFilter"));
 const Search = lazy(() => import("./pages/Search"));
 const Issues = lazy(() => import("./pages/Issues"));
 const Personnel = lazy(() => import("./pages/Personnel"));
+const Users = lazy(() => import("./pages/Users"));
 const UserProfile = lazy(() => import("./components/UserProfile"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -94,10 +95,9 @@ const AppRoutes = () => {
           <Suspense fallback={<LoadingSpinner />}>
             <UserProfile />
           </Suspense>
-        } />
-        <Route path="/users" element={
+        } />        <Route path="/users" element={
           <Suspense fallback={<LoadingSpinner />}>
-            <UserManagement />
+            <Users />
           </Suspense>
         } />
       </Route>

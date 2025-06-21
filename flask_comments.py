@@ -25,6 +25,12 @@ ADMIN-ONLY ENDPOINTS (JWT + admin role required):
 - GET /sailing/check - Admin check endpoint
 - GET /sailing/admin/users - Get all users
 - GET /sailing/admin/system-info - System information
+- POST /sailing/admin/add-user - Create new user
+- POST /sailing/admin/reset-password - Reset user password
+- GET /sailing/admin/list-users - List all users
+
+USER MANAGEMENT ENDPOINTS:
+- POST /sailing/reset-own-password - Reset own password (JWT required)
 
 SECURITY MODEL:
 - All data access requires valid JWT token
@@ -46,7 +52,7 @@ import util as UT
 # from util import get_sailing_mapping, filter_sailings
 import pandas as pd
 import yaml
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from pathlib import Path
 import sql_ops as SQLOP
 import gzip
@@ -866,7 +872,12 @@ def get_semantic_search():
 
 def add_sailing_summaries(issues_list):
     """Add sailing summaries to issues list for better presentation"""
+    print(f"[DEBUG] add_sailing_summaries called with: {issues_list}")
+    print(f"[DEBUG] Issues list type: {type(issues_list)}")
+    print(f"[DEBUG] Issues list length: {len(issues_list) if issues_list else 'None/Empty'}")
+    
     if not issues_list:
+        print("[DEBUG] No issues found, returning empty structure")
         return {"sailing_summaries": [], "all_issues": [], "total_issues": 0}
     
     # Group issues by sailing
@@ -874,6 +885,7 @@ def add_sailing_summaries(issues_list):
     total_issues = 0
     
     for issue in issues_list:
+        print(f"[DEBUG] Processing issue: {issue}")
         sailing_key = f"{issue.get('ship_name', 'Unknown')}_{issue.get('sailing_number', 'Unknown')}"
         
         if sailing_key not in sailing_groups:
@@ -884,7 +896,7 @@ def add_sailing_summaries(issues_list):
                 "end_date": issue.get('end_date', 'Unknown'),
                 "issues": [],
                 "issue_count": 0,
-                "sailing_summary": f"Issues identified across multiple feedback categories for {issue.get('ship_name', 'Unknown')} sailing {issue.get('sailing_number', 'Unknown')}"
+                "sailing_summary": f"Summary for {issue.get('ship_name', 'Unknown')} sailing {issue.get('sailing_number', 'Unknown')}: {sailing_groups[sailing_key]['issue_count'] if sailing_key in sailing_groups else 0} issues identified"
             }
         
         sailing_groups[sailing_key]["issues"].append({
@@ -894,33 +906,48 @@ def add_sailing_summaries(issues_list):
         sailing_groups[sailing_key]["issue_count"] += 1
         total_issues += 1
     
-    # Update sailing summaries with final issue counts - keep it simple
+    # Update sailing summaries with final issue counts
     for sailing in sailing_groups.values():
-        unique_categories = len(sailing['issues'])
-        sailing["sailing_summary"] = f"{sailing['issue_count']} issues found across {unique_categories} feedback categories"
+        sailing["sailing_summary"] = f"Summary for {sailing['ship_name']} sailing {sailing['sailing_number']}: {sailing['issue_count']} issues identified across {len(sailing['issues'])} categories"
     
     # Convert to list format
     sailing_summaries = list(sailing_groups.values())
     
-    return {
+    result = {
         "sailing_summaries": sailing_summaries,
         "all_issues": issues_list,  # Include raw issues list for detailed view
         "total_issues": total_issues,
         "sailing_count": len(sailing_summaries)
     }
+    
+    print(f"[DEBUG] Returning result: {result}")
+    print(f"[DEBUG] Result keys: {result.keys()}")
+    print(f"[DEBUG] all_issues in result: {result.get('all_issues')}")
+    
+    return result
 
 @app.route('/sailing/getIssuesList', methods=['POST'])
 @jwt_required()
 def get_issues_list():
     """Endpoint to retrieve a summary of issues based on user input"""
     data = request.get_json()
+    print(f"[DEBUG] Issues request data: {data}")
     
+#     ships = data.get("ships", None)
     sailing_numbers = data.get("sailing_numbers", None)
     sheets = data.get("sheets", None)
     ships = None
+    
+    print(f"[DEBUG] Fetching issues with: ships={ships}, sailing_numbers={sailing_numbers}, sheets={sheets}")
 
-    issues_list = SQLOP.fetch_issues(ships, sailing_numbers, sheets)
-    final_list = add_sailing_summaries(issues_list)
+    issues_list=SQLOP.fetch_issues(ships,sailing_numbers, sheets)
+    print(f"[DEBUG] Raw issues_list from SQLOP.fetch_issues: {issues_list}")
+    print(f"[DEBUG] Issues list type: {type(issues_list)}")
+    print(f"[DEBUG] Issues list length: {len(issues_list) if issues_list else 'None/Empty'}")
+    
+    final_list =  add_sailing_summaries(issues_list)
+    print(f"[DEBUG] Final list after add_sailing_summaries: {final_list}")
+    print(f"[DEBUG] Final list keys: {final_list.keys() if isinstance(final_list, dict) else 'Not a dict'}")
 
     return jsonify({
         "status": "success",
@@ -974,6 +1001,283 @@ def get_system_info():
             "timestamp": datetime.datetime.utcnow().isoformat()
         }
     })
+
+# ==============================================
+# USER MANAGEMENT API ENDPOINTS
+# ==============================================
+
+def add_user_to_system(username, password, role='user'):
+    """Add a new user to the auth system"""
+    auth_file = Path("sailing_auth.yaml")
+    
+    # Create directory if it doesn't exist
+    auth_file.parent.mkdir(exist_ok=True)
+    
+    # Load existing data or initialize empty structure
+    if auth_file.exists():
+        with open(auth_file, 'r') as f:
+            auth_data = yaml.safe_load(f) or {}
+    else:
+        auth_data = {}
+    
+    # Initialize users dictionary if it doesn't exist
+    if 'users' not in auth_data:
+        auth_data['users'] = {}
+    
+    # Check if user already exists
+    if username in auth_data['users']:
+        return False, f"User '{username}' already exists!"
+    
+    # Validate password length
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters!"
+    
+    # Hash the password
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+    
+    # Add user to data structure
+    auth_data['users'][username] = {
+        'password': hashed_password,
+        'role': role
+    }
+    
+    # Write back to file
+    try:
+        with open(auth_file, 'w') as f:
+            yaml.dump(auth_data, f, sort_keys=False)
+        return True, f"Successfully added user '{username}' with role '{role}'"
+    except Exception as e:
+        return False, f"Error saving user: {str(e)}"
+
+def reset_user_password_system(username, new_password):
+    """Reset password for an existing user"""
+    auth_file = Path("sailing_auth.yaml")
+    
+    # Check if auth file exists
+    if not auth_file.exists():
+        return False, "No users found! Authentication file doesn't exist."
+    
+    # Load existing data
+    try:
+        with open(auth_file, 'r') as f:
+            auth_data = yaml.safe_load(f) or {}
+    except Exception as e:
+        return False, f"Error reading auth file: {str(e)}"
+    
+    # Check if users exist
+    if 'users' not in auth_data or not auth_data['users']:
+        return False, "No users found in the system!"
+    
+    # Check if user exists
+    if username not in auth_data['users']:
+        return False, f"User '{username}' not found!"
+    
+    # Validate password length
+    if len(new_password) < 8:
+        return False, "Password must be at least 8 characters!"
+    
+    # Hash the new password
+    hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
+    
+    # Update user's password (keep existing role)
+    auth_data['users'][username]['password'] = hashed_password
+    
+    # Write back to file
+    try:
+        with open(auth_file, 'w') as f:
+            yaml.dump(auth_data, f, sort_keys=False)
+        return True, f"Successfully reset password for user '{username}'"
+    except Exception as e:
+        return False, f"Error saving password reset: {str(e)}"
+
+def get_all_users_system():
+    """Get list of all users in the system"""
+    auth_file = Path("sailing_auth.yaml")
+    
+    # Check if auth file exists
+    if not auth_file.exists():
+        return False, "No users found! Authentication file doesn't exist.", []
+    
+    # Load existing data
+    try:
+        with open(auth_file, 'r') as f:
+            auth_data = yaml.safe_load(f) or {}
+    except Exception as e:
+        return False, f"Error reading auth file: {str(e)}", []
+    
+    # Check if users exist
+    if 'users' not in auth_data or not auth_data['users']:
+        return True, "No users found in the system!", []
+    
+    # Format user list
+    users = []
+    for username, user_data in auth_data['users'].items():
+        users.append({
+            'username': username,
+            'role': user_data.get('role', 'user')
+        })
+    
+    return True, f"Found {len(users)} users", users
+
+@app.route('/sailing/admin/add-user', methods=['POST'])
+@require_role('admin')
+def api_create_user():
+    """Admin endpoint to create a new user"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        role = data.get('role', 'user').strip()
+        
+        # Validate input
+        if not username or not password:
+            return jsonify({
+                "status": "error",
+                "message": "Username and password are required"
+            }), 400
+        
+        # Validate role
+        valid_roles = ['user', 'admin', 'superadmin']
+        if role not in valid_roles:
+            return jsonify({
+                "status": "error",
+                "message": f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+            }), 400
+        
+        # Add user to system
+        success, message = add_user_to_system(username, password, role)
+        
+        if success:
+            return jsonify({
+                "status": "success",
+                "message": message,
+                "user": {
+                    "username": username,
+                    "role": role
+                }
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": message
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to create user: {str(e)}"
+        }), 500
+
+@app.route('/sailing/admin/reset-password', methods=['POST'])
+@require_role('admin')
+def api_reset_password():
+    """Admin endpoint to reset a user's password"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        new_password = data.get('new_password', '').strip()
+        
+        # Validate input
+        if not username or not new_password:
+            return jsonify({
+                "status": "error",
+                "message": "Username and new password are required"
+            }), 400
+        
+        # Reset password
+        success, message = reset_user_password_system(username, new_password)
+        
+        if success:
+            return jsonify({
+                "status": "success",
+                "message": message,
+                "username": username
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": message
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to reset password: {str(e)}"
+        }), 500
+
+@app.route('/sailing/admin/list-users', methods=['GET'])
+@require_role('admin')
+def api_list_users():
+    """Admin endpoint to list all users"""
+    try:
+        success, message, users = get_all_users_system()
+        
+        return jsonify({
+            "status": "success" if success else "error",
+            "data": users
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to list users: {str(e)}"
+        }), 500
+
+@app.route('/sailing/reset-own-password', methods=['POST'])
+@jwt_required()
+def reset_own_password():
+    """Endpoint for users to reset their own password"""
+    try:
+        data = request.get_json()
+        current_password = data.get('current_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+        
+        # Validate input
+        if not current_password or not new_password:
+            return jsonify({
+                "status": "error",
+                "message": "Current password and new password are required"
+            }), 400
+        
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        
+        # Load auth data to verify current password
+        auth_data = load_auth_data()
+        user_data = auth_data['users'].get(current_user)
+        
+        if not user_data:
+            return jsonify({
+                "status": "error",
+                "message": "User not found"
+            }), 404
+        
+        # Verify current password
+        if not check_password_hash(user_data['password'], current_password):
+            return jsonify({
+                "status": "error",
+                "message": "Current password is incorrect"
+            }), 400
+        
+        # Reset password using the system function
+        success, message = reset_user_password_system(current_user, new_password)
+        
+        if success:
+            return jsonify({
+                "status": "success",
+                "message": "Password updated successfully"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": message
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to reset password: {str(e)}"
+        }), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
