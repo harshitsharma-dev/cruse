@@ -66,18 +66,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username: username.trim(), 
         password: password.trim() 
       };
-      
-      try {
-        // Try encrypted authentication first
-        console.log('Attempting encrypted authentication...');
-        response = await apiService.authenticate(credentials);
-        console.log('Encrypted authentication response received:', response);
-      } catch (encryptedError) {
-        console.warn('Encrypted authentication failed, falling back to unencrypted:', encryptedError);
-        
         try {
-          // Fallback to unencrypted authentication
-          console.log('Attempting fallback unencrypted authentication...');
+        // Force encrypted authentication only (no fallback for debugging)
+        console.log('=== ENCRYPTION DEBUG START ===');
+        console.log('Attempting encrypted authentication...');
+        
+        // Debug the CryptoService
+        console.log('CryptoService available:', typeof window.crypto);
+        console.log('SubtleCrypto available:', typeof window.crypto?.subtle);
+        
+        response = await apiService.authenticate(credentials);
+        console.log('✅ Encrypted authentication successful! Response:', response);
+        console.log('=== ENCRYPTION DEBUG END ===');
+      } catch (encryptedError) {
+        console.error('=== ENCRYPTION ERROR DEBUG ===');
+        console.error('Encrypted authentication failed:', encryptedError);
+        console.error('Error type:', typeof encryptedError);
+        console.error('Error message:', encryptedError instanceof Error ? encryptedError.message : 'Unknown error');
+        console.error('Error stack:', encryptedError instanceof Error ? encryptedError.stack : 'No stack');
+        
+        // Check if it's a crypto-related error
+        if (encryptedError instanceof Error) {
+          if (encryptedError.message.includes('crypto') || 
+              encryptedError.message.includes('encrypt') ||
+              encryptedError.message.includes('SubtleCrypto')) {
+            console.error('❌ This appears to be a Web Crypto API error');
+          }
+        }
+        console.log('=== ENCRYPTION ERROR DEBUG END ===');
+        
+        // For now, still try fallback but with more logging
+        try {
+          console.log('🔄 Attempting fallback unencrypted authentication...');
           response = await apiService.authenticateUnencrypted(credentials);
           console.log('Fallback authentication response received:', response);
         } catch (fallbackError) {

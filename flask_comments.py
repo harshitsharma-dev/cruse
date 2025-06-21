@@ -10,9 +10,33 @@ import yaml
 from werkzeug.security import check_password_hash
 from pathlib import Path
 import sql_ops as SQLOP
-from crypto_service import CryptoService
-from gdpr_service import GDPRService
-from datetime import datetime
+
+# Try to import CryptoService, fall back to a simple version if it fails
+try:
+    from crypto_service import CryptoService
+    print("✅ CryptoService imported successfully")
+except ImportError as e:
+    print(f"❌ Failed to import CryptoService: {e}")
+    print("🔄 Using fallback crypto service (encryption disabled)")
+    
+    class CryptoService:
+        """Fallback crypto service when cryptography library has issues"""
+        
+        @staticmethod
+        def decrypt_credentials(encrypted_data: str, iv: str, session_key: str) -> dict:
+            print("❌ CryptoService fallback: Encryption temporarily disabled")
+            raise ValueError("Encryption temporarily disabled due to library compatibility issues")
+        
+        @staticmethod
+        def is_encrypted_request(data: dict) -> bool:
+            if not isinstance(data, dict):
+                return False
+            result = (data.get('encrypted') is True and 
+                     'encryptedData' in data and 
+                     'iv' in data and 
+                     'sessionKey' in data)
+            print(f"Fallback is_encrypted_request result: {result}")
+            return result
 
 app = Flask(__name__)
 # CORS(app)
@@ -468,256 +492,166 @@ def authenticate():
         # Get data from request
         data = request.get_json()
         
-        # Check if request is encrypted
-        if CryptoService.is_encrypted_request(data):
-            print("Processing encrypted authentication request")
-            
-            # Extract encrypted data
-            encrypted_data = data.get('encryptedData')
-            iv = data.get('iv')
-            session_key = data.get('sessionKey')
-            
-            # Decrypt credentials
-            try:
-                credentials = CryptoService.decrypt_credentials(encrypted_data, iv, session_key)
-                username = credentials.get('username')
-                password = credentials.get('password')
-                print(f"Decrypted credentials for user: {username}")
-            except ValueError as e:
-                print(f"Decryption error: {str(e)}")
-                return jsonify({
-                    "authenticated": False,
-                    "error": "Failed to decrypt credentials"
-                }), 400
+        print("=== AUTHENTICATION DEBUG START ===")
+        print(f"Request data keys: {list(data.keys()) if data else 'None'}")
+        print(f"Request data types: {type(data)}")
+        
+        # Debug encryption detection
+        if data:
+            print(f"data.get('encrypted'): {data.get('encrypted')} (type: {type(data.get('encrypted'))})")
+            print(f"'encryptedData' in data: {'encryptedData' in data}")
+            print(f"'iv' in data: {'iv' in data}")
+            print(f"'sessionKey' in data: {'sessionKey' in data}")
+        
+        # Check if CryptoService import is working
+        try:
+            print(f"CryptoService class available: {CryptoService}")
+            print(f"is_encrypted_request method: {hasattr(CryptoService, 'is_encrypted_request')}")
+            print(f"decrypt_credentials method: {hasattr(CryptoService, 'decrypt_credentials')}")
+        except Exception as crypto_import_error:
+            print(f"CryptoService import error: {crypto_import_error}")
+            print("Falling back to unencrypted mode due to import issues")
+            username = data.get('username') if data else None
+            password = data.get('password') if data else None
         else:
-            print("Processing unencrypted authentication request")
-            # Handle unencrypted legacy request
-            username = data.get('username')
-            password = data.get('password')
+            # Check if request is encrypted
+            try:
+                is_encrypted = CryptoService.is_encrypted_request(data)
+                print(f"CryptoService.is_encrypted_request(data) result: {is_encrypted}")
+            except Exception as check_error:
+                print(f"Error checking if request is encrypted: {check_error}")
+                is_encrypted = False
+            
+            if is_encrypted:
+                print("✅ Processing encrypted authentication request")
+                
+                # Extract encrypted data
+                encrypted_data = data.get('encryptedData')
+                iv = data.get('iv')
+                session_key = data.get('sessionKey')
+                
+                print(f"Encrypted data length: {len(encrypted_data) if encrypted_data else 'None'}")
+                print(f"IV length: {len(iv) if iv else 'None'}")
+                print(f"Session key length: {len(session_key) if session_key else 'None'}")
+                print(f"Encrypted data sample: {encrypted_data[:50]}..." if encrypted_data else "No encrypted data")
+                print(f"IV sample: {iv[:20]}..." if iv else "No IV")
+                print(f"Session key sample: {session_key[:20]}..." if session_key else "No session key")
+                
+                # Decrypt credentials
+                try:
+                    print("Attempting to decrypt credentials...")
+                    credentials = CryptoService.decrypt_credentials(encrypted_data, iv, session_key)
+                    print(f"✅ Decryption successful! Credentials type: {type(credentials)}")
+                    print(f"Credentials keys: {list(credentials.keys()) if isinstance(credentials, dict) else 'Not a dict'}")
+                    
+                    username = credentials.get('username') if isinstance(credentials, dict) else None
+                    password = credentials.get('password') if isinstance(credentials, dict) else None
+                    print(f"Extracted username: {username}")
+                    print(f"Password extracted: {'Yes' if password else 'No'}")
+                    
+                except Exception as decrypt_error:
+                    print(f"❌ Decryption error: {str(decrypt_error)}")
+                    print(f"Decryption error type: {type(decrypt_error)}")
+                    import traceback
+                    print(f"Decryption traceback: {traceback.format_exc()}")
+                    return jsonify({
+                        "authenticated": False,
+                        "error": f"Failed to decrypt credentials: {str(decrypt_error)}"
+                    }), 400
+            else:
+                print("Processing unencrypted authentication request")
+                # Handle unencrypted legacy request
+                username = data.get('username') if data else None
+                password = data.get('password') if data else None
+                print(f"Unencrypted username: {username}")
+                print(f"Unencrypted password provided: {'Yes' if password else 'No'}")
+        
+        print(f"Final username for authentication: {username}")
+        print(f"Final password available: {'Yes' if password else 'No'}")
         
         if not username or not password:
+            print("❌ Missing username or password")
             return jsonify({
                 "authenticated": False,
                 "error": "Username and password required"
             }), 400
         
         # Load auth data
-        auth_data = load_auth_data()
+        print("Loading auth data from YAML...")
+        try:
+            auth_data = load_auth_data()
+            print(f"Auth data loaded successfully. Users available: {list(auth_data.get('users', {}).keys())}")
+        except Exception as auth_load_error:
+            print(f"❌ Error loading auth data: {auth_load_error}")
+            return jsonify({
+                "authenticated": False,
+                "error": f"Auth data loading failed: {str(auth_load_error)}"
+            }), 500
+            
         user_data = auth_data['users'].get(username)
-        
-        # Log authentication attempt for GDPR audit
-        GDPRService.log_data_access(
-            user=username,
-            data_type='authentication_logs',
-            purpose='user_authentication',
-            ip_address=request.remote_addr
-        )
+        print(f"User data found for '{username}': {'Yes' if user_data else 'No'}")
         
         # Verify user exists and password matches
-        if user_data and check_password_hash(user_data['password'], password):
-            response_data = {
-                "authenticated": True,
-                "user": username,
-                "role": user_data.get('role')
-            }
-            
-            # Add encryption status to response
-            if CryptoService.is_encrypted_request(data):
-                response_data["encryption"] = "enabled"
-                print(f"Authentication successful for encrypted request: {username}")
+        if user_data:
+            print(f"User role: {user_data.get('role')}")
+            try:
+                password_valid = check_password_hash(user_data['password'], password)
+                print(f"Password validation result: {password_valid}")
+            except Exception as pwd_check_error:
+                print(f"❌ Password check error: {pwd_check_error}")
+                return jsonify({
+                    "authenticated": False,
+                    "error": f"Password validation failed: {str(pwd_check_error)}"
+                }), 500
+                
+            if password_valid:
+                response_data = {
+                    "authenticated": True,
+                    "user": username,
+                    "role": user_data.get('role')
+                }
+                
+                # Add encryption status to response
+                try:
+                    if CryptoService.is_encrypted_request(data):
+                        response_data["encryption"] = "enabled"
+                        print(f"✅ Authentication successful for encrypted request: {username}")
+                    else:
+                        response_data["encryption"] = "disabled"
+                        print(f"✅ Authentication successful for unencrypted request: {username}")
+                except Exception as final_check_error:
+                    print(f"Warning: Error checking encryption status for response: {final_check_error}")
+                    response_data["encryption"] = "unknown"
+                
+                print(f"Final response data: {response_data}")
+                print("=== AUTHENTICATION DEBUG END ===")
+                return jsonify(response_data)
             else:
-                response_data["encryption"] = "disabled"
-                print(f"Authentication successful for unencrypted request: {username}")
-            
-            return jsonify(response_data)
+                print("❌ Password validation failed")
+        else:
+            print(f"❌ User '{username}' not found in auth data")
         
+        print("=== AUTHENTICATION DEBUG END ===")
         return jsonify({
             "authenticated": False,
             "error": "Invalid credentials"
         }), 401
         
     except Exception as e:
-        print(f"Authentication error: {str(e)}")
+        print(f"❌ Authentication error: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        print("=== AUTHENTICATION DEBUG END (ERROR) ===")
         return jsonify({
             "authenticated": False,
             "error": f"Authentication failed: {str(e)}"
         }), 500
-
-# GDPR Compliance Endpoints
-@app.route('/sailing/gdpr/privacy-policy', methods=['GET'])
-def get_privacy_policy():
-    """Endpoint to get privacy policy information"""
-    return jsonify({
-        "status": "success",
-        "privacy_policy": {
-            "data_controller": "Apollo Intelligence - Cruise Analytics Platform",
-            "contact_email": "privacy@apollointelligence.com",
-            "data_types_collected": [
-                "Authentication credentials (username, hashed password)",
-                "Cruise review data and ratings",
-                "Search queries and filters",
-                "User session information",
-                "IP addresses for security purposes"
-            ],
-            "purposes": [
-                "User authentication and authorization",
-                "Cruise data analysis and reporting",
-                "Service improvement and analytics",
-                "Security monitoring and fraud prevention"
-            ],
-            "retention_periods": {
-                "authentication_logs": "90 days",
-                "cruise_reviews": "7 years (business records)",
-                "search_queries": "30 days",
-                "audit_logs": "7 years (compliance)"
-            },
-            "user_rights": [
-                "Right to access personal data",
-                "Right to rectification",
-                "Right to erasure (right to be forgotten)",
-                "Right to restrict processing",
-                "Right to data portability",
-                "Right to object to processing"
-            ],
-            "last_updated": "2025-06-21"
-        }
-    })
-
-@app.route('/sailing/gdpr/user-data', methods=['GET'])
-def get_user_data():
-    """Endpoint for users to request their personal data (Right to Access)"""
-    try:
-        # In production, verify user authentication and authorization
-        username = request.args.get('username')
-        if not username:
-            return jsonify({"error": "Username required"}), 400
-        
-        # Log data access request
-        GDPRService.log_data_access(
-            user=username,
-            data_type='personal_data_export',
-            purpose='gdpr_data_access_request',
-            ip_address=request.remote_addr
-        )
-        
-        # Collect user data from various sources
-        user_data = {
-            "username": username,
-            "data_collected": {
-                "authentication_data": "Hashed password and login history",
-                "search_history": "Last 30 days of search queries",
-                "session_data": "Recent session information"
-            },
-            "data_processing_purposes": [
-                "Authentication and access control",
-                "Service functionality and analytics"
-            ],
-            "export_date": datetime.utcnow().isoformat(),
-            "retention_info": "Data will be retained according to our privacy policy"
-        }
-        
-        return jsonify({
-            "status": "success",
-            "user_data": user_data
-        })
-        
-    except Exception as e:
-        return jsonify({"error": f"Failed to retrieve user data: {str(e)}"}), 500
-
-@app.route('/sailing/gdpr/delete-user', methods=['POST'])
-def delete_user_data():
-    """Endpoint for users to request data deletion (Right to be Forgotten)"""
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        confirmation = data.get('confirm_deletion', False)
-        
-        if not username or not confirmation:
-            return jsonify({
-                "error": "Username and deletion confirmation required"
-            }), 400
-        
-        # Log deletion request
-        GDPRService.log_data_access(
-            user=username,
-            data_type='data_deletion_request',
-            purpose='gdpr_right_to_be_forgotten',
-            ip_address=request.remote_addr
-        )
-        
-        # In production, implement actual data deletion logic
-        # This should:
-        # 1. Remove user from authentication system
-        # 2. Anonymize or delete personal data in databases
-        # 3. Maintain audit logs as required by law
-        # 4. Send confirmation to user
-        
-        return jsonify({
-            "status": "success",
-            "message": "Data deletion request received and will be processed within 30 days",
-            "deletion_id": f"DEL_{username}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
-            "contact_info": "For questions, contact privacy@apollointelligence.com"
-        })
-        
-    except Exception as e:
-        return jsonify({"error": f"Failed to process deletion request: {str(e)}"}), 500
-
-@app.route('/sailing/gdpr/consent', methods=['POST'])
-def update_consent():
-    """Endpoint to manage user consent preferences"""
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        consent_type = data.get('consent_type')
-        consent_given = data.get('consent_given', False)
-        
-        if not username or not consent_type:
-            return jsonify({
-                "error": "Username and consent type required"
-            }), 400
-        
-        # Log consent change
-        GDPRService.log_data_access(
-            user=username,
-            data_type='consent_management',
-            purpose='gdpr_consent_update',
-            ip_address=request.remote_addr
-        )
-        
-        # In production, update consent in database
-        consent_record = {
-            "username": username,
-            "consent_type": consent_type,
-            "consent_given": consent_given,
-            "timestamp": datetime.utcnow().isoformat(),
-            "ip_address": request.remote_addr
-        }
-        
-        return jsonify({
-            "status": "success",
-            "message": "Consent preferences updated",
-            "consent_record": consent_record
-        })
-        
-    except Exception as e:
-        return jsonify({"error": f"Failed to update consent: {str(e)}"}), 500
         
 @app.route('/sailing/semanticSearch', methods=['POST'])
 def get_semantic_search():
     """Endpoint for semantic search based on user query and filters"""
     data = request.get_json()
-    
-    # Apply GDPR data minimization
-    data = GDPRService.check_data_minimization(data, 'search')
-    
-    # Log search access for GDPR audit
-    username = data.get('username', 'anonymous')
-    GDPRService.log_data_access(
-        user=username,
-        data_type='search_queries',
-        purpose='cruise_data_search',
-        ip_address=request.remote_addr
-    )
 
     # Validate input
     query = data.get("query")
@@ -785,18 +719,6 @@ def add_sailing_summaries(issues_list):
 def get_issues_list():
     """Endpoint to retrieve a summary of issues based on user input"""
     data = request.get_json()
-    
-    # Apply GDPR data minimization
-    data = GDPRService.check_data_minimization(data, 'issues_reporting')
-    
-    # Log issues access for GDPR audit
-    username = data.get('username', 'anonymous')
-    GDPRService.log_data_access(
-        user=username,
-        data_type='cruise_issues',
-        purpose='issues_analysis',
-        ip_address=request.remote_addr
-    )
 #     ships = data.get("ships", None)
     sailing_numbers = data.get("sailing_numbers", None)
     sheets = data.get("sheets", None)
@@ -809,6 +731,52 @@ def get_issues_list():
         "status": "success",
         "data": final_list
     })
+
+# Test endpoint to verify encryption works
+@app.route('/sailing/test-encryption', methods=['POST'])
+def test_encryption():
+    """Test endpoint to verify backend encryption capabilities"""
+    try:
+        data = request.get_json()
+        print("=== ENCRYPTION TEST START ===")
+        print(f"Test data received: {data}")
+        
+        # Test if we can process encrypted data
+        if CryptoService.is_encrypted_request(data):
+            print("✅ Request detected as encrypted")
+            
+            encrypted_data = data.get('encryptedData')
+            iv = data.get('iv')
+            session_key = data.get('sessionKey')
+            
+            try:
+                result = CryptoService.decrypt_credentials(encrypted_data, iv, session_key)
+                print(f"✅ Decryption successful: {result}")
+                return jsonify({
+                    "status": "success",
+                    "message": "Backend encryption working correctly",
+                    "decrypted": result
+                })
+            except Exception as decrypt_error:
+                print(f"❌ Decryption failed: {decrypt_error}")
+                return jsonify({
+                    "status": "error",
+                    "message": f"Decryption failed: {str(decrypt_error)}"
+                }), 400
+        else:
+            print("❌ Request not detected as encrypted")
+            return jsonify({
+                "status": "error", 
+                "message": "Request is not encrypted or missing required fields",
+                "required": ["encrypted: true", "encryptedData", "iv", "sessionKey"]
+            }), 400
+            
+    except Exception as e:
+        print(f"❌ Test encryption error: {e}")
+        return jsonify({
+            "status": "error",
+            "message": f"Test failed: {str(e)}"
+        }), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

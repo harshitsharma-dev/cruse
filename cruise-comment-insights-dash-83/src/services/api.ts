@@ -106,8 +106,19 @@ class ApiService {
     }
     
     try {
+      // Debug Web Crypto API availability
+      if (isDevelopment) {
+        console.log('Web Crypto API checks:');
+        console.log('- window.crypto:', typeof window.crypto);
+        console.log('- crypto.subtle:', typeof window.crypto?.subtle);
+        console.log('- crypto.getRandomValues:', typeof window.crypto?.getRandomValues);
+        console.log('- CryptoService:', typeof CryptoService);
+      }
+      
       // Encrypt the credentials before sending
+      console.log('Calling CryptoService.encryptCredentials...');
       const encryptedPayload = await CryptoService.encryptCredentials(credentials);
+      console.log('✅ Encryption successful!');
       
       if (isDevelopment) {
         console.log('Encrypted payload structure:', {
@@ -127,6 +138,7 @@ class ApiService {
       if (isDevelopment) {
         console.log('Request body length:', requestBody.length);
         console.log('Sending encrypted authentication request...');
+        console.log('Request payload keys:', Object.keys(JSON.parse(requestBody)));
       }
       
       const result = await this.request<{
