@@ -186,3 +186,19 @@
         Header add Link "</assets/css/index-[a-f0-9]+\.css>; rel=preload; as=style"
     </FilesMatch>
 </IfModule>
+
+# SPA Routing - Redirect all routes to index.html for React Router
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Handle Angular and React Router
+    # Send all requests to index.html except for files that exist
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/api/
+    RewriteRule ^.*$ /index.html [L]
+    
+    # Optional: Force HTTPS (uncomment if using SSL)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
