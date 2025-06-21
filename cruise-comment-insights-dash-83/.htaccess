@@ -24,8 +24,7 @@
     # Image files
     AddType image/svg+xml .svg
     AddType image/webp .webp
-    
-    # Ensure module scripts are served with correct MIME type
+      # Ensure module scripts are served with correct MIME type
     <FilesMatch "\.m?js$">
         ForceType text/javascript
         Header set Content-Type "text/javascript; charset=utf-8"
@@ -35,14 +34,6 @@
     <FilesMatch "\.css$">
         ForceType text/css
         Header set Content-Type "text/css; charset=utf-8"
-    </FilesMatch>
-      # Set proper MIME types for module scripts
-    <FilesMatch "\.js$">
-        Header set Content-Type "text/javascript; charset=utf-8"
-    </FilesMatch>
-    
-    <FilesMatch "\.mjs$">
-        Header set Content-Type "text/javascript; charset=utf-8"
     </FilesMatch>
 </IfModule>
 
@@ -137,7 +128,8 @@
 </IfModule>
 
 # Add cache control headers
-<IfModule mod_headers.c>    # Cache UI library chunks for 1 year (they have content hashes)
+<IfModule mod_headers.c>
+    # Cache UI library chunks for 1 year (they have content hashes)
     <FilesMatch "assets/(vendor|ui|charts|icons|query).*\.js$">
         Header set Cache-Control "max-age=31536000, public, immutable"
         Header set X-Content-Type-Options "nosniff"
@@ -170,11 +162,11 @@
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-XSS-Protection "1; mode=block"
-    
-    # Remove server signature
+      # Remove server signature
     Header unset Server
     Header unset X-Powered-By
-      # Add preload hints for critical resources
+    
+    # Add preload hints for critical resources
     <FilesMatch "index\.html$">
         Header add Link "</assets/vendor-C_ycmrIY.js>; rel=preload; as=script"
         Header add Link "</assets/index-gzQW87nY.css>; rel=preload; as=style"
