@@ -15,6 +15,7 @@ import {
   User,
   Home,
   Users,
+  UserCheck,
   Menu,
   ChevronLeft
 } from 'lucide-react';
@@ -35,6 +36,7 @@ const Layout = () => {
     { name: 'Metric Filter', href: '/metrics', icon: TrendingUp },
     { name: 'Search', href: '/search', icon: Search },
     { name: 'Issues', href: '/issues', icon: AlertTriangle },
+    { name: 'Personnel', href: '/personnel', icon: UserCheck },
     { name: 'Profile', href: '/profile', icon: User },
     // Only show Users menu for admin/superadmin
     ...(user?.role === 'admin' || user?.role === 'superadmin' ? 

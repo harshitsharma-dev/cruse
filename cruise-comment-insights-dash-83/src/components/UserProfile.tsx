@@ -10,16 +10,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { User, Save, Key, Mail } from 'lucide-react';
 
 const UserProfile = () => {
-  const { user } = useAuth();
-  const [profileData, setProfileData] = useState({
+  const { user } = useAuth();  const [profileData, setProfileData] = useState({
     name: user?.name || user?.username || '',
     email: user?.email || `${user?.username}@clientcompany.com`,
     department: '',
-    fleet: '',
-    ship: '',
     role: user?.role || 'user'
   });
-
   // Available departments as per specifications
   const departments = [
     'Guest Services',
@@ -33,13 +29,6 @@ const UserProfile = () => {
     'Administration',
     'Other'
   ];
-
-  // Mock fleet/ship data - in real implementation, this would come from API
-  const fleetShipData = {
-    'marella': ['Discovery', 'Explorer', 'Discovery2', 'Explorer2', 'Voyager'],
-    'celebrity': ['Eclipse', 'Equinox', 'Reflection', 'Silhouette'],
-    'royal': ['Harmony', 'Symphony', 'Wonder', 'Navigator']
-  };
 
   const handleInputChange = (field: string, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
@@ -143,48 +132,6 @@ const UserProfile = () => {
                 disabled
                 className="bg-gray-50"
               />
-            </div>
-          </div>
-
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-medium mb-4">Data Access Permissions (Optional)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="fleet">Fleet Access</Label>                <Select 
-                  value={profileData.fleet} 
-                  onValueChange={(value) => handleInputChange('fleet', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select fleet (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-fleets">All Fleets</SelectItem>
-                    {Object.keys(fleetShipData).map((fleet) => (
-                      <SelectItem key={fleet} value={fleet} className="capitalize">
-                        {fleet}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="ship">Ship Access</Label>                <Select 
-                  value={profileData.ship} 
-                  onValueChange={(value) => handleInputChange('ship', value)}
-                  disabled={!profileData.fleet}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select ship (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-ships">All Ships</SelectItem>
-                    {profileData.fleet && fleetShipData[profileData.fleet as keyof typeof fleetShipData]?.map((ship) => (
-                      <SelectItem key={ship} value={ship}>{ship}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </div>
         </CardContent>

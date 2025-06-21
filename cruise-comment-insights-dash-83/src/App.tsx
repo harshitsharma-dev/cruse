@@ -18,6 +18,7 @@ const RatingSummary = lazy(() => import("./components/RatingSummary"));
 const MetricFilter = lazy(() => import("./pages/MetricFilter"));
 const Search = lazy(() => import("./pages/Search"));
 const Issues = lazy(() => import("./pages/Issues"));
+const Personnel = lazy(() => import("./pages/Personnel"));
 const UserProfile = lazy(() => import("./components/UserProfile"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -79,10 +80,14 @@ const AppRoutes = () => {
           <Suspense fallback={<LoadingSpinner />}>
             <Search />
           </Suspense>
-        } />
-        <Route path="/issues" element={
+        } />        <Route path="/issues" element={
           <Suspense fallback={<LoadingSpinner />}>
             <Issues />
+          </Suspense>
+        } />
+        <Route path="/personnel" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <Personnel />
           </Suspense>
         } />
         <Route path="/profile" element={

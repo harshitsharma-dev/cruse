@@ -867,7 +867,7 @@ def get_semantic_search():
 def add_sailing_summaries(issues_list):
     """Add sailing summaries to issues list for better presentation"""
     if not issues_list:
-        return {"sailing_summaries": [], "total_issues": 0}
+        return {"sailing_summaries": [], "all_issues": [], "total_issues": 0}
     
     # Group issues by sailing
     sailing_groups = {}
@@ -883,7 +883,8 @@ def add_sailing_summaries(issues_list):
                 "start_date": issue.get('start_date', 'Unknown'),
                 "end_date": issue.get('end_date', 'Unknown'),
                 "issues": [],
-                "issue_count": 0
+                "issue_count": 0,
+                "sailing_summary": f"Issues identified across multiple feedback categories for {issue.get('ship_name', 'Unknown')} sailing {issue.get('sailing_number', 'Unknown')}"
             }
         
         sailing_groups[sailing_key]["issues"].append({
@@ -893,11 +894,17 @@ def add_sailing_summaries(issues_list):
         sailing_groups[sailing_key]["issue_count"] += 1
         total_issues += 1
     
+    # Update sailing summaries with final issue counts - keep it simple
+    for sailing in sailing_groups.values():
+        unique_categories = len(sailing['issues'])
+        sailing["sailing_summary"] = f"{sailing['issue_count']} issues found across {unique_categories} feedback categories"
+    
     # Convert to list format
     sailing_summaries = list(sailing_groups.values())
     
     return {
         "sailing_summaries": sailing_summaries,
+        "all_issues": issues_list,  # Include raw issues list for detailed view
         "total_issues": total_issues,
         "sailing_count": len(sailing_summaries)
     }
@@ -907,13 +914,13 @@ def add_sailing_summaries(issues_list):
 def get_issues_list():
     """Endpoint to retrieve a summary of issues based on user input"""
     data = request.get_json()
-#     ships = data.get("ships", None)
+    
     sailing_numbers = data.get("sailing_numbers", None)
     sheets = data.get("sheets", None)
     ships = None
 
-    issues_list=SQLOP.fetch_issues(ships,sailing_numbers, sheets)
-    final_list =  add_sailing_summaries(issues_list)
+    issues_list = SQLOP.fetch_issues(ships, sailing_numbers, sheets)
+    final_list = add_sailing_summaries(issues_list)
 
     return jsonify({
         "status": "success",
