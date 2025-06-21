@@ -49,10 +49,10 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [availableSailingNumbers, setAvailableSailingNumbers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSailingNumbersLoading, setIsSailingNumbersLoading] = useState(false);
-
   useEffect(() => {
     const loadFleetData = async () => {
       try {
+        console.log('Loading fleet data after authentication...');
         const response = await apiService.getFleets();
         // Ensure the response data is properly formatted
         const fleetData = Array.isArray(response.data) ? response.data : [];
@@ -62,9 +62,16 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           ships: Array.isArray(fleet.ships) ? fleet.ships : []
         }));
         setAvailableFleets(sanitizedFleetData);
+        console.log('Fleet data loaded successfully:', sanitizedFleetData);
       } catch (error) {
         console.error('Failed to load fleet data:', error);
-        setAvailableFleets([]); // Ensure it's always an array
+        // Check if it's an authentication error
+        if (error instanceof Error && error.message.includes('Authentication required')) {
+          console.log('Authentication error detected in FilterContext');
+          // Don't set empty fleets, let the auth system handle the redirect
+          return;
+        }
+        setAvailableFleets([]); // Ensure it's always an array for other errors
       } finally {
         setIsLoading(false);
       }

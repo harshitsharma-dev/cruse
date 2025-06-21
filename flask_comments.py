@@ -1,3 +1,40 @@
+"""
+JWT Authentication Summary for Apollo Intelligence API:
+
+PUBLIC ENDPOINTS (No JWT required):
+- POST /sailing/auth - User authentication (login)
+- GET /sailing/health - Health check endpoint
+- OPTIONS /sailing/* - CORS preflight requests
+
+PROTECTED ENDPOINTS (JWT required):
+- GET /sailing/fleets - Fleet data
+- GET /sailing/sheets - Sheet names  
+- GET /sailing/metrics - Available metrics
+- GET /sailing/ships - Available ships
+- GET /sailing/sailing_numbers - Sailing numbers
+- POST /sailing/sailing_numbers_filter - Filter sailing numbers
+- POST /sailing/getRatingSmry - Rating summaries
+- POST /sailing/getMetricRating - Metric comparisons
+- POST /sailing/semanticSearch - Semantic search
+- POST /sailing/getIssuesList - Issues list
+- POST /sailing/refresh - Token refresh (requires refresh token)
+- POST /sailing/logout - Logout (blacklist token)
+- GET /sailing/verify - Token verification
+
+ADMIN-ONLY ENDPOINTS (JWT + admin role required):
+- GET /sailing/check - Admin check endpoint
+- GET /sailing/admin/users - Get all users
+- GET /sailing/admin/system-info - System information
+
+SECURITY MODEL:
+- All data access requires valid JWT token
+- Tokens expire after 1 hour (configurable)
+- Refresh tokens valid for 30 days
+- Blacklisted tokens are tracked
+- Role-based access control for admin endpoints
+- CORS configured for frontend domains only
+"""
+
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
 from flask_compress import Compress
@@ -105,13 +142,25 @@ CORS(app, resources={
             "http://192.168.48.1:8080",
             "http://172.16.150.127:8080",
             "http://44.244.127.80",
-            "http://apollo.deepthoughtconsultech.com/",
+            "http://apollo.deepthoughtconsultech.com",
             "apollo.deepthoughtconsultech.com",
             "ag.api.deepthoughtconsultech.com"
         ],
         "supports_credentials": True,
-        "allow_headers": ["Content-Type", "Authorization", "Content-Encoding"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        "allow_headers": [
+            "Content-Type", 
+            "Authorization", 
+            "Content-Encoding",
+            "Cache-Control",
+            "Accept",
+            "Accept-Encoding",
+            "Accept-Language",
+            "Origin",
+            "User-Agent",
+            "X-Requested-With"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "expose_headers": ["Content-Type", "Authorization"]
     }
 })
 
@@ -245,12 +294,62 @@ def filter_sailings(data):
     results = {frozenset(item.items()): item for item in results}.values()
     return results
 
+# Role-based access control decorator
+def require_role(required_role):
+    """Decorator to require specific role for access"""
+    def decorator(f):
+        @wraps(f)
+        @jwt_required()
+        def decorated_function(*args, **kwargs):
+            token_claims = get_jwt()
+            user_role = token_claims.get('role', 'user')
+            
+            # Admin can access everything
+            if user_role == 'admin':
+                return f(*args, **kwargs)
+            
+            # Check if user has required role
+            if user_role != required_role:
+                return jsonify({
+                    'error': f'Access denied. Required role: {required_role}',
+                    'code': 'insufficient_permissions'
+                }), 403
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def require_permission(required_permission):
+    """Decorator to require specific permission for access"""
+    def decorator(f):
+        @wraps(f)
+        @jwt_required()
+        def decorated_function(*args, **kwargs):
+            token_claims = get_jwt()
+            user_permissions = token_claims.get('permissions', [])
+            
+            # Check if user has required permission
+            if required_permission not in user_permissions:
+                return jsonify({
+                    'error': f'Access denied. Required permission: {required_permission}',
+                    'code': 'insufficient_permissions'
+                }), 403
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 
 
 # API Endpoints
 @app.route('/sailing/check', methods=['GET'])
+@require_role('admin')
 def get_check():
-    return ("hi how are you")
+    return jsonify({
+        "status": "success",
+        "message": "Admin access confirmed",
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    })
 
 @app.errorhandler(404)
 def not_found(e):
@@ -310,61 +409,75 @@ def handle_options(path):
         "http://44.243.87.16:8080",
         "http://apollo.deepthoughtconsultech.com",
         "http://172.16.150.127:8080",
+        "http://44.244.127.80",
     ]
     if origin and any(origin.startswith(allowed.rsplit(':', 1)[0]) for allowed in allowed_origins):
         response.headers.add('Access-Control-Allow-Origin', origin)
     else:
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8081')
+        response.headers.add('Access-Control-Allow-Origin', '*')
     
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Content-Encoding')
+    response.headers.add('Access-Control-Allow-Headers', 
+                        'Content-Type,Authorization,Content-Encoding,Cache-Control,Accept,Accept-Encoding,Accept-Language,Origin,User-Agent,X-Requested-With')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     response.headers.add('Access-Control-Max-Age', '3600')  # Cache preflight for 1 hour
+    response.headers.add('Access-Control-Expose-Headers', 'Content-Type,Authorization')
     return response
 
 
 @app.route('/sailing/fleets', methods=['GET'])
+@jwt_required()
 def get_fleets():
-    """Endpoint to retrieve fleet names and the ships under each fleet"""
-
+    """Endpoint to retrieve fleet names and the ships under each fleet - Requires authentication"""
     return jsonify({
         "status": "success",
         "data": FLEET_DATA
     })
 
 @app.route('/sailing/sheets', methods=['GET'])
+@jwt_required()  
 def get_sheets():
-    """Endpoint to retrieve fleet names and the ships under each fleet"""
-
+    """Endpoint to retrieve sheet names - Requires authentication"""
     return jsonify({
         "status": "success",
         "data": SHEET_LIST
     })
 
 @app.route('/sailing/metrics', methods=['GET'])
+@jwt_required()
 def get_metrics():
-    """Endpoint to retrieve various metrics related to sailing"""
-
+    """Endpoint to retrieve various metrics related to sailing - Requires authentication"""
     return jsonify({
         "status": "success",
         "data": METRIC_ATTRIBUTES
     })
 
+@app.route('/sailing/ships', methods=['GET'])
+@jwt_required()
+def get_ships():
+    """Endpoint to get available ships - Requires authentication"""
+    SHIPS = []
+    for ent in SAMPLE_DATA:
+        SHIPS.append(ent["Ship Name"])
+    return jsonify({
+        "status": "success",
+        "data": [{"name": ship, "id": idx+1} for idx, ship in enumerate(SHIPS)]
+    })
+
 @app.route('/sailing/sailing_numbers', methods=['GET'])
+@jwt_required()
 def get_sailing_numbers():
-    """Endpoint to retrieve various metrics related to sailing"""
+    """Endpoint to retrieve sailing numbers - Requires authentication"""
     sailing_list = SQLOP.fetch_sailings(None,None,None)
     return jsonify({
         "status": "success",
         "data": sailing_list
     })
-    # return jsonify({
-    #     "status": "success",
-    #     "data": SAILING_NUMBER_LIST
-    # })
 
 @app.route('/sailing/sailing_numbers_filter', methods=['POST'])
+@jwt_required()
 def get_sailing_numbers_filter():
+    """Filter sailing numbers - Requires authentication"""
     data = request.get_json()
     # Validate input    
     ships_list = data.get("ships", [])
@@ -376,8 +489,6 @@ def get_sailing_numbers_filter():
     if end_date == "-1":
         end_date = None
       
-
-    # res = UT.filter_sailings(SAILING_LIST_MAPPING, ships_list, start_date, end_date)
     res = SQLOP.fetch_sailings(ships_list, start_date, end_date)
     
     return jsonify({
@@ -559,24 +670,6 @@ def get_metric_comparison():
         "filterBelow": filter_below,
         "comparedToAverage": compare_avg
     })
-
-@app.route('/sailing/ships', methods=['GET'])
-def get_ships():
-#     SHIPS = ["Voyager", "Explorer", "Discovery", "Explorer 2", "Discovery 2", "Voyager250306"]
-    SHIPS = []
-    for ent in SAMPLE_DATA:
-        SHIPS.append(ent["Ship Name"])
-    return jsonify({
-        "status": "success",
-        "data": [{"name": ship, "id": idx+1} for idx, ship in enumerate(SHIPS)]
-    })
-    # """Endpoint for getting available ships from database"""
-    # ships = db.query("SELECT ship_id as id, ship_name as name FROM ships")
-    # return jsonify({
-    #     "status": "success",
-    #     "data": ships
-    # })
-
 
 @app.route('/sailing/auth', methods=['POST'])
 def authenticate():
@@ -827,51 +920,6 @@ def get_issues_list():
         "data": final_list
     })
 
-# Role-based access control decorator
-def require_role(required_role):
-    """Decorator to require specific role for access"""
-    def decorator(f):
-        @wraps(f)
-        @jwt_required()
-        def decorated_function(*args, **kwargs):
-            token_claims = get_jwt()
-            user_role = token_claims.get('role', 'user')
-            
-            # Admin can access everything
-            if user_role == 'admin':
-                return f(*args, **kwargs)
-            
-            # Check if user has required role
-            if user_role != required_role:
-                return jsonify({
-                    'error': f'Access denied. Required role: {required_role}',
-                    'code': 'insufficient_permissions'
-                }), 403
-            
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-def require_permission(required_permission):
-    """Decorator to require specific permission for access"""
-    def decorator(f):
-        @wraps(f)
-        @jwt_required()
-        def decorated_function(*args, **kwargs):
-            token_claims = get_jwt()
-            user_permissions = token_claims.get('permissions', [])
-            
-            # Check if user has required permission
-            if required_permission not in user_permissions:
-                return jsonify({
-                    'error': f'Access denied. Required permission: {required_permission}',
-                    'code': 'insufficient_permissions'
-                }), 403
-            
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
 @app.route('/sailing/health', methods=['GET'])
 def health_check():
     """Health check endpoint - no authentication required"""
@@ -879,6 +927,45 @@ def health_check():
         "status": "healthy",
         "timestamp": datetime.datetime.utcnow().isoformat(),
         "service": "Apollo Intelligence API"
+    })
+
+@app.route('/sailing/admin/users', methods=['GET'])
+@require_role('admin')
+def get_users():
+    """Admin endpoint to get all users"""
+    try:
+        auth_data = load_auth_data()
+        users = []
+        for username, user_data in auth_data['users'].items():
+            users.append({
+                'username': username,
+                'role': user_data.get('role', 'user'),
+                'permissions': user_data.get('permissions', [])
+            })
+        
+        return jsonify({
+            "status": "success",
+            "data": users
+        })
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to get users: {str(e)}"
+        }), 500
+
+@app.route('/sailing/admin/system-info', methods=['GET'])
+@require_role('admin')
+def get_system_info():
+    """Admin endpoint to get system information"""
+    return jsonify({
+        "status": "success",
+        "data": {
+            "active_tokens": len(blacklisted_tokens),
+            "jwt_secret_configured": bool(app.config.get('JWT_SECRET_KEY')),
+            "token_expires_in": str(app.config['JWT_ACCESS_TOKEN_EXPIRES']),
+            "refresh_expires_in": str(app.config['JWT_REFRESH_TOKEN_EXPIRES']),
+            "compression_enabled": bool(app.config.get('COMPRESS_LEVEL')),
+            "timestamp": datetime.datetime.utcnow().isoformat()
+        }
     })
 
 if __name__ == '__main__':

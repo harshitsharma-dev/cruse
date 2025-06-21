@@ -24,11 +24,23 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     // Check for existing session on app start
     checkExistingSession();
-  }, []);  const checkExistingSession = async () => {
+    
+    // Listen for auth failures from API service
+    const handleAuthFailure = () => {
+      console.log('Auth failure detected, logging out user');
+      setUser(null);
+    };
+    
+    window.addEventListener('auth-failure', handleAuthFailure);
+    
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('auth-failure', handleAuthFailure);
+    };
+  }, []);const checkExistingSession = async () => {
     try {
       // Check if we have tokens in localStorage
       if (apiService.isAuthenticated()) {

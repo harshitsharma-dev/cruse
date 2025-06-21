@@ -48,10 +48,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
   
-  return (    <Routes>
+  return (
+    <Routes>
       <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/ratings" />} />
       <Route path="/" element={<Navigate to="/ratings" />} />
-      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route element={
+        <ProtectedRoute>
+          <FilterProvider>
+            <Layout />
+          </FilterProvider>
+        </ProtectedRoute>
+      }>
         {/* Dashboard route temporarily hidden */}
         {/* <Route path="/dashboard" element={
           <Suspense fallback={<LoadingSpinner />}>
@@ -102,17 +109,15 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <FilterProvider>
-          <PerformanceMonitor />
-          <Preloader />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<LoadingSpinner />}>
-              <AppRoutes />
-            </Suspense>
-          </BrowserRouter>
-        </FilterProvider>
+        <PerformanceMonitor />
+        <Preloader />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Suspense fallback={<LoadingSpinner />}>
+            <AppRoutes />
+          </Suspense>
+        </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

@@ -111,9 +111,7 @@ class ApiService {
 
       if (isDevelopment) {
         console.log(`Response status: ${response.status} ${response.statusText}`);
-      }
-
-      // Handle token expiration
+      }      // Handle token expiration
       if (response.status === 401 && retryOnAuth) {
         const errorData = await response.json().catch(() => ({}));
         
@@ -126,9 +124,12 @@ class ApiService {
           }
         }
         
-        // Token refresh failed or other auth error, clear tokens and redirect to login
+        // Token refresh failed or other auth error, clear tokens
         this.clearTokensFromStorage();
-        window.location.href = '/login';
+        
+        // Emit a custom event that AuthContext can listen to
+        window.dispatchEvent(new CustomEvent('auth-failure'));
+        
         throw new Error('Authentication required');
       }
 
