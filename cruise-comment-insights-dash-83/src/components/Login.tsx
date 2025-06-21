@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock } from 'lucide-react';
 import ApolloLogo from './ApolloLogo';
 import DTCLogo from './DTCLogo';
 
@@ -86,20 +85,12 @@ const Login = () => {
               Transform guest feedback into actionable insights
             </p>
           </div>
-        </div>        <Card className="mt-8 apollo-shadow-lg bg-white/95 backdrop-blur-md border-white/20">          <CardHeader className="pb-6">
+        </div>        <Card className="mt-8 apollo-shadow-lg bg-white/95 backdrop-blur-md border-white/20">
+          <CardHeader className="pb-6">
             <CardTitle className="text-center text-2xl font-bold text-gray-900">Sign In</CardTitle>
             <CardDescription className="text-center text-gray-600">
               Demo Authentication - Choose your role below
             </CardDescription>
-            
-            {/* Security Indicator */}
-            <div className="flex items-center justify-center mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <Shield className="h-4 w-4 text-green-600 mr-2" />
-              <Lock className="h-4 w-4 text-green-600 mr-2" />
-              <span className="text-sm text-green-700 font-medium">
-                🔒 Login data encrypted with AES-256-GCM
-              </span>
-            </div>
           </CardHeader>
           <CardContent>            {/* Quick Login Options - Updated for actual authentication */}
             <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
