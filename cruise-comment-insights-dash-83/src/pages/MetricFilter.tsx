@@ -356,17 +356,13 @@ const MetricFilter = () => {
                               <div className="border border-gray-200 rounded-lg">
                                 {/* Comment Header - Always Visible */}
                                 <CollapsibleTrigger asChild>
-                                  <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
-                                    <div className="flex justify-between items-center">
+                                  <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">                                    <div className="flex justify-between items-center">
                                       <div className="flex items-center space-x-3">
                                         <span className="text-sm font-medium text-gray-600">
-                                          Guest #{commentIndex + 1}
+                                          {result.filteredReviews && result.filteredReviews[commentIndex] 
+                                            ? result.filteredReviews[commentIndex] 
+                                            : `Guest #${commentIndex + 1}`}
                                         </span>
-                                        {result.filteredMetric && result.filteredMetric[commentIndex] && (
-                                          <Badge className={getRatingColor(result.filteredMetric[commentIndex])} variant="secondary">
-                                            Rating: {result.filteredMetric[commentIndex].toFixed(1)}
-                                          </Badge>
-                                        )}
                                       </div>
                                       <div className="flex items-center space-x-2">
                                         <span className="text-xs text-gray-500">
