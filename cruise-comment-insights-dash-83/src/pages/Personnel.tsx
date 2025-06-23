@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Users, ChevronDown, ChevronUp, Download, Loader2, Settings, Expand, Minimize2, Check, X, BarChart3 } from 'lucide-react';
+import { Users, ChevronDown, ChevronUp, Download, Loader2, Settings, Expand, Minimize2, Check, X, BarChart3, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
@@ -215,14 +215,16 @@ const Personnel = () => {
 
         {/* Sheet Selection */}
         <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">            <CardTitle className="flex items-center gap-2">
               <div className="p-2 bg-green-100 rounded-lg">
                 <Users className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <span className="text-lg font-bold text-gray-900">Personnel Configuration</span>
                 <p className="text-sm text-gray-600 font-normal">Select sheets and parameters for personnel analysis</p>
+                <Badge variant="outline" className="mt-1 text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                  Under Development
+                </Badge>
               </div>
             </CardTitle>
           </CardHeader>
@@ -301,23 +303,15 @@ const Personnel = () => {
               )}
             </div>
 
-            <div className="pt-2">
-              <Button 
+            <div className="pt-2">              <Button 
                 onClick={fetchPersonnel} 
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                disabled={loading || sheetsLoading}
+                className="w-full bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg cursor-not-allowed"
+                disabled={true}
               >
-                {loading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    <span>Analyzing Personnel...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>Get Personnel Mentions</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>Feature Under Development</span>
+                </div>
               </Button>
             </div>
           </CardContent>

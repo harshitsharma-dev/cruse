@@ -2,11 +2,13 @@
  * Common filter utilities for consistent API data formatting across all pages
  */
 
-/**
- * Simplified filter interface - only sailing numbers are required
- */
 export interface StandardFilters {
+  ships: string[];
+  fleets: string[];
+  start_date: string;
+  end_date: string;
   sailing_numbers: string[];
+  useAllDates: boolean;
 }
 
 export interface BasicFilterState {
@@ -21,11 +23,19 @@ export interface BasicFilterState {
 }
 
 /**
- * Convert basic filter state to standardized API format (only sailing numbers)
+ * Convert basic filter state to standardized API format
  */
 export const convertToStandardFilters = (filters: BasicFilterState): StandardFilters => {
   return {
-    sailing_numbers: filters.sailingNumbers || []
+    ships: (filters.ships || []).map(ship => {
+      // Remove fleet prefix if present (e.g., "marella:explorer" -> "explorer")
+      return ship.includes(':') ? ship.split(':')[1] : ship;
+    }),
+    fleets: filters.fleets || [],
+    start_date: filters.useAllDates ? "-1" : (filters.dateRange?.startDate || "-1"),
+    end_date: filters.useAllDates ? "-1" : (filters.dateRange?.endDate || "-1"),
+    sailing_numbers: filters.sailingNumbers || [],
+    useAllDates: filters.useAllDates || false
   };
 };
 
@@ -46,7 +56,7 @@ export const convertToLegacyFormat = (filters: BasicFilterState) => {
 };
 
 /**
- * Create API request data for Issues/Personnel endpoints - only sailing numbers
+ * Create API request data for Issues/Personnel endpoints
  */
 export const createIssuesApiData = (
   filters: BasicFilterState, 
@@ -55,13 +65,17 @@ export const createIssuesApiData = (
   const standardFilters = convertToStandardFilters(filters);
   
   return {
-    sailing_numbers: standardFilters.sailing_numbers,
-    sheets: sheets.length > 0 ? sheets : []
+    ships: standardFilters.ships.length > 0 ? standardFilters.ships : [],
+    sailing_numbers: standardFilters.sailing_numbers.length > 0 ? standardFilters.sailing_numbers : [],
+    sheets: sheets.length > 0 ? sheets : [],
+    start_date: standardFilters.start_date,
+    end_date: standardFilters.end_date,
+    fleets: standardFilters.fleets
   };
 };
 
 /**
- * Create API request data for Search endpoints - only sailing numbers
+ * Create API request data for Search endpoints
  */
 export const createSearchApiData = (
   filters: BasicFilterState,
@@ -78,7 +92,11 @@ export const createSearchApiData = (
   
   return {
     query,
-    sailing_numbers: standardFilters.sailing_numbers,
+    ships: standardFilters.ships,
+    fleets: standardFilters.fleets,
+    start_date: standardFilters.start_date,
+    end_date: standardFilters.end_date,
+    sailing_numbers: standardFilters.sailing_numbers.length > 0 ? standardFilters.sailing_numbers : [],
     sheet_names: options.sheet_names || [],
     meal_time: options.meal_time,
     semanticSearch: options.semanticSearch || true,
@@ -88,18 +106,22 @@ export const createSearchApiData = (
 };
 
 /**
- * Create API request data for Rating Summary endpoints - only sailing numbers
+ * Create API request data for Rating Summary endpoints
  */
 export const createRatingSummaryApiData = (filters: BasicFilterState) => {
   const standardFilters = convertToStandardFilters(filters);
   
   return {
+    ships: standardFilters.ships,
+    fleets: standardFilters.fleets,
+    start_date: standardFilters.start_date,
+    end_date: standardFilters.end_date,
     sailing_numbers: standardFilters.sailing_numbers
   };
 };
 
 /**
- * Create API request data for Metric Rating endpoints - only sailing numbers
+ * Create API request data for Metric Rating endpoints
  */
 export const createMetricRatingApiData = (
   filters: BasicFilterState,
@@ -114,6 +136,9 @@ export const createMetricRatingApiData = (
   
   return {
     metric,
+    ships: standardFilters.ships,
+    start_date: standardFilters.start_date,
+    end_date: standardFilters.end_date,
     sailing_numbers: standardFilters.sailing_numbers,
     filterLower: options.filterLower,
     filterUpper: options.filterUpper,
@@ -171,4 +196,12 @@ export const debugFilters = (label: string, filters: any) => {
     }
     console.log('===================');
   }
+};
+
+/**
+ * Helper function to format ship names consistently in uppercase
+ */
+export const formatShipName = (shipName: string | null | undefined): string => {
+  if (!shipName) return 'Unknown';
+  return shipName.toUpperCase();
 };

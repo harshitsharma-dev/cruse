@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
 import { SortControls } from '../components/SortControls';
-import { BasicFilterState, createMetricRatingApiData, debugFilters } from '../utils/filterUtils';
+import { BasicFilterState, createMetricRatingApiData, debugFilters, formatShipName } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig, METRIC_SAILING_SORT_OPTIONS, METRIC_COMMENT_SORT_OPTIONS } from '../utils/sortingUtils';
 
 const MetricFilter = () => {
@@ -103,14 +103,12 @@ const MetricFilter = () => {
       return;
     }
 
-    const headers = ['Ship', 'Sailing Number', 'Metric', 'Average Rating', 'Comparison to Overall', 'Filtered Count', 'Reviews'];
-    const csvContent = results.map(row => [
-      `"${row.ship || 'N/A'}"`,
+    const headers = ['Ship', 'Sailing Number', 'Metric', 'Average Rating', 'Comparison to Overall', 'Reviews'];    const csvContent = results.map(row => [
+      `"${formatShipName(row.ship)}"`,
       `"${row.sailingNumber || 'N/A'}"`,
       `"${row.metric || 'N/A'}"`,
       `"${row.averageRating?.toFixed(2) || 'N/A'}"`,
       `"${row.comparisonToOverall?.toFixed(2) || 'N/A'}"`,
-      `"${row.filteredCount || 'N/A'}"`,
       `"${(row.filteredReviews?.join('; ') || 'N/A').replace(/"/g, '""')}"`
     ].join(',')).join('\n');
     
@@ -274,30 +272,24 @@ const MetricFilter = () => {
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse border border-gray-200 rounded-lg">
-                  <thead>
-                    <tr className="bg-gray-50">
+                  <thead>                    <tr className="bg-gray-50">
                       <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Ship</th>
                       <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Sailing Number</th>
                       <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Average Rating</th>
                       <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Total Ratings</th>
-                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Filtered Count</th>
-                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Comparison</th>
+                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Comparison (vs overall avg)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortData(results, sailingSortConfig, 'metrics').map((result, index) => (
                       <tr key={index} className="hover:bg-gray-50">
-                        <td className="border border-gray-200 px-4 py-3 font-medium">{result.ship || 'N/A'}</td>
+                        <td className="border border-gray-200 px-4 py-3 font-medium">{formatShipName(result.ship)}</td>
                         <td className="border border-gray-200 px-4 py-3">{result.sailingNumber || 'N/A'}</td>
                         <td className="border border-gray-200 px-4 py-3 text-center">
                           <Badge className={getRatingColor(result.averageRating)} variant="secondary">
                             {result.averageRating?.toFixed(2) || 'N/A'}
                           </Badge>
-                        </td>
-                        <td className="border border-gray-200 px-4 py-3 text-center">{result.ratingCount || 'N/A'}</td>
-                        <td className="border border-gray-200 px-4 py-3 text-center">
-                          <Badge variant="outline">{result.filteredCount || 0}</Badge>
-                        </td>
+                        </td>                        <td className="border border-gray-200 px-4 py-3 text-center">{result.ratingCount || 'N/A'}</td>
                         <td className="border border-gray-200 px-4 py-3 text-center">
                           {result.comparisonToOverall !== undefined ? (
                             <span className={`text-sm font-medium ${result.comparisonToOverall >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -359,9 +351,8 @@ const MetricFilter = () => {
                     {/* Sailing Header */}
                     <div className="mb-4 pb-4 border-b border-gray-200">
                       <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {result.ship || 'Unknown Ship'} - {result.sailingNumber || 'Unknown Sailing'}
+                        <div className="flex items-center space-x-4">                          <h3 className="text-lg font-semibold text-gray-900">
+                            {formatShipName(result.ship)} - {result.sailingNumber || 'Unknown Sailing'}
                           </h3>
                           <Badge className={getRatingColor(result.averageRating)} variant="secondary">
                             Avg: {result.averageRating?.toFixed(2) || 'N/A'}

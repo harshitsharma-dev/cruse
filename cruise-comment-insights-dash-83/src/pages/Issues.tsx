@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
 import { SortControls } from '../components/SortControls';
-import { BasicFilterState, createIssuesApiData, debugFilters } from '../utils/filterUtils';
+import { BasicFilterState, createIssuesApiData, debugFilters, formatShipName } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig, ISSUES_SORT_OPTIONS } from '../utils/sortingUtils';
 
 const Issues = () => {
@@ -268,9 +268,8 @@ const Issues = () => {
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="h-3 w-3 bg-green-500 rounded-full shadow-sm"></div>
-                              <h4 className="font-bold text-lg text-gray-900 capitalize">
-                                {sailing.ship_name || 'Unknown Ship'}
+                              <div className="h-3 w-3 bg-green-500 rounded-full shadow-sm"></div>                              <h4 className="font-bold text-lg text-gray-900">
+                                {formatShipName(sailing.ship_name)}
                               </h4>
                             </div>
                             <Badge variant="outline" className="text-xs font-medium bg-green-50 text-green-700 border-green-200">
@@ -352,9 +351,8 @@ const Issues = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="font-medium text-blue-800">Ships:</span>
-                            <p className="text-blue-600 mt-1">
-                              {filters?.ships?.length > 0 
-                                ? filters.ships.map((ship: string) => ship.split(':')[1] || ship).join(', ')
+                            <p className="text-blue-600 mt-1">                              {filters?.ships?.length > 0 
+                                ? filters.ships.map((ship: string) => formatShipName(ship.split(':')[1] || ship)).join(', ')
                                 : 'All Ships'
                               }
                             </p>
@@ -438,8 +436,7 @@ const Issues = () => {
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="h-3 w-3 bg-red-500 rounded-full shadow-sm"></div>
-                                <h5 className="font-bold text-lg text-gray-900 capitalize">
-                                  {issue.ship_name || 'Unknown Ship'}
+                                <h5 className="font-bold text-lg text-gray-900 capitalize">                                  {formatShipName(issue.ship_name)}
                                 </h5>
                               </div>
                               <div className="flex items-center gap-2">

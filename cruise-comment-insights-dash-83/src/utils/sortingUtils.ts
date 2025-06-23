@@ -103,18 +103,14 @@ export const ISSUES_SORT_OPTIONS = [
  */
 export const METRIC_SAILING_SORT_OPTIONS = [
   { key: 'ship', label: 'Ship Name' },
-  { key: 'sailingNumber', label: 'Sailing Number' },
-  { key: 'averageRating', label: 'Average Rating' },
-  { key: 'comparisonToOverall', label: 'Comparison to Overall' },
-  { key: 'filteredCount', label: 'Comment Count' }
+  { key: 'sailingNumber', label: 'Sailing Number' }
 ] as const;
 
 /**
  * Metric Filter page sort options for comment-level sorting
  */
 export const METRIC_COMMENT_SORT_OPTIONS = [
-  { key: 'rating', label: 'Comment Rating' },
-  { key: 'review', label: 'Guest Name/Review' }
+  { key: 'rating', label: 'Comment Rating' }
 ] as const;
 
 /**

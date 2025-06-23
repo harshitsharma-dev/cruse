@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { apiService } from '../services/api';
 import BasicFilter from './BasicFilter';
-import { BasicFilterState, createRatingSummaryApiData, debugFilters } from '../utils/filterUtils';
+import { BasicFilterState, createRatingSummaryApiData, debugFilters, formatShipName } from '../utils/filterUtils';
 
 const RatingSummary = () => {
   const [ratingsData, setRatingsData] = useState<any[]>([]);
@@ -280,12 +280,11 @@ const RatingSummary = () => {
       return [];
     }
     
-    return ratingsData.map((rating, index) => {
-      const chartItem: any = {
+    return ratingsData.map((rating, index) => {      const chartItem: any = {
         sailingNumber: rating['Sailing Number'] || 'N/A',
-        ship: rating['Ship'] || 'Unknown',
+        ship: formatShipName(rating['Ship']),
         fleet: rating['Fleet'] || 'N/A',
-        fullShipName: `${rating['Ship'] || 'Unknown'} (${rating['Sailing Number'] || 'N/A'})`,
+        fullShipName: `${formatShipName(rating['Ship'])} (${rating['Sailing Number'] || 'N/A'})`,
       };
       
       // Add all metrics for the group
@@ -489,9 +488,8 @@ const RatingSummary = () => {
                       ))}
                     </tr>
                   </thead><tbody className="divide-y divide-gray-200">                    {Array.isArray(ratingsData) && ratingsData.map((rating, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {rating['Ship'] || 'N/A'}
+                      <tr key={index} className="hover:bg-gray-50">                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          {formatShipName(rating['Ship'])}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {rating['Sailing Number'] || 'N/A'}
