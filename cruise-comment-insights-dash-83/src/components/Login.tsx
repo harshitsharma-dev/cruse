@@ -13,15 +13,8 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);  const { login } = useAuth();
   const navigate = useNavigate();
-
-  // Quick login function for credential cards
-  const handleQuickLogin = (user: string, pass: string) => {
-    setUsername(user);
-    setPassword(pass);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,44 +80,17 @@ const Login = () => {
           </div>
         </div>        <Card className="mt-8 apollo-shadow-lg bg-white/95 backdrop-blur-md border-white/20">
           <CardHeader className="pb-6">
-            <CardTitle className="text-center text-2xl font-bold text-gray-900">Sign In</CardTitle>
-            <CardDescription className="text-center text-gray-600">
-              Demo Authentication - Choose your role below
+            <CardTitle className="text-center text-2xl font-bold text-gray-900">Sign In</CardTitle>            <CardDescription className="text-center text-gray-600">
+              Enter your credentials to access the platform
             </CardDescription>
-          </CardHeader>
-          <CardContent>            {/* Quick Login Options - Updated for actual authentication */}
-            <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-              <div className="text-sm font-semibold text-blue-900 mb-4 text-center">Available Test Accounts (Click to Fill)</div>
-              <div className="grid grid-cols-1 gap-3 text-sm">
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('jayne', 'jayneApollo')}>
-                  <span className="font-medium"><strong>jayne</strong> / <strong>jayneApollo</strong></span>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">✅ Tested Working</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-red-200 hover:shadow-md transition-all cursor-pointer hover:bg-red-50" onClick={() => handleQuickLogin('superadmin', 'admin123')}>
-                  <span className="font-medium"><strong>superadmin</strong> / <strong>admin123</strong></span>
-                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Super Admin</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer hover:bg-blue-50" onClick={() => handleQuickLogin('admin', 'admin123')}>
-                  <span className="font-medium"><strong>admin</strong> / <strong>admin123</strong></span>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('demo', 'admin123')}>
-                  <span className="font-medium"><strong>demo</strong> / <strong>admin123</strong></span>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">User</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer hover:bg-green-50" onClick={() => handleQuickLogin('guest', 'admin123')}>
-                  <span className="font-medium"><strong>guest</strong> / <strong>admin123</strong></span>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">User</span>
-                </div>
-              </div>
-            </div><form onSubmit={handleSubmit} className="space-y-6">
+          </CardHeader>          <CardContent><form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="username" className="text-gray-700 font-medium">Username</Label>                <Input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username (e.g., admin, demo, guest)"
+                  placeholder="Enter your username"
                   disabled={isLoading}
                   className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
                 />
@@ -136,7 +102,7 @@ const Login = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password (admin123 for test accounts)"
+                  placeholder="Enter your password"
                   disabled={isLoading}
                   className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
                 />
