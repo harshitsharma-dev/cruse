@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Users, ChevronDown, ChevronUp, X, BarChart3, Expand, Minimize2, Star } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Users, ChevronDown, ChevronUp, Download, Loader2, Settings, Expand, Minimize2, Check, X, BarChart3 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
-import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
+import { BasicFilterState, createIssuesApiData, debugFilters } from '../utils/filterUtils';
 
 const Personnel = () => {
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [personnelData, setPersonnelData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState<any>({
-    useAllDates: true // Default to "All Dates" mode
+  const [loading, setLoading] = useState(false);  const [filters, setFilters] = useState<BasicFilterState>({
+    fleets: [],
+    ships: [],
+    dateRange: { startDate: '', endDate: '' },
+    sailingNumbers: [],
+    useAllDates: false // Default to specific date range
   });
   const [expandedPersonnel, setExpandedPersonnel] = useState<Record<string, boolean>>({});
   const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({});
@@ -44,11 +50,8 @@ const Personnel = () => {
       setSelectedSheets(allSheets);
     }
   };
-
-  const handleFilterChange = (newFilters: any) => {
-    console.log('=== FILTER CHANGE IN PERSONNEL ===');
-    console.log('New filters received:', newFilters);
-    console.log('Previous filters:', filters);
+  const handleFilterChange = (newFilters: BasicFilterState) => {
+    debugFilters('FILTER CHANGE IN PERSONNEL', newFilters);
     setFilters(newFilters);
     console.log('Filters updated in Personnel component');
   };
@@ -99,9 +102,8 @@ const Personnel = () => {
           : [],
         sheets: selectedSheets.length > 0 
           ? selectedSheets 
-          : (sheetsData?.data && sheetsData.data.length > 0 ? sheetsData.data : []),
-        start_date: filters.useAllDates ? "-1" : filters.fromDate,
-        end_date: filters.useAllDates ? "-1" : filters.toDate,
+          : (sheetsData?.data && sheetsData.data.length > 0 ? sheetsData.data : []),        start_date: filters.useAllDates ? "-1" : filters.dateRange?.startDate || "",
+        end_date: filters.useAllDates ? "-1" : filters.dateRange?.endDate || "",
         fleets: filters.fleets || []
       };
 

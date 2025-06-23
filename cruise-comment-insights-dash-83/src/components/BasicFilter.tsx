@@ -11,6 +11,7 @@ import { CalendarIcon, Filter, RotateCcw, CheckCircle, ChevronDown, X, Check } f
 import { format, setMonth, setYear } from 'date-fns';
 import { useFilter } from '../contexts/FilterContext';
 import { cn } from '@/lib/utils';
+import { BasicFilterState } from '../utils/filterUtils';
 
 interface BasicFilterProps {
   onFilterChange?: (filters: any) => void;
@@ -48,12 +49,11 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
   };
 
   const safeAvailableFleets = Array.isArray(availableFleets) ? availableFleets : [];
-
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedSailingNumbers, setSelectedSailingNumbers] = useState<string[]>([]);
   const [filtersApplied, setFiltersApplied] = useState(false);
-  const [useAllDates, setUseAllDates] = useState(true); // Default to "All Dates"
+  const [useAllDates, setUseAllDates] = useState(false); // Default to specific date range
   const handleFleetChange = (fleetName: string, checked: boolean) => {
     const newFleets = checked 
       ? [...safeFilterState.fleets, fleetName]
@@ -85,46 +85,37 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
   };  const handleApplyFilters = () => {
     handleDateRangeApply();
     
-    // Prepare filter data based on backend expectations
-    let filterData;
-      if (useAllDates) {
-      // For "All Dates", send all available data
-      filterData = {
-        fleets: safeFilterState.fleets,
-        ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix
-        start_date: null,
-        end_date: null,
-        sailing_numbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
-          ? selectedSailingNumbers 
-          : [],
-        // Add camelCase versions for compatibility
-        useAllDates: true,
-        fromDate: null,
-        toDate: null,
-        sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
-          ? selectedSailingNumbers 
-          : []
-      };
-    } else {
-      // For specific date range
-      filterData = {
-        fleets: safeFilterState.fleets,
-        ships: safeFilterState.ships.map(ship => ship.split(':')[1]), // Remove the fleet prefix
-        start_date: startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate,
-        end_date: endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate,
-        sailing_numbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
-          ? selectedSailingNumbers 
-          : [],
-        // Add camelCase versions for compatibility
-        useAllDates: false,
-        fromDate: startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate,
-        toDate: endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate,
-        sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
-          ? selectedSailingNumbers 
-          : []
-      };
-    }
-    console.log('BasicFilter sending filter data:', filterData);
+    // Update the filter context state first
+    const contextUpdate = {
+      fleets: safeFilterState.fleets,
+      ships: safeFilterState.ships,
+      dateRange: {
+        startDate: useAllDates ? '' : (startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate),
+        endDate: useAllDates ? '' : (endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate)
+      },
+      sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
+        ? selectedSailingNumbers 
+        : [],
+      useAllDates: useAllDates
+    };
+    
+    setFilterState(contextUpdate);
+    
+    // Prepare standardized filter data for the callback
+    const filterData: BasicFilterState = {
+      fleets: safeFilterState.fleets,
+      ships: safeFilterState.ships,
+      dateRange: {
+        startDate: useAllDates ? '' : (startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate),
+        endDate: useAllDates ? '' : (endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate)
+      },
+      sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
+        ? selectedSailingNumbers 
+        : [],
+      useAllDates: useAllDates
+    };
+    
+    console.log('BasicFilter sending standardized filter data:', filterData);
     
     // Show applied feedback
     setFiltersApplied(true);
@@ -133,13 +124,19 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     // Call the parent component's filter change handler
     onFilterChange?.(filterData);
     onApplyFilters?.();
-  };const handleResetFilters = () => {
+  };  const handleResetFilters = () => {
     resetFilters();
-    setStartDate(undefined);
-    setEndDate(undefined);
+    
+    // Reset to default date range (last 30 days) instead of all dates
+    const defaultEndDate = new Date();
+    const defaultStartDate = new Date();
+    defaultStartDate.setDate(defaultEndDate.getDate() - 30);
+    
+    setStartDate(defaultStartDate);
+    setEndDate(defaultEndDate);
     setSelectedSailingNumbers([]);
     setFiltersApplied(false);
-    setUseAllDates(true); // Reset to "All Dates"
+    setUseAllDates(false); // Reset to specific date range, not "All Dates"
   };
   // Load sailing numbers when date range or ships change
   useEffect(() => {
@@ -170,6 +167,31 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     const timeoutId = setTimeout(loadSailingNumbersForFilter, 300);
     return () => clearTimeout(timeoutId);
   }, [startDate, endDate, useAllDates, JSON.stringify(safeFilterState.ships)]); // Use JSON.stringify to properly compare arrays
+  // Initialize component state from filter context (persist all filters across pages including sailing numbers)
+  useEffect(() => {
+    // Load persisted filters including sailing numbers
+    if (filterState.dateRange?.startDate) {
+      setStartDate(new Date(filterState.dateRange.startDate));
+    } else {
+      // Set default date range to last 30 days if no persisted date
+      const defaultEndDate = new Date();
+      const defaultStartDate = new Date();
+      defaultStartDate.setDate(defaultEndDate.getDate() - 30);
+      setStartDate(defaultStartDate);
+      setEndDate(defaultEndDate);
+    }
+    
+    if (filterState.dateRange?.endDate) {
+      setEndDate(new Date(filterState.dateRange.endDate));
+    }
+    
+    setUseAllDates(filterState.useAllDates ?? false);
+    
+    // Include sailing numbers in persistence now
+    if (filterState.sailingNumbers && filterState.sailingNumbers.length > 0) {
+      setSelectedSailingNumbers(filterState.sailingNumbers);
+    }
+  }, []); // Only run on mount
 
   if (isLoading) {
     return (

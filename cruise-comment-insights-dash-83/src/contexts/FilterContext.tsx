@@ -1,19 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiService } from '../services/api';
-
-interface FilterState {
-  fleets: string[];
-  ships: string[];
-  dateRange: {
-    startDate: string;
-    endDate: string;
-  };
-  sailingNumbers: string[];
-}
+import { BasicFilterState, getDefaultFilterState } from '../utils/filterUtils';
 
 interface FilterContextType {
-  filterState: FilterState;
-  setFilterState: (state: Partial<FilterState>) => void;
+  filterState: BasicFilterState;
+  setFilterState: (state: Partial<BasicFilterState>) => void;
   resetFilters: () => void;
   availableFleets: Array<{ fleet: string; ships: string[] }>;
   availableShips: string[];
@@ -33,18 +24,26 @@ export const useFilter = () => {
   return context;
 };
 
-const defaultFilterState: FilterState = {
-  fleets: [],
-  ships: [],
-  dateRange: {
-    startDate: '',
-    endDate: ''
-  },
-  sailingNumbers: []
-};
+const FILTER_STORAGE_KEY = 'cruise-analytics-filters';
 
 export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [filterState, setFilterStateInternal] = useState<FilterState>(defaultFilterState);
+  // Initialize state with persisted filters or defaults
+  const [filterState, setFilterStateInternal] = useState<BasicFilterState>(() => {
+    try {
+      const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure the parsed data has all required properties
+        return {
+          ...getDefaultFilterState(),
+          ...parsed
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to load saved filters:', error);
+    }
+    return getDefaultFilterState();
+  });
   const [availableFleets, setAvailableFleets] = useState<Array<{ fleet: string; ships: string[] }>>([]);
   const [availableSailingNumbers, setAvailableSailingNumbers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,14 +77,28 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     loadFleetData();
-  }, []);
-
-  const setFilterState = (newState: Partial<FilterState>) => {
-    setFilterStateInternal(prev => ({ ...prev, ...newState }));
+  }, []);  const setFilterState = (newState: Partial<BasicFilterState>) => {
+    const updatedState = { ...filterState, ...newState };
+    setFilterStateInternal(updatedState);
+    
+    // Persist to localStorage
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(updatedState));
+    } catch (error) {
+      console.warn('Failed to save filters to localStorage:', error);
+    }
   };
 
   const resetFilters = () => {
-    setFilterStateInternal(defaultFilterState);
+    const defaultState = getDefaultFilterState();
+    setFilterStateInternal(defaultState);
+    
+    // Clear from localStorage
+    try {
+      localStorage.removeItem(FILTER_STORAGE_KEY);
+    } catch (error) {
+      console.warn('Failed to clear filters from localStorage:', error);
+    }
   };
   const availableShips = React.useMemo(() => {
     if (!availableFleets || availableFleets.length === 0) {

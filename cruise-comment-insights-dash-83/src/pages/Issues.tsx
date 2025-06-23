@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { AlertTriangle, ChevronDown, ChevronUp, X, BarChart3, Expand, Minimize2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { AlertTriangle, ChevronDown, ChevronUp, Download, Loader2, Settings, Expand, Minimize2, Check, X, BarChart3 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
-import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
+import { BasicFilterState, createIssuesApiData, debugFilters } from '../utils/filterUtils';
 
 const Issues = () => {
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [issuesData, setIssuesData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState<any>({
-    useAllDates: true // Default to "All Dates" mode
+  const [loading, setLoading] = useState(false);  const [filters, setFilters] = useState<BasicFilterState>({
+    fleets: [],
+    ships: [],
+    dateRange: { startDate: '', endDate: '' },
+    sailingNumbers: [],
+    useAllDates: false // Default to specific date range
   });
   const [expandedIssues, setExpandedIssues] = useState<Record<string, boolean>>({});
   const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({});
@@ -42,10 +48,8 @@ const Issues = () => {
     } else {
       setSelectedSheets(allSheets);
     }
-  };  const handleFilterChange = (newFilters: any) => {
-    console.log('=== FILTER CHANGE IN ISSUES ===');
-    console.log('New filters received:', newFilters);
-    console.log('Previous filters:', filters);
+  };  const handleFilterChange = (newFilters: BasicFilterState) => {
+    debugFilters('FILTER CHANGE IN ISSUES', newFilters);
     setFilters(newFilters);
     console.log('Filters updated in Issues component');
   };
@@ -75,43 +79,16 @@ const Issues = () => {
 
   const collapseAllIssues = () => {
     setExpandedIssues({});
-  };
-  const fetchIssues = async () => {    console.log('=== ISSUES FETCH DEBUG START ===');
-    console.log('Current filters object:', filters);
+  };  const fetchIssues = async () => {
+    debugFilters('ISSUES FETCH DEBUG START', filters);
     console.log('Selected sheets:', selectedSheets);
     console.log('Sheets data:', sheetsData?.data);
-    console.log('Available sheets from API:', sheetsData);
     
     setLoading(true);
-    try {      // Payload for the current backend /sailing/getIssuesList endpoint
-      const requestData = {
-        // Include all filter data for the backend to process
-        ships: filters.ships && filters.ships.length > 0 
-          ? filters.ships.map((ship: string) => ship.split(':')[1] || ship) // Remove fleet prefix
-          : [],
-        sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 
-          ? filters.sailingNumbers 
-          : [],
-        sheets: selectedSheets.length > 0 
-          ? selectedSheets 
-          : (sheetsData?.data && sheetsData.data.length > 0 ? sheetsData.data : []),
-        // Use start_date, end_date with "-1" for all dates instead of use_all_dates
-        start_date: filters.useAllDates ? "-1" : filters.fromDate,
-        end_date: filters.useAllDates ? "-1" : filters.toDate,
-        fleets: filters.fleets || []
-      };      console.log('=== ISSUES PAYLOAD DEBUG ===');
-      console.log('Raw filters.ships:', filters.ships);
-      console.log('Processed ships:', requestData.ships);
-      console.log('Raw filters.sailingNumbers:', filters.sailingNumbers);
-      console.log('Processed sailing_numbers:', requestData.sailing_numbers);
-      console.log('Selected sheets:', selectedSheets);
-      console.log('Processed sheets:', requestData.sheets);
-      console.log('Date filters - useAllDates:', filters.useAllDates);
-      console.log('Date filters - start_date:', requestData.start_date);
-      console.log('Date filters - end_date:', requestData.end_date);
-      console.log('Final issues payload:', requestData);
-      console.log('=== END PAYLOAD DEBUG ===');
+    try {
+      const requestData = createIssuesApiData(filters, selectedSheets.length > 0 ? selectedSheets : (sheetsData?.data || []));
       
+      debugFilters('ISSUES PAYLOAD DEBUG', requestData);
       console.log('Sending issues request to /sailing/getIssuesList...');
       const response = await apiService.getIssuesSummary(requestData);      console.log('Issues response received:', response);
       console.log('Issues response status:', response.status);
@@ -385,7 +362,7 @@ const Issues = () => {
                             <p className="text-blue-600 mt-1">
                               {filters?.useAllDates 
                                 ? 'All Dates' 
-                                : `${filters?.fromDate || 'N/A'} to ${filters?.toDate || 'N/A'}`
+                                : `${filters?.dateRange?.startDate || 'N/A'} to ${filters?.dateRange?.endDate || 'N/A'}`
                               }
                             </p>
                           </div>

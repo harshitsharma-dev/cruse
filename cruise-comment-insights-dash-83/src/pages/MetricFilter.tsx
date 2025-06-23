@@ -2,26 +2,26 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Filter, Loader2, Download } from 'lucide-react';
-import BasicFilter from '@/components/BasicFilter';
-import { FormattedText } from '@/components/FormattedText';
+import { Badge } from '@/components/ui/badge';
+import { Download, Loader2, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '@/services/api';
+import BasicFilter from '../components/BasicFilter';
+import { FormattedText } from '../components/FormattedText';
+import { BasicFilterState, createMetricRatingApiData, debugFilters } from '../utils/filterUtils';
 
-const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric
-  const [ratingRange, setRatingRange] = useState<number[]>([6, 10]);
+const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric  const [ratingRange, setRatingRange] = useState<number[]>([6, 10]);
   const [results, setResults] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);const [filters, setFilters] = useState<any>({
-    fromDate: '',
-    toDate: '',
+  const [isLoading, setIsLoading] = useState(false);
+  const [filters, setFilters] = useState<BasicFilterState>({
     fleets: [],
     ships: [],
-    useAllDates: true // Default to "All Dates" mode
+    dateRange: { startDate: '', endDate: '' },
+    sailingNumbers: [],
+    useAllDates: false // Default to specific date range
   });
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
@@ -29,9 +29,8 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
   const { data: metricsData, isLoading: metricsLoading, error: metricsError } = useQuery({
     queryKey: ['metrics'],
     queryFn: () => apiService.getMetrics(),
-  });
-  const handleFilterChange = (filterData: any) => {
-    console.log('Filter data received:', filterData);
+  });  const handleFilterChange = (filterData: BasicFilterState) => {
+    debugFilters('Filter data received in MetricFilter', filterData);
     setFilters(filterData);
   };
 
@@ -45,28 +44,20 @@ const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useSta
       }
       return newSet;
     });
-  };
-  const handleSearch = async () => {
+  };  const handleSearch = async () => {
     if (!selectedMetric) {
       alert('Please select a metric');
       return;
-    }    setIsLoading(true);
-    try {      const searchData = {
-        filter_by: (filters.useAllDates && filters.sailingNumbers && filters.sailingNumbers.length > 0) ? 'sailing' : 'date',
-        filters: {
-          // Include dates if not using "All Dates" mode OR if using All Dates but no sailing numbers are selected
-          ...((filters.useAllDates && filters.sailingNumbers && filters.sailingNumbers.length > 0) ? {} : {
-            fromDate: filters.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            toDate: filters.toDate || new Date().toISOString().split('T')[0],
-          }),
-          fleets: filters.fleets && filters.fleets.length > 0 ? filters.fleets : undefined,
-          ships: filters.ships && filters.ships.length > 0 ? filters.ships : undefined,
-          sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 ? filters.sailingNumbers : undefined
-        },
-        metric: selectedMetric, // Changed back to single metric
+    }
+
+    setIsLoading(true);
+    try {
+      const searchData = createMetricRatingApiData(filters, selectedMetric, {
         filterBelow: ratingRange[1], // Use upper bound of rating range as filter
         compareToAverage: true
-      };console.log('Sending metric filter request:', searchData);
+      });
+
+      debugFilters('Sending metric filter request', searchData);
       const response = await apiService.getMetricRating(searchData);
       console.log('Metric filter response:', response);
       

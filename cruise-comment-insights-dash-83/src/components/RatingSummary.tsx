@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Download, BarChart3, Loader2, Table, ChartBar } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart3, TrendingUp, Download, Loader2, Table, ChartBar } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { apiService } from '../services/api';
 import BasicFilter from './BasicFilter';
-import { useQuery } from '@tanstack/react-query';
+import { BasicFilterState, createRatingSummaryApiData, debugFilters } from '../utils/filterUtils';
 
 const RatingSummary = () => {
   const [ratingsData, setRatingsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState<any>({});
+  const [filters, setFilters] = useState<BasicFilterState>({
+    fleets: [],
+    ships: [],
+    dateRange: { startDate: '', endDate: '' },
+    sailingNumbers: [],
+    useAllDates: true
+  });
   const [activeGroup, setActiveGroup] = useState('overall');
   const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
   // Fetch metrics from backend
@@ -165,19 +172,20 @@ const RatingSummary = () => {
     console.log('Data sorted. Final order:', sortedData.map(d => d['Sailing Number']));
     return sortedData;
   };
-
-  const handleFilterChange = async (newFilters: any) => {
-    console.log('RatingSummary handleFilterChange called with:', newFilters);
+  const handleFilterChange = async (newFilters: BasicFilterState) => {
+    debugFilters('RatingSummary handleFilterChange called', newFilters);
     setFilters(newFilters);
     setLoading(true);
-      try {
-      // Use the exact payload format that BasicFilter sends, which matches backend expectations
-      const requestPayload = newFilters;
+    
+    try {
+      const requestPayload = createRatingSummaryApiData(newFilters);
       
-      console.log('RatingSummary: Sending request with payload:', requestPayload);        const response = await apiService.getRatingSummary(requestPayload);
+      debugFilters('RatingSummary: Sending request with payload', requestPayload);
+      const response = await apiService.getRatingSummary(requestPayload);
       console.log('Rating summary response:', response);
       console.log('Response data type:', typeof response.data);
-        // Handle different response formats
+      
+      // Handle different response formats
       let responseData;
       if (response?.data) {
         responseData = response.data;
