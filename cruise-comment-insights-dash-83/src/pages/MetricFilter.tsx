@@ -275,44 +275,32 @@ const MetricFilter = () => {
                       <div>
                         <div className="text-sm font-medium text-gray-500">Filtered Count</div>
                         <Badge variant="outline">{result.filteredCount || 0}</Badge>
-                      </div>
-                    </div>
+                      </div>                    </div>
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleRowExpansion(index)}
-                      className="ml-4"
-                    >
-                      {expandedRows.has(index) ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Reviews Section - Always Visible */}
+                  </div>{/* Reviews Section - Always Visible */}
                   {result.filteredReviews && result.filteredReviews.length > 0 && (
                     <div className="mb-4">
-                      <div className="text-sm font-medium text-gray-500 mb-2">Reviews ({result.filteredReviews.length}):</div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                        📋 Guest Reviews ({result.filteredReviews.length})
+                        <Badge variant="outline" className="ml-2 text-xs">Always Visible</Badge>
+                      </h4>
                       <div className="space-y-2">
                         {result.filteredReviews.slice(0, 3).map((review: string, reviewIndex: number) => (
-                          <div key={reviewIndex} className="text-sm text-gray-700 bg-blue-50 p-3 rounded border-l-4 border-blue-400">
+                          <div key={reviewIndex} className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
                             <FormattedText 
                               text={review} 
                               className="text-gray-700"
                             />
                             {result.filteredMetric && result.filteredMetric[reviewIndex] && (
                               <Badge className={`mt-2 ${getRatingColor(result.filteredMetric[reviewIndex])}`} variant="secondary">
-                                {result.filteredMetric[reviewIndex].toFixed(1)}
+                                Rating: {result.filteredMetric[reviewIndex].toFixed(1)}
                               </Badge>
                             )}
                           </div>
                         ))}
                         {result.filteredReviews.length > 3 && (
-                          <div className="text-sm text-gray-500 italic">
-                            ... and {result.filteredReviews.length - 3} more reviews (expand to see all)
+                          <div className="text-sm text-blue-600 italic bg-blue-100 p-2 rounded">
+                            💡 {result.filteredReviews.length - 3} more reviews available - click expand below to see detailed comments
                           </div>
                         )}
                       </div>
@@ -321,26 +309,51 @@ const MetricFilter = () => {
                   
                   {/* Collapsible Comments Section */}
                   <Collapsible open={expandedRows.has(index)}>
-                    <CollapsibleContent>                      <div className="border-t pt-4 mt-4">
-                        <div className="text-sm font-medium text-gray-500 mb-3">Detailed Comments ({result.filteredComments?.length || 0}):</div>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between mb-4"
+                        onClick={() => toggleRowExpansion(index)}
+                      >
+                        <span className="flex items-center">
+                          💬 Detailed Comments ({result.filteredComments?.length || 0})
+                        </span>
+                        {expandedRows.has(index) ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="border-t pt-4 mt-2">
+                        <div className="text-sm font-medium text-gray-600 mb-3 flex items-center">
+                          <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium mr-2">EXPANDED VIEW</span>
+                          All Detailed Comments & Feedback
+                        </div>
                         {result.filteredComments && result.filteredComments.length > 0 ? (
-                          <div className="space-y-3 max-h-64 overflow-y-auto apollo-scrollbar">
+                          <div className="space-y-3 max-h-96 overflow-y-auto apollo-scrollbar bg-gray-50 p-4 rounded-lg">
                             {result.filteredComments.map((comment: string, commentIndex: number) => (
-                              <div key={commentIndex} className="text-sm text-gray-700 bg-gray-50 p-3 rounded border-l-4 border-gray-300">
+                              <div key={commentIndex} className="text-sm text-gray-700 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                                <div className="flex justify-between items-start mb-2">
+                                  <span className="text-xs text-gray-500 font-medium">Comment #{commentIndex + 1}</span>
+                                  {result.filteredMetric && result.filteredMetric[commentIndex] && (
+                                    <Badge className={`${getRatingColor(result.filteredMetric[commentIndex])}`} variant="secondary">
+                                      {result.filteredMetric[commentIndex].toFixed(1)}
+                                    </Badge>
+                                  )}
+                                </div>
                                 <FormattedText 
                                   text={comment} 
-                                  className="text-gray-700"
+                                  className="text-gray-700 leading-relaxed"
                                 />
-                                {result.filteredMetric && result.filteredMetric[commentIndex] && (
-                                  <Badge className={`mt-2 ${getRatingColor(result.filteredMetric[commentIndex])}`} variant="secondary">
-                                    {result.filteredMetric[commentIndex].toFixed(1)}
-                                  </Badge>
-                                )}
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-gray-500 italic">No detailed comments available</p>
+                          <div className="text-center py-8 bg-gray-50 rounded-lg">
+                            <p className="text-gray-500 italic">📝 No detailed comments available for this sailing</p>
+                          </div>
                         )}
                       </div>
                     </CollapsibleContent>
