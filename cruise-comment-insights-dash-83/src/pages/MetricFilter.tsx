@@ -13,7 +13,7 @@ import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
 import { SortControls } from '../components/SortControls';
 import { BasicFilterState, createMetricRatingApiData, debugFilters } from '../utils/filterUtils';
-import { sortData, toggleSort, SortConfig, METRIC_SORT_OPTIONS } from '../utils/sortingUtils';
+import { sortData, toggleSort, SortConfig, METRIC_SAILING_SORT_OPTIONS, METRIC_COMMENT_SORT_OPTIONS } from '../utils/sortingUtils';
 
 const MetricFilter = () => {
   const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric
@@ -27,7 +27,8 @@ const MetricFilter = () => {
     sailingNumbers: [],
     useAllDates: false // Default to specific date range
   });  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());  // Changed to string for comment IDs
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [sailingSortConfig, setSailingSortConfig] = useState<SortConfig | null>(null);
+  const [commentSortConfig, setCommentSortConfig] = useState<SortConfig | null>(null);
   const [viewMode, setViewMode] = useState<'summary' | 'reviews'>('summary'); // Add view switching
 
   // Fetch available metrics from API
@@ -252,18 +253,23 @@ const MetricFilter = () => {
                 </Button>
               </div>
             </CardContent>
-          </Card>
-
-          {/* Summary/Averages Table */}
+          </Card>          {/* Summary/Averages Table */}
           {viewMode === 'summary' && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                📊 Summary Statistics ({results.length} sailings)
-                <Badge variant="secondary" className="text-sm px-3 py-1">
-                  Average Data
-                </Badge>
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center">
+                  📊 Summary Statistics ({results.length} sailings)
+                  <Badge variant="secondary" className="text-sm px-3 py-1 ml-2">
+                    Average Data
+                  </Badge>
+                </CardTitle>
+                <SortControls 
+                  sortOptions={METRIC_SAILING_SORT_OPTIONS}
+                  currentSort={sailingSortConfig}
+                  onSortChange={(field) => setSailingSortConfig(toggleSort(sailingSortConfig, field))}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -279,7 +285,7 @@ const MetricFilter = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {results.map((result, index) => (
+                    {sortData(results, sailingSortConfig, 'metrics').map((result, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="border border-gray-200 px-4 py-3 font-medium">{result.ship || 'N/A'}</td>
                         <td className="border border-gray-200 px-4 py-3">{result.sailingNumber || 'N/A'}</td>
@@ -307,9 +313,7 @@ const MetricFilter = () => {
                 </table>
               </div>            </CardContent>
           </Card>
-          )}
-
-          {/* Individual Guest Reviews */}
+          )}          {/* Individual Guest Reviews */}
           {viewMode === 'reviews' && (
           <Card>
             <CardHeader>
@@ -320,16 +324,31 @@ const MetricFilter = () => {
                     {results.reduce((total, result) => total + (result.filteredCount || 0), 0)} total comments
                   </Badge>
                 </CardTitle>
-                <SortControls 
-                  sortOptions={METRIC_SORT_OPTIONS}
-                  currentSort={sortConfig}
-                  onSortChange={(field) => setSortConfig(toggleSort(sortConfig, field))}
-                />
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Sort Sailings:</span>
+                    <SortControls 
+                      sortOptions={METRIC_SAILING_SORT_OPTIONS}
+                      currentSort={sailingSortConfig}
+                      onSortChange={(field) => setSailingSortConfig(toggleSort(sailingSortConfig, field))}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Sort Comments:</span>
+                    <SortControls 
+                      sortOptions={METRIC_COMMENT_SORT_OPTIONS}
+                      currentSort={commentSortConfig}
+                      onSortChange={(field) => setCommentSortConfig(toggleSort(commentSortConfig, field))}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {sortData(results, sortConfig, 'metrics').map((result, sailingIndex) => (
+                {sortData(results, sailingSortConfig, 'metrics').map((result, sailingIndex) => (
                   <div key={sailingIndex} className="border rounded-lg p-6 bg-white">
                     {/* Sailing Header */}
                     <div className="mb-4 pb-4 border-b border-gray-200">
@@ -358,21 +377,42 @@ const MetricFilter = () => {
                             originalIndex
                           }));
                           
-                          // Sort comments by rating (highest first) if rating sort is active
-                          const sortedComments = sortConfig?.key === 'rating' 
+                          // Sort comments based on commentSortConfig
+                          const sortedComments = commentSortConfig 
                             ? commentData.sort((a, b) => {
-                                const result = b.rating - a.rating; // Higher ratings first
-                                return sortConfig.direction === 'asc' ? -result : result;
+                                let aValue, bValue;
+                                
+                                if (commentSortConfig.key === 'rating') {
+                                  aValue = a.rating;
+                                  bValue = b.rating;
+                                } else if (commentSortConfig.key === 'review') {
+                                  aValue = a.review.toLowerCase();
+                                  bValue = b.review.toLowerCase();
+                                } else {
+                                  return 0;
+                                }
+                                
+                                // Handle comparison
+                                let result = 0;
+                                if (typeof aValue === 'number' && typeof bValue === 'number') {
+                                  result = aValue - bValue;
+                                } else if (typeof aValue === 'string' && typeof bValue === 'string') {
+                                  result = aValue.localeCompare(bValue);
+                                }
+                                
+                                return commentSortConfig.direction === 'asc' ? result : -result;
                               })
                             : commentData;
                           
                           return sortedComments.map((commentData, displayIndex) => {
                             const commentId = `${sailingIndex}-${commentData.originalIndex}`;
-                            return (
-                              <Collapsible key={commentData.originalIndex}>
+                            return (                              <Collapsible key={commentData.originalIndex} open={expandedRows.has(commentId)}>
                                 <div className="border border-gray-200 rounded-lg">
                                   {/* Comment Header - Always Visible */}
-                                  <CollapsibleTrigger asChild>
+                                  <CollapsibleTrigger 
+                                    onClick={() => toggleRowExpansion(commentId)}
+                                    asChild
+                                  >
                                     <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
                                       <div className="flex justify-between items-center">
                                         <div className="flex items-center space-x-3">
