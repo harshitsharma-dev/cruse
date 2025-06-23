@@ -22,15 +22,17 @@ export const SortControls: React.FC<SortControlsProps> = ({
   onSortChange,
   className = ''
 }) => {
+  const isCompact = className.includes('text-xs');
+  
   return (
-    <div className={`flex items-center gap-4 ${className}`}>
-      <span className="text-sm font-medium text-gray-700">Sort by:</span>
+    <div className={`flex items-center gap-2 ${className}`}>
+      {!isCompact && <span className="text-sm font-medium text-gray-700">Sort by:</span>}
       <Select
         value={currentSort?.key || ''}
         onValueChange={onSortChange}
       >
-        <SelectTrigger className="w-48">
-          <SelectValue placeholder="Select sort option" />
+        <SelectTrigger className={isCompact ? "w-32 h-8 text-xs" : "w-48"}>
+          <SelectValue placeholder={isCompact ? "Sort..." : "Select sort option"} />
         </SelectTrigger>
         <SelectContent>
           {sortOptions.map((option) => (
@@ -47,22 +49,25 @@ export const SortControls: React.FC<SortControlsProps> = ({
               </div>
             </SelectItem>
           ))}
-        </SelectContent>
-      </Select>
+        </SelectContent>      </Select>
       
       {currentSort && (
         <Button
           variant="outline"
-          size="sm"
+          size={isCompact ? "sm" : "sm"}
           onClick={() => onSortChange(currentSort.key)}
-          className="flex items-center gap-1"
+          className={`flex items-center gap-1 ${isCompact ? 'h-8 px-2 text-xs' : ''}`}
         >
           {currentSort.direction === 'asc' ? (
             <ChevronUp className="h-3 w-3" />
           ) : (
             <ChevronDown className="h-3 w-3" />
           )}
-          {currentSort.direction === 'asc' ? 'Ascending' : 'Descending'}
+          {isCompact ? (
+            currentSort.direction === 'asc' ? 'Asc' : 'Desc'
+          ) : (
+            currentSort.direction === 'asc' ? 'Ascending' : 'Descending'
+          )}
         </Button>
       )}
     </div>
