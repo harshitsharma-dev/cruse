@@ -21,12 +21,14 @@ const RatingSummary = () => {
     useAllDates: true
   });
   const [activeGroup, setActiveGroup] = useState('overall');
-  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
-  // Fetch metrics from backend
+  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');  // Fetch metrics from backend
   const { data: metricsData } = useQuery({
     queryKey: ['metrics'],
     queryFn: () => apiService.getMetrics(),
-  });  // Load default data on component mount  useEffect(() => {
+  });
+
+  // Load default data on component mount
+  useEffect(() => {
     const loadDefaultData = async () => {
       try {
         setLoading(true);
