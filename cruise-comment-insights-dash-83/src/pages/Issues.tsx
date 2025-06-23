@@ -13,7 +13,9 @@ import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
+import { SortControls } from '../components/SortControls';
 import { BasicFilterState, createIssuesApiData, debugFilters } from '../utils/filterUtils';
+import { sortData, toggleSort, SortConfig, ISSUES_SORT_OPTIONS } from '../utils/sortingUtils';
 
 const Issues = () => {
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
@@ -24,9 +26,9 @@ const Issues = () => {
     dateRange: { startDate: '', endDate: '' },
     sailingNumbers: [],
     useAllDates: false // Default to specific date range
-  });
-  const [expandedIssues, setExpandedIssues] = useState<Record<string, boolean>>({});
+  });  const [expandedIssues, setExpandedIssues] = useState<Record<string, boolean>>({});
   const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({});
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   // Fetch available sheets from API
   const { data: sheetsData, isLoading: sheetsLoading, error: sheetsError } = useQuery({
@@ -394,12 +396,15 @@ const Issues = () => {
                 </div>
               </CardTitle>
             </CardHeader>            <CardContent>
-              <div className="space-y-4">
-                {/* All Issues List - if available */}
+              <div className="space-y-4">                {/* All Issues List - if available */}
                 {issuesData.all_issues && Array.isArray(issuesData.all_issues) && issuesData.all_issues.length > 0 && (                  <div className="mt-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-semibold text-lg text-gray-900">Detailed Issue Reports</h4>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">                        <SortControls 
+                          sortOptions={ISSUES_SORT_OPTIONS}
+                          currentSort={sortConfig}
+                          onSortChange={(field) => setSortConfig(toggleSort(sortConfig, field))}
+                        />
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -424,10 +429,9 @@ const Issues = () => {
                           {issuesData.all_issues.length} Total Issues
                         </Badge>
                       </div>
-                    </div>
-                    
+                    </div>                    
                     <div className="space-y-6 pr-2">
-                      {issuesData.all_issues.map((issue: any, index: number) => (
+                      {sortData(issuesData.all_issues, sortConfig, 'issues').map((issue: any, index: number) => (
                         <div key={index} className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-200">
                           {/* Issue Header */}
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">

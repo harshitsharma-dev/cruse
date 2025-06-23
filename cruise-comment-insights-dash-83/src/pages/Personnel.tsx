@@ -13,7 +13,9 @@ import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
+import { SortControls } from '../components/SortControls';
 import { BasicFilterState, createIssuesApiData, debugFilters } from '../utils/filterUtils';
+import { sortData, toggleSort, SortConfig, PERSONNEL_SORT_OPTIONS } from '../utils/sortingUtils';
 
 const Personnel = () => {
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
@@ -27,6 +29,7 @@ const Personnel = () => {
   });
   const [expandedPersonnel, setExpandedPersonnel] = useState<Record<string, boolean>>({});
   const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({});
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   // Fetch available sheets from API
   const { data: sheetsData, isLoading: sheetsLoading, error: sheetsError } = useQuery({
@@ -450,11 +453,14 @@ const Personnel = () => {
 
             <CardContent>
               <div className="space-y-4">
-                {personnelData.all_personnel && Array.isArray(personnelData.all_personnel) && personnelData.all_personnel.length > 0 && (
-                  <div className="mt-6">
+                {personnelData.all_personnel && Array.isArray(personnelData.all_personnel) && personnelData.all_personnel.length > 0 && (                  <div className="mt-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-semibold text-lg text-gray-900">Detailed Personnel Reports</h4>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">                        <SortControls 
+                          sortOptions={PERSONNEL_SORT_OPTIONS}
+                          currentSort={sortConfig}
+                          onSortChange={(field) => setSortConfig(toggleSort(sortConfig, field))}
+                        />
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -479,10 +485,9 @@ const Personnel = () => {
                           {personnelData.all_personnel.length} Total Mentions
                         </Badge>
                       </div>
-                    </div>
-                    
+                    </div>                    
                     <div className="space-y-6 pr-2">
-                      {personnelData.all_personnel.map((personnel: any, index: number) => (
+                      {sortData(personnelData.all_personnel, sortConfig, 'personnel').map((personnel: any, index: number) => (
                         <div key={index} className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:border-green-200">
                           {/* Personnel Header */}
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">

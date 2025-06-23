@@ -15,18 +15,20 @@ import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
+import { SortControls } from '../components/SortControls';
 import { useQuery } from '@tanstack/react-query';
 import { BasicFilterState, createSearchApiData, debugFilters } from '../utils/filterUtils';
+import { sortData, toggleSort, SortConfig, SEARCH_SORT_OPTIONS } from '../utils/sortingUtils';
 
 const Search = () => {
   const [query, setQuery] = useState('');
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [selectedMealTimes, setSelectedMealTimes] = useState<string[]>([]);
   const [searchType, setSearchType] = useState('semantic');
-  const [cutOff, setCutOff] = useState([7]);
-  const [numResults, setNumResults] = useState(50);
+  const [cutOff, setCutOff] = useState([7]);  const [numResults, setNumResults] = useState(50);
   const [results, setResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);  const [filters, setFilters] = useState<BasicFilterState>({
+  const [loading, setLoading] = useState(false);
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);const [filters, setFilters] = useState<BasicFilterState>({
     fleets: [],
     ships: [],
     dateRange: { startDate: '', endDate: '' },
@@ -384,18 +386,25 @@ const Search = () => {
         </Card>
       </div>      {/* Results Section */}
       {results.length > 0 && (
-        <Card>
-          <CardHeader>
+        <Card>          <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Search Results ({results.length})</CardTitle>
-              <Button onClick={exportResults} variant="outline" size="sm" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export CSV
-              </Button>
+              <div className="flex items-center gap-4">
+                <SortControls
+                  sortOptions={SEARCH_SORT_OPTIONS}
+                  currentSort={sortConfig}
+                  onSortChange={(key) => setSortConfig(toggleSort(sortConfig, key))}
+                />
+                <Button onClick={exportResults} variant="outline" size="sm" className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </Button>
+              </div>
             </div>
           </CardHeader>
-          <CardContent><div className="space-y-4">
-              {results.map((result, index) => {
+          <CardContent>
+            <div className="space-y-4">
+              {sortData(results, sortConfig).map((result, index) => {
                 console.log('Rendering search result:', result);
                 
                 // Extract show/activity name dynamically (field that's not a standard field)

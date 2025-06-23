@@ -223,11 +223,116 @@ def load_auth_data():
 SAILING_DATA, SAILING_REASON = load_sailing_data_rate_reason()
 # print(SAILING_DATA)
 # print(SAILING_REASON)
+print(f"Available sailing data keys: {list(SAILING_DATA.keys()) if SAILING_DATA else 'No data'}")
+print(f"Sample keys: {list(SAILING_DATA.keys())[:5] if SAILING_DATA else 'No data'}")
+
+# Create ship code mapping based on sailing number patterns
+SHIP_CODE_MAPPING = {
+    'MEX': 'explorer',  # Based on the sailing numbers we're seeing
+    'MD2': 'discovery 2',
+    'ME2': 'explorer 2', 
+    'MV': 'voyager',
+    'MD': 'discovery'
+}
+
+def extract_ship_from_sailing_number(sailing_number: str) -> str:
+    """Extract ship name from sailing number format like MEX-14-20March-CanarianFlavours"""
+    if '-' in sailing_number:
+        ship_code = sailing_number.split('-')[0]
+        return SHIP_CODE_MAPPING.get(ship_code, ship_code.lower())
+    # Handle MDY format
+    if sailing_number.upper().startswith('MDY'):
+        return 'discovery 2'  # MDY maps to discovery 2
+    return sailing_number.lower()
+
+def find_sailing_data_key(sailing_number: str) -> tuple:
+    """Find the correct key in SAILING_DATA for a given sailing number"""
+    sailing_lower = sailing_number.lower()
+    
+    print(f"Searching for sailing number: '{sailing_number}' (lowercase: '{sailing_lower}')")
+    
+    # Extract components from sailing number like MDY-12-19Jan
+    if '-' in sailing_number:
+        parts = sailing_number.split('-')
+        ship_code = parts[0].lower()  # mdy
+        
+        # Handle different formats
+        if len(parts) >= 3:
+            date_part1 = parts[1]  # 12
+            date_part2 = parts[2]  # 19Jan
+            
+            # Try to match with SAILING_DATA keys
+            for key in SAILING_DATA.keys():
+                print(f"Checking key: '{key}'")
+                
+                # Check if key contains the ship code and date parts
+                if ship_code in key:
+                    # For MDY-12-19Jan, look for patterns like mdy2-12-19jan_1
+                    key_lower = key.lower()
+                    
+                    # Extract date parts from the sailing number
+                    if date_part1 in key_lower and date_part2.lower() in key_lower:
+                        print(f"Found match: '{key}' for sailing '{sailing_number}'")
+                        
+                        # Extract ship name from key
+                        ship_part = key.rsplit('_', 1)[0]
+                        if '-' in ship_part:
+                            ship_name = ship_part.split('-')[0]
+                            ship_mapping = {
+                                'mdy2': 'discovery 2',
+                                'mdy': 'discovery 2',  # Handle both MDY and MDY2
+                                'mex': 'explorer',
+                                'me2': 'explorer 2',
+                                'mv': 'voyager',
+                                'md': 'discovery'
+                            }
+                            actual_ship = ship_mapping.get(ship_name, ship_name)
+                            return actual_ship, key
+    
+    # Fallback: try fuzzy matching
+    print(f"No exact match found, trying fuzzy matching...")
+    for key in SAILING_DATA.keys():
+        key_parts = key.lower().replace('_', '').replace('-', '')
+        sailing_parts = sailing_lower.replace('-', '').replace(' ', '')
+        
+        # Check if key contains significant parts of the sailing number
+        if len(sailing_parts) > 3:
+            if sailing_parts[:3] in key_parts:  # Check first 3 chars (ship code)
+                print(f"Fuzzy match found: '{key}' for sailing '{sailing_number}'")
+                ship_part = key.rsplit('_', 1)[0]
+                if '-' in ship_part:
+                    ship_name = ship_part.split('-')[0]
+                    ship_mapping = {
+                        'mdy2': 'discovery 2',
+                        'mdy': 'discovery 2',
+                        'mex': 'explorer',
+                        'me2': 'explorer 2',
+                        'mv': 'voyager',
+                        'md': 'discovery'
+                    }
+                    actual_ship = ship_mapping.get(ship_name, ship_name)
+                    return actual_ship, key
+    
+    print(f"No match found for sailing number: '{sailing_number}'")
+    return None, None
+
 def get_sailing_df(ship: str, sailing_number: str):
     """Helper to get DataFrame for specific sailing"""
     key = f"{ship}_{sailing_number}"
     key = key.lower()
+    print(f"Looking for key: '{key}' in SAILING_DATA")
+    result = SAILING_DATA.get(key)
+    if result is None:
+        print(f"Key '{key}' not found. Available keys matching pattern: {[k for k in SAILING_DATA.keys() if sailing_number.lower() in k.lower()]}")
+    return result
+
+def get_sailing_df_by_key(key: str):
+    """Helper to get DataFrame for specific sailing by exact key"""
     return SAILING_DATA.get(key)
+
+def get_sailing_df_reason_by_key(key: str):
+    """Helper to get reason DataFrame for specific sailing by exact key"""
+    return SAILING_REASON.get(key)
 
 def get_sailing_df_reason(ship: str, sailing_number: str):
     """Helper to get DataFrame for specific sailing"""
@@ -582,19 +687,28 @@ def is_empty_or_nan(value):
 def get_metric_comparison():
     """Enhanced endpoint with metric value filtering"""
     data = request.get_json()
-#     print("data",data)
+    print("data", data)
     
     # Validate input
-    if not data or "filter_by" not in data or "metric" not in data:
+    if not data or "metric" not in data:
         return jsonify({"error": "Missing required parameters"}), 400
     
     metric = data["metric"]
-    # sailings = data["sailings"]
     filter_below = data.get("filterBelow")
     compare_avg = data.get("compareToAverage", False)
-    filter_by = data.get("filter_by", "sailing")
-    print(metric)
-#     metric = "F&B Quality"
+    
+    # Modern filter handling - same pattern as getRatingSmry
+    ships = data.get("ships", [])
+    start_date = data.get("start_date")
+    end_date = data.get("end_date")
+    sailing_number_filter = data.get("sailing_numbers", [])
+    
+    if start_date == "-1":
+        start_date = None
+    if end_date == "-1":
+        end_date = None
+    
+    print(f"Filter parameters: ships={ships}, start_date={start_date}, end_date={end_date}, sailing_numbers={sailing_number_filter}")
 
     # Validate metric (excluding 'Review')
     if metric not in METRIC_ATTRIBUTES:
@@ -603,33 +717,44 @@ def get_metric_comparison():
             "valid_metrics": METRIC_ATTRIBUTES
         }), 400
     
-    working_data = filter_sailings(data)
-    if working_data == -1:
-        return jsonify({"error": "Sailings must be provided when filtering by sailing"}), 400
-    if working_data == -2:
-        return jsonify({"error": "Both fromDate and toDate must be provided when filtering by date"}), 400
-    if working_data == -3:
-        return jsonify({"error": "Filters must be provided when filtering by date"}), 400
-    if working_data == -4:
-        return jsonify({"error": "Invalid filterBy value. Must be 'sailing' or 'date'"}), 400
+    # Get sailing list using modern approach
+    if sailing_number_filter == [] or not sailing_number_filter:
+        sailing_list = SQLOP.fetch_sailings(ships, start_date, end_date)
+    else:
+        sailing_list = sailing_number_filter
+    
+    print(f"Retrieved sailing_list: {sailing_list}")
 
     # Prepare response
     results = []
     all_metric_values = []
 
-    for sailing in working_data:
-        print("get metric comparison",sailing)
-        ship = sailing["Ship Name"]
-        number = sailing["Sailing Number"]
-        df = get_sailing_df(ship, number)
-        df_reason = get_sailing_df_reason(ship, number)
-#         print("df_reason",df_reason)
+    for sailing_number in sailing_list:
+        print("Processing sailing number:", sailing_number)
+        
+        # Find the correct ship and key for this sailing number
+        ship_name, sailing_key = find_sailing_data_key(str(sailing_number))
+        
+        if not ship_name or not sailing_key:
+            print(f"No data found for sailing number: {sailing_number}")
+            results.append({
+                "ship": "Unknown",
+                "sailingNumber": str(sailing_number),
+                "error": "No data found for sailing number"
+            })
+            continue
+        
+        print(f"Found ship: '{ship_name}', key: '{sailing_key}' for sailing: '{sailing_number}'")
+        
+        # Get the actual data using the found key
+        df = get_sailing_df_by_key(sailing_key)
+        df_reason = get_sailing_df_reason_by_key(sailing_key)
         
         if df is None or metric not in df.columns:
             results.append({
-                "ship": ship,
-                "sailingNumber": number,
-                "error": "Data not found" if df is None else "Invalid metric"
+                "ship": ship_name,
+                "sailingNumber": str(sailing_number),
+                "error": "Data not found" if df is None else f"Metric '{metric}' not found in data"
             })
             continue
         
@@ -640,24 +765,23 @@ def get_metric_comparison():
         
         # Get filtered reviews if requested
         filtered_reviews = []
+        filtered_metric = []
         if filter_below is not None:
             mask = df[metric].astype(float) <= filter_below
             filtered_reviews = df_reason.loc[mask, metric].tolist()
-#             print(filtered_reviews)
             for i, rev in enumerate(filtered_reviews):
                 if is_empty_or_nan(rev):
                     filtered_reviews[i] = "Please refer to the comment"
-#             print(filtered_reviews)
-#             print(len(filtered_reviews))
             filtered_metric = df.loc[mask, metric].tolist()
         
         results.append({
-            "ship": ship,
-            "sailingNumber": number,
+            "ship": ship_name,
+            "sailingNumber": str(sailing_number),
             "metric": metric,
             "averageRating": round(avg_rating, 2),
             "ratingCount": len(metric_values),
             "filteredReviews": filtered_reviews,
+            "filteredComments": filtered_reviews,  # Same data as reviews for collapsible display
             "filteredMetric": filtered_metric,
             "filteredCount": len(filtered_reviews)
         })

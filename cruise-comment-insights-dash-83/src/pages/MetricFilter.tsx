@@ -11,7 +11,9 @@ import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
+import { SortControls } from '../components/SortControls';
 import { BasicFilterState, createMetricRatingApiData, debugFilters } from '../utils/filterUtils';
+import { sortData, toggleSort, SortConfig, METRIC_SORT_OPTIONS } from '../utils/sortingUtils';
 
 const MetricFilter = () => {
   const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric
@@ -26,6 +28,7 @@ const MetricFilter = () => {
     useAllDates: false // Default to specific date range
   });
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   // Fetch available metrics from API
   const { data: metricsData, isLoading: metricsLoading, error: metricsError } = useQuery({
@@ -63,33 +66,21 @@ const MetricFilter = () => {
       const response = await apiService.getMetricRating(searchData);
       console.log('Metric filter response:', response);
       
-      // Transform and sanitize the API response to match expected structure
-      const transformedResults: any[] = [];
-      
-      (response.results || []).forEach(result => {
-        // Skip results with errors or no data
-        if (result.error || result.filteredCount === 0 || !result.filteredReviews?.length) {
-          return;
-        }
-        
-        // Create entries for each filtered review
-        result.filteredReviews.forEach((comment: string, index: number) => {
-          const rating = result.filteredMetric?.[index];
-          if (rating !== undefined && rating >= ratingRange[0] && rating <= ratingRange[1]) {
-            transformedResults.push({
-              ship: result.ship,
-              sailingNumber: result.sailingNumber,
-              metric: result.metric,
-              averageRating: result.averageRating || 0,
-              rating: rating,
-              comment: comment,
-              comparisonToOverall: result.comparisonToOverall || 0,
-              ratingCount: result.ratingCount || 0,
-              filteredCount: result.filteredCount || 0
-            });
-          }
-        });
-      });
+      // Use the new backend structure with filteredReviews and filteredComments
+      const transformedResults = (response.results || [])
+        .filter(result => !result.error && result.filteredCount > 0)
+        .map(result => ({
+          ship: result.ship,
+          sailingNumber: result.sailingNumber,
+          metric: result.metric,
+          averageRating: result.averageRating || 0,
+          comparisonToOverall: result.comparisonToOverall || 0,
+          ratingCount: result.ratingCount || 0,
+          filteredCount: result.filteredCount || 0,
+          filteredReviews: result.filteredReviews || [],
+          filteredComments: result.filteredComments || [],
+          filteredMetric: result.filteredMetric || []
+        }));
       
       setResults(transformedResults);} catch (error) {
       console.error('Metric filter error:', error);
@@ -106,22 +97,21 @@ const MetricFilter = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-  const exportResults = () => {
+  };  const exportResults = () => {
     if (results.length === 0) {
       alert('No data to export');
       return;
     }
 
-    const headers = ['Ship', 'Sailing Number', 'Metric', 'Rating', 'Average Rating', 'Comparison to Overall', 'Comment'];
+    const headers = ['Ship', 'Sailing Number', 'Metric', 'Average Rating', 'Comparison to Overall', 'Filtered Count', 'Reviews'];
     const csvContent = results.map(row => [
       `"${row.ship || 'N/A'}"`,
       `"${row.sailingNumber || 'N/A'}"`,
       `"${row.metric || 'N/A'}"`,
-      `"${row.rating || 'N/A'}"`,
       `"${row.averageRating?.toFixed(2) || 'N/A'}"`,
       `"${row.comparisonToOverall?.toFixed(2) || 'N/A'}"`,
-      `"${(row.comment || 'N/A').replace(/"/g, '""')}"`
+      `"${row.filteredCount || 'N/A'}"`,
+      `"${(row.filteredReviews?.join('; ') || 'N/A').replace(/"/g, '""')}"`
     ].join(',')).join('\n');
     
     const blob = new Blob([`${headers.join(',')}\n${csvContent}`], { type: 'text/csv' });
@@ -242,40 +232,49 @@ const MetricFilter = () => {
             </div>
           </CardContent>
         </Card>
-      ) : results.length > 0 ? (
-        <Card>
+      ) : results.length > 0 ? (        <Card>
           <CardHeader>
-            <CardTitle>Filtered Results ({results.length} entries)</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Filtered Results ({results.length} entries)</CardTitle>              <SortControls 
+                sortOptions={METRIC_SORT_OPTIONS}
+                currentSort={sortConfig}
+                onSortChange={(field) => setSortConfig(toggleSort(sortConfig, field))}
+              />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">              {results.map((result, index) => (
-                <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+          <CardContent>            <div className="space-y-4">              {sortData(results, sortConfig, 'metrics').map((result, index) => (
+                <div key={index} className="border rounded-lg p-6 hover:bg-gray-50 transition-colors">
+                  {/* Sailing Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-1">
                       <div>
                         <div className="text-sm font-medium text-gray-500">Ship</div>
-                        <div className="text-sm">{result.ship || 'N/A'}</div>
+                        <div className="font-medium">{result.ship || 'N/A'}</div>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-500">Sailing Number</div>
-                        <div className="text-sm">{result.sailingNumber || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-500">Rating</div>
-                        <Badge className={getRatingColor(result.rating)} variant="secondary">
-                          {result.rating?.toFixed(1) || 'N/A'}
-                        </Badge>
+                        <div className="font-medium">{result.sailingNumber || 'N/A'}</div>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-500">Average Rating</div>
                         <div className="text-sm">
-                          {result.averageRating?.toFixed(2) || 'N/A'}
+                          <Badge className={getRatingColor(result.averageRating)} variant="secondary">
+                            {result.averageRating?.toFixed(2) || 'N/A'}
+                          </Badge>
                           {result.comparisonToOverall !== undefined && (
                             <span className={`ml-2 text-xs ${result.comparisonToOverall >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               ({result.comparisonToOverall > 0 ? '+' : ''}{result.comparisonToOverall.toFixed(2)})
                             </span>
                           )}
                         </div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Total Ratings</div>
+                        <div className="text-sm">{result.ratingCount || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Filtered Count</div>
+                        <Badge variant="outline">{result.filteredCount || 0}</Badge>
                       </div>
                     </div>
                     
@@ -292,20 +291,57 @@ const MetricFilter = () => {
                       )}
                     </Button>
                   </div>
-                  
-                  <Collapsible open={expandedRows.has(index)}>
-                    <CollapsibleContent>                      <div className="border-t pt-3 mt-3">
-                        <div className="text-sm font-medium text-gray-500 mb-2">Comment:</div>
-                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded max-h-32 overflow-y-auto apollo-scrollbar">
-                          {result.comment ? (
+
+                  {/* Reviews Section - Always Visible */}
+                  {result.filteredReviews && result.filteredReviews.length > 0 && (
+                    <div className="mb-4">
+                      <div className="text-sm font-medium text-gray-500 mb-2">Reviews ({result.filteredReviews.length}):</div>
+                      <div className="space-y-2">
+                        {result.filteredReviews.slice(0, 3).map((review: string, reviewIndex: number) => (
+                          <div key={reviewIndex} className="text-sm text-gray-700 bg-blue-50 p-3 rounded border-l-4 border-blue-400">
                             <FormattedText 
-                              text={result.comment} 
+                              text={review} 
                               className="text-gray-700"
                             />
-                          ) : (
-                            <p className="text-gray-500 italic">No comment available</p>
-                          )}
-                        </div>
+                            {result.filteredMetric && result.filteredMetric[reviewIndex] && (
+                              <Badge className={`mt-2 ${getRatingColor(result.filteredMetric[reviewIndex])}`} variant="secondary">
+                                {result.filteredMetric[reviewIndex].toFixed(1)}
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                        {result.filteredReviews.length > 3 && (
+                          <div className="text-sm text-gray-500 italic">
+                            ... and {result.filteredReviews.length - 3} more reviews (expand to see all)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Collapsible Comments Section */}
+                  <Collapsible open={expandedRows.has(index)}>
+                    <CollapsibleContent>                      <div className="border-t pt-4 mt-4">
+                        <div className="text-sm font-medium text-gray-500 mb-3">Detailed Comments ({result.filteredComments?.length || 0}):</div>
+                        {result.filteredComments && result.filteredComments.length > 0 ? (
+                          <div className="space-y-3 max-h-64 overflow-y-auto apollo-scrollbar">
+                            {result.filteredComments.map((comment: string, commentIndex: number) => (
+                              <div key={commentIndex} className="text-sm text-gray-700 bg-gray-50 p-3 rounded border-l-4 border-gray-300">
+                                <FormattedText 
+                                  text={comment} 
+                                  className="text-gray-700"
+                                />
+                                {result.filteredMetric && result.filteredMetric[commentIndex] && (
+                                  <Badge className={`mt-2 ${getRatingColor(result.filteredMetric[commentIndex])}`} variant="secondary">
+                                    {result.filteredMetric[commentIndex].toFixed(1)}
+                                  </Badge>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 italic">No detailed comments available</p>
+                        )}
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
