@@ -349,60 +349,82 @@ const MetricFilter = () => {
                     </div>                    {/* Individual Guest Comments */}
                     {result.filteredComments && result.filteredComments.length > 0 ? (
                       <div className="space-y-4">
-                        {result.filteredComments.map((comment: string, commentIndex: number) => {
-                          const commentId = `${sailingIndex}-${commentIndex}`;
-                          return (
-                            <Collapsible key={commentIndex}>
-                              <div className="border border-gray-200 rounded-lg">
-                                {/* Comment Header - Always Visible */}
-                                <CollapsibleTrigger asChild>
-                                  <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">                                    <div className="flex justify-between items-center">
-                                      <div className="flex items-center space-x-3">
-                                        <span className="text-sm font-medium text-gray-600">
-                                          {result.filteredReviews && result.filteredReviews[commentIndex] 
-                                            ? result.filteredReviews[commentIndex] 
-                                            : `Guest #${commentIndex + 1}`}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        <span className="text-xs text-gray-500">
-                                          {expandedRows.has(commentId) ? 'Collapse' : 'Expand'} Comment
-                                        </span>
-                                        {expandedRows.has(commentId) ? (
-                                          <ChevronUp className="h-4 w-4 text-gray-500" />
-                                        ) : (
-                                          <ChevronDown className="h-4 w-4 text-gray-500" />
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </CollapsibleTrigger>
-                                
-                                {/* Collapsible Comment Content */}
-                                <CollapsibleContent>
-                                  <div className="p-4 bg-white">
-                                    <div className="text-sm text-gray-700 leading-relaxed">
-                                      <FormattedText 
-                                        text={comment} 
-                                        className="text-gray-700"
-                                      />
-                                    </div>
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                      <div className="flex items-center justify-between text-xs text-gray-500">
-                                        <span>Guest feedback for {selectedMetric}</span>
-                                        {result.filteredMetric && result.filteredMetric[commentIndex] && (
-                                          <span>
-                                            Rated: {result.filteredMetric[commentIndex].toFixed(1)}/10
+                        {(() => {
+                          // Create sortable comment data with ratings and reviews
+                          const commentData = result.filteredComments.map((comment: string, originalIndex: number) => ({
+                            comment,
+                            rating: result.filteredMetric?.[originalIndex] || 0,
+                            review: result.filteredReviews?.[originalIndex] || `Guest #${originalIndex + 1}`,
+                            originalIndex
+                          }));
+                          
+                          // Sort comments by rating (highest first) if rating sort is active
+                          const sortedComments = sortConfig?.key === 'rating' 
+                            ? commentData.sort((a, b) => {
+                                const result = b.rating - a.rating; // Higher ratings first
+                                return sortConfig.direction === 'asc' ? -result : result;
+                              })
+                            : commentData;
+                          
+                          return sortedComments.map((commentData, displayIndex) => {
+                            const commentId = `${sailingIndex}-${commentData.originalIndex}`;
+                            return (
+                              <Collapsible key={commentData.originalIndex}>
+                                <div className="border border-gray-200 rounded-lg">
+                                  {/* Comment Header - Always Visible */}
+                                  <CollapsibleTrigger asChild>
+                                    <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                                      <div className="flex justify-between items-center">
+                                        <div className="flex items-center space-x-3">
+                                          <span className="text-sm font-medium text-gray-600">
+                                            {commentData.review}
                                           </span>
-                                        )}
+                                          {commentData.rating > 0 && (
+                                            <Badge className={getRatingColor(commentData.rating)} variant="secondary">
+                                              {commentData.rating.toFixed(1)}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-xs text-gray-500">
+                                            {expandedRows.has(commentId) ? 'Collapse' : 'Expand'} Comment
+                                          </span>
+                                          {expandedRows.has(commentId) ? (
+                                            <ChevronUp className="h-4 w-4 text-gray-500" />
+                                          ) : (
+                                            <ChevronDown className="h-4 w-4 text-gray-500" />
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </CollapsibleContent>
-                              </div>
-                            </Collapsible>
-                          );
-                        })}
+                                  </CollapsibleTrigger>
+                                  
+                                  {/* Collapsible Comment Content */}
+                                  <CollapsibleContent>
+                                    <div className="p-4 bg-white">
+                                      <div className="text-sm text-gray-700 leading-relaxed">
+                                        <FormattedText 
+                                          text={commentData.comment} 
+                                          className="text-gray-700"
+                                        />
+                                      </div>
+                                      <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <div className="flex items-center justify-between text-xs text-gray-500">
+                                          <span>Guest feedback for {selectedMetric}</span>
+                                          {commentData.rating > 0 && (
+                                            <span>
+                                              Rated: {commentData.rating.toFixed(1)}/10
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CollapsibleContent>
+                                </div>
+                              </Collapsible>
+                            );
+                          });
+                        })()}
                       </div>
                     ) : (
                       <div className="text-center py-8 bg-gray-50 rounded-lg">

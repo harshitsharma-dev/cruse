@@ -246,74 +246,134 @@ def extract_ship_from_sailing_number(sailing_number: str) -> str:
     return sailing_number.lower()
 
 def find_sailing_data_key(sailing_number: str) -> tuple:
-    """Find the correct key in SAILING_DATA for a given sailing number"""
+    """Find the correct key in SAILING_DATA for a given sailing number
+    
+    Frontend sends: MEX-11-17April-CanarianFlavours, MDY-12-19Jan, etc.
+    Backend has: mdy2-3-10march_1, mdy-12to19jan_1, etc.
+    """
     sailing_lower = sailing_number.lower()
     
     print(f"Searching for sailing number: '{sailing_number}' (lowercase: '{sailing_lower}')")
+    print(f"Available SAILING_DATA keys sample: {list(SAILING_DATA.keys())[:5] if SAILING_DATA else 'No data'}")
     
-    # Extract components from sailing number like MDY-12-19Jan
+    # Direct match first (unlikely but check anyway)
+    if sailing_lower in SAILING_DATA:
+        ship_name = extract_ship_from_sailing_number(sailing_number)
+        return ship_name, sailing_lower
+    
+    # Parse frontend format: MEX-11-17April-CanarianFlavours or MDY-12-19Jan
     if '-' in sailing_number:
         parts = sailing_number.split('-')
-        ship_code = parts[0].lower()  # mdy
-        
-        # Handle different formats
         if len(parts) >= 3:
-            date_part1 = parts[1]  # 12
-            date_part2 = parts[2]  # 19Jan
+            ship_code = parts[0].lower()  # mex, mdy, etc.
+            cruise_number = parts[1]      # 11, 12, etc.
+            date_part = parts[2]          # 17April, 19Jan, etc.
             
-            # Try to match with SAILING_DATA keys
-            for key in SAILING_DATA.keys():
-                print(f"Checking key: '{key}'")
+            # Extract day and month from date_part
+            import re
+            date_match = re.match(r'(\d+)([a-zA-Z]+)', date_part)
+            if date_match:
+                day_num = date_match.group(1)
+                month_name = date_match.group(2).lower()
+                month_abbrev = month_name[:3]  # First 3 chars
                 
-                # Check if key contains the ship code and date parts
-                if ship_code in key:
-                    # For MDY-12-19Jan, look for patterns like mdy2-12-19jan_1
+                print(f"Parsed frontend format: ship='{ship_code}', cruise='{cruise_number}', day='{day_num}', month='{month_abbrev}'")
+                
+                # Map frontend ship codes to backend ship codes
+                ship_code_mapping = {
+                    'mex': ['mdy2', 'mdy'],  # MEX maps to Discovery ships
+                    'mdy': ['mdy2', 'mdy'],  # MDY maps to Discovery ships  
+                    'md2': ['mdy2'],         # MD2 maps to Discovery 2
+                    'me2': ['mdy2', 'mdy'],  # ME2 maps to Discovery ships
+                    'mv': ['mdy2', 'mdy'],   # MV maps to Discovery ships
+                    'md': ['mdy2', 'mdy']    # MD maps to Discovery ships
+                }
+                
+                backend_ship_codes = ship_code_mapping.get(ship_code, [ship_code])
+                
+                # Try to find matching backend key
+                for key in SAILING_DATA.keys():
                     key_lower = key.lower()
                     
-                    # Extract date parts from the sailing number
-                    if date_part1 in key_lower and date_part2.lower() in key_lower:
-                        print(f"Found match: '{key}' for sailing '{sailing_number}'")
+                    # Check if any backend ship code matches
+                    key_matches_ship = any(backend_code in key_lower for backend_code in backend_ship_codes)
+                    
+                    if key_matches_ship:
+                        # Check for date patterns in the key
+                        # Backend formats: mdy2-3-10march_1, mdy-12to19jan_1
                         
-                        # Extract ship name from key
-                        ship_part = key.rsplit('_', 1)[0]
-                        if '-' in ship_part:
-                            ship_name = ship_part.split('-')[0]
-                            ship_mapping = {
-                                'mdy2': 'discovery 2',
-                                'mdy': 'discovery 2',  # Handle both MDY and MDY2
-                                'mex': 'explorer',
-                                'me2': 'explorer 2',
-                                'mv': 'voyager',
-                                'md': 'discovery'
-                            }
-                            actual_ship = ship_mapping.get(ship_name, ship_name)
-                            return actual_ship, key
+                        # Look for cruise number and month
+                        if cruise_number in key_lower and month_abbrev in key_lower:
+                            print(f"Found match: '{key}' for sailing '{sailing_number}' (matched cruise: {cruise_number}, month: {month_abbrev})")
+                            
+                            # Determine ship name based on backend key
+                            if 'mdy2' in key_lower:
+                                ship_name = 'discovery 2'
+                            elif 'mdy' in key_lower:
+                                ship_name = 'discovery'
+                            else:
+                                ship_name = 'discovery'  # Default fallback
+                                
+                            return ship_name, key
+                        
+                        # Alternative: look for day number in key
+                        elif day_num in key_lower and month_abbrev in key_lower:
+                            print(f"Found match: '{key}' for sailing '{sailing_number}' (matched day: {day_num}, month: {month_abbrev})")
+                            
+                            if 'mdy2' in key_lower:
+                                ship_name = 'discovery 2'
+                            elif 'mdy' in key_lower:
+                                ship_name = 'discovery'
+                            else:
+                                ship_name = 'discovery'
+                                
+                            return ship_name, key
     
-    # Fallback: try fuzzy matching
-    print(f"No exact match found, trying fuzzy matching...")
+    # Fallback: try partial matching with any numbers/letters
+    print(f"No direct match found, trying fallback matching...")
+    
+    # Extract all numbers and letters from the frontend sailing number
+    import re
+    frontend_numbers = re.findall(r'\d+', sailing_number)
+    frontend_letters = re.findall(r'[a-zA-Z]+', sailing_number.lower())
+    
+    best_match = None
+    best_score = 0
+    
     for key in SAILING_DATA.keys():
-        key_parts = key.lower().replace('_', '').replace('-', '')
-        sailing_parts = sailing_lower.replace('-', '').replace(' ', '')
+        key_lower = key.lower()
+        score = 0
         
-        # Check if key contains significant parts of the sailing number
-        if len(sailing_parts) > 3:
-            if sailing_parts[:3] in key_parts:  # Check first 3 chars (ship code)
-                print(f"Fuzzy match found: '{key}' for sailing '{sailing_number}'")
-                ship_part = key.rsplit('_', 1)[0]
-                if '-' in ship_part:
-                    ship_name = ship_part.split('-')[0]
-                    ship_mapping = {
-                        'mdy2': 'discovery 2',
-                        'mdy': 'discovery 2',
-                        'mex': 'explorer',
-                        'me2': 'explorer 2',
-                        'mv': 'voyager',
-                        'md': 'discovery'
-                    }
-                    actual_ship = ship_mapping.get(ship_name, ship_name)
-                    return actual_ship, key
+        # Count matching numbers
+        for num in frontend_numbers:
+            if num in key_lower:
+                score += 1
+        
+        # Count matching letter sequences
+        for letters in frontend_letters:
+            if len(letters) >= 3:  # Only consider meaningful letter sequences
+                if letters[:3] in key_lower:
+                    score += 2
+        
+        if score > best_score:
+            best_score = score
+            best_match = key
+    
+    if best_match and best_score >= 2:  # Require at least some confidence
+        print(f"Fallback match found: '{best_match}' for sailing '{sailing_number}' (score: {best_score})")
+        
+        if 'mdy2' in best_match.lower():
+            ship_name = 'discovery 2'
+        elif 'mdy' in best_match.lower():
+            ship_name = 'discovery'
+        else:
+            ship_name = 'discovery'
+            
+        return ship_name, best_match
     
     print(f"No match found for sailing number: '{sailing_number}'")
+    print(f"Tried to match against {len(SAILING_DATA)} available keys")
+    print(f"Available keys: {list(SAILING_DATA.keys())[:3]}...")
     return None, None
 
 def get_sailing_df(ship: str, sailing_number: str):
@@ -694,7 +754,8 @@ def get_metric_comparison():
         return jsonify({"error": "Missing required parameters"}), 400
     
     metric = data["metric"]
-    filter_below = data.get("filterBelow")
+    filter_lower = data.get("filterLower")
+    filter_upper = data.get("filterUpper")
     compare_avg = data.get("compareToAverage", False)
     
     # Modern filter handling - same pattern as getRatingSmry
@@ -715,8 +776,8 @@ def get_metric_comparison():
         return jsonify({
             "error": "Metric must be a numeric field (not 'Review')",
             "valid_metrics": METRIC_ATTRIBUTES
-        }), 400
-    
+        }, 400)
+        
     # Get sailing list using modern approach
     if sailing_number_filter == [] or not sailing_number_filter:
         sailing_list = SQLOP.fetch_sailings(ships, start_date, end_date)
@@ -737,10 +798,16 @@ def get_metric_comparison():
         
         if not ship_name or not sailing_key:
             print(f"No data found for sailing number: {sailing_number}")
+            sample_keys = list(SAILING_DATA.keys())[:5] if SAILING_DATA else []
             results.append({
                 "ship": "Unknown",
                 "sailingNumber": str(sailing_number),
-                "error": "No data found for sailing number"
+                "error": "No data found for sailing number",
+                "debug_info": {
+                    "total_available_keys": len(SAILING_DATA) if SAILING_DATA else 0,
+                    "sample_keys": sample_keys,
+                    "suggestion": "Check /sailing/debug/sailing_keys endpoint for available keys"
+                }
             })
             continue
         
@@ -765,14 +832,43 @@ def get_metric_comparison():
         
         # Get filtered reviews if requested
         filtered_reviews = []
+        filtered_comments = []
         filtered_metric = []
-        if filter_below is not None:
-            mask = df[metric].astype(float) <= filter_below
-            filtered_reviews = df_reason.loc[mask, metric].tolist()
-            for i, rev in enumerate(filtered_reviews):
-                if is_empty_or_nan(rev):
-                    filtered_reviews[i] = "Please refer to the comment"
+        if filter_lower is not None or filter_upper is not None:
+            # Create mask based on available filters
+            mask = pd.Series([True] * len(df), index=df.index)
+            
+            if filter_lower is not None:
+                mask = mask & (df[metric].astype(float) >= filter_lower)
+            if filter_upper is not None:
+                mask = mask & (df[metric].astype(float) <= filter_upper)
+                
+            # Get detailed comments for expandable content
+            filtered_comments = df_reason.loc[mask, metric].tolist()
+            for i, comment in enumerate(filtered_comments):
+                if is_empty_or_nan(comment):
+                    filtered_comments[i] = "Please refer to the comment"
+            
+            # Get corresponding ratings
             filtered_metric = df.loc[mask, metric].tolist()
+            
+            # Generate review summaries for headings
+            filtered_reviews = []
+            for i, rating in enumerate(filtered_metric):
+                if rating is not None and not pd.isna(rating):
+                    rating_val = float(rating)
+                    # Create meaningful review summary based on rating
+                    if rating_val >= 8:
+                        summary = f"Excellent {metric} experience (Rating: {rating_val:.1f})"
+                    elif rating_val >= 6:
+                        summary = f"Good {metric} feedback (Rating: {rating_val:.1f})"
+                    elif rating_val >= 4:
+                        summary = f"Average {metric} rating (Rating: {rating_val:.1f})"
+                    else:
+                        summary = f"Poor {metric} experience (Rating: {rating_val:.1f})"
+                else:
+                    summary = f"{metric} feedback (Rating: N/A)"
+                filtered_reviews.append(summary)
         
         results.append({
             "ship": ship_name,
@@ -780,8 +876,8 @@ def get_metric_comparison():
             "metric": metric,
             "averageRating": round(avg_rating, 2),
             "ratingCount": len(metric_values),
-            "filteredReviews": filtered_reviews,
-            "filteredComments": filtered_reviews,  # Same data as reviews for collapsible display
+            "filteredReviews": filtered_reviews,      # Review summaries for headings
+            "filteredComments": filtered_comments,    # Detailed comments for expandable content
             "filteredMetric": filtered_metric,
             "filteredCount": len(filtered_reviews)
         })
@@ -797,7 +893,8 @@ def get_metric_comparison():
         "status": "success",
         "metric": metric,
         "results": results,
-        "filterBelow": filter_below,
+        "filterUpper": filter_upper,
+        "filterLower": filter_lower,
         "comparedToAverage": compare_avg
     })
 
@@ -1402,6 +1499,23 @@ def reset_own_password():
             "status": "error",
             "message": f"Failed to reset password: {str(e)}"
         }), 500
+@app.route('/sailing/debug/sailing_keys', methods=['GET'])
+@jwt_required()
+def debug_sailing_keys():
+    """Debug endpoint to check available sailing data keys"""
+    if SAILING_DATA:
+        sample_keys = list(SAILING_DATA.keys())[:20]  # First 20 keys
+        return jsonify({
+            "status": "success",
+            "total_keys": len(SAILING_DATA),
+            "sample_keys": sample_keys,
+            "all_keys": list(SAILING_DATA.keys()) if len(SAILING_DATA) < 100 else "Too many to show"
+        })
+    else:
+        return jsonify({
+            "status": "error",
+            "message": "No SAILING_DATA available"
+        })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
