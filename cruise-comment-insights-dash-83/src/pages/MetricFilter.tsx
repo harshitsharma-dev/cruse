@@ -13,7 +13,9 @@ import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
 import { BasicFilterState, createMetricRatingApiData, debugFilters } from '../utils/filterUtils';
 
-const MetricFilter = () => {  const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric  const [ratingRange, setRatingRange] = useState<number[]>([6, 10]);
+const MetricFilter = () => {
+  const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric
+  const [ratingRange, setRatingRange] = useState<number[]>([6, 10]);
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<BasicFilterState>({
