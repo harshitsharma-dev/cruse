@@ -26,9 +26,9 @@ const MetricFilter = () => {
     dateRange: { startDate: '', endDate: '' },
     sailingNumbers: [],
     useAllDates: false // Default to specific date range
-  });
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());  // Changed to string for comment IDs
+  });  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());  // Changed to string for comment IDs
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [viewMode, setViewMode] = useState<'summary' | 'reviews'>('summary'); // Add view switching
 
   // Fetch available metrics from API
   const { data: metricsData, isLoading: metricsLoading, error: metricsError } = useQuery({
@@ -228,10 +228,34 @@ const MetricFilter = () => {
               <span className="ml-2 text-gray-600">Filtering metric data...</span>
             </div>
           </CardContent>
-        </Card>
-      ) : results.length > 0 ? (
+        </Card>      ) : results.length > 0 ? (
         <div className="space-y-6">
+          {/* View Toggle Buttons */}
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex items-center justify-center space-x-4">
+                <Button
+                  variant={viewMode === 'summary' ? 'default' : 'outline'}
+                  onClick={() => setViewMode('summary')}
+                  className="flex items-center space-x-2"
+                >
+                  <span>📊</span>
+                  <span>Summary & Averages</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'reviews' ? 'default' : 'outline'}
+                  onClick={() => setViewMode('reviews')}
+                  className="flex items-center space-x-2"
+                >
+                  <span>💬</span>
+                  <span>Individual Guest Reviews</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Summary/Averages Table */}
+          {viewMode === 'summary' && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -281,11 +305,12 @@ const MetricFilter = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </CardContent>
+              </div>            </CardContent>
           </Card>
+          )}
 
-          {/* Individual Guest Comments */}
+          {/* Individual Guest Reviews */}
+          {viewMode === 'reviews' && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -391,10 +416,10 @@ const MetricFilter = () => {
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
+                ))}              </div>
             </CardContent>
           </Card>
+          )}
         </div>
       ) : (
         <Card>

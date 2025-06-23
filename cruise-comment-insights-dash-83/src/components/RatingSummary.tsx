@@ -26,28 +26,23 @@ const RatingSummary = () => {
   const { data: metricsData } = useQuery({
     queryKey: ['metrics'],
     queryFn: () => apiService.getMetrics(),
-  });  // Load default data on component mount
-  useEffect(() => {
+  });  // Load default data on component mount  useEffect(() => {
     const loadDefaultData = async () => {
       try {
         setLoading(true);
-          // Backend expects either "sailing" or "date" filter_by mode
-        // For all data, we'll use "sailing" mode with specific sailing objects
+        // Use modern filter format - get all recent data
         const defaultPayload = {
-          filter_by: 'sailing',
-          sailings: [
-            { shipName: 'Explorer', sailingNumber: '1' },
-            { shipName: 'Explorer 2', sailingNumber: '1' },
-            { shipName: 'Discovery', sailingNumber: '1' },
-            { shipName: 'Discovery 2', sailingNumber: '1' },
-            { shipName: 'Voyager', sailingNumber: '1' }
-          ]
+          ships: ['explorer', 'explorer 2', 'discovery', 'discovery 2', 'voyager'],
+          fleets: ['marella'],
+          start_date: "-1", // All dates
+          end_date: "-1",   // All dates
+          sailing_numbers: []
         };
-        
-        console.log('RatingSummary: Loading default rating data:', defaultPayload);
+          console.log('RatingSummary: Loading default rating data:', defaultPayload);
         const response = await apiService.getRatingSummary(defaultPayload);
         console.log('RatingSummary: Default response received:', response);
-          if (response && response.data) {
+        
+        if (response && response.data) {
           const sortedData = sortDataByStartDate(Array.isArray(response.data) ? response.data : []);
           setRatingsData(sortedData);
           console.log('RatingSummary: Default data loaded and sorted by start date, count:', sortedData.length);
@@ -71,7 +66,9 @@ const RatingSummary = () => {
     };
 
     loadDefaultData();
-  }, []);  // Rating groups as per specifications
+  }, []);
+
+  // Rating groups as per specifications
   const ratingGroups = {
     'overall': {
       title: 'Overall & Pre/Post',
