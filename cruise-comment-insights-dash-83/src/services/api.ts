@@ -292,7 +292,6 @@ class ApiService {
       body: JSON.stringify(filters),
     });
   }
-
   async getMetricRating(data: any) {
     return this.request<{ 
       status: string; 
@@ -304,12 +303,14 @@ class ApiService {
         averageRating: number;
         ratingCount: number;
         filteredReviews: string[];
+        filteredComments: string[];
         filteredMetric: number[];
         filteredCount: number;
         comparisonToOverall?: number;
         error?: string;
       }>;
-      filterBelow?: number;
+      filterLower?: number;
+      filterUpper?: number;
       comparedToAverage: boolean;
     }>('/sailing/getMetricRating', {
       method: 'POST',

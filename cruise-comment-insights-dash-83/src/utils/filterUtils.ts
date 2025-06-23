@@ -2,13 +2,11 @@
  * Common filter utilities for consistent API data formatting across all pages
  */
 
+/**
+ * Simplified filter interface - only sailing numbers are required
+ */
 export interface StandardFilters {
-  ships: string[];
-  fleets: string[];
-  start_date: string;
-  end_date: string;
   sailing_numbers: string[];
-  useAllDates: boolean;
 }
 
 export interface BasicFilterState {
@@ -23,19 +21,11 @@ export interface BasicFilterState {
 }
 
 /**
- * Convert basic filter state to standardized API format
+ * Convert basic filter state to standardized API format (only sailing numbers)
  */
 export const convertToStandardFilters = (filters: BasicFilterState): StandardFilters => {
   return {
-    ships: (filters.ships || []).map(ship => {
-      // Remove fleet prefix if present (e.g., "marella:explorer" -> "explorer")
-      return ship.includes(':') ? ship.split(':')[1] : ship;
-    }),
-    fleets: filters.fleets || [],
-    start_date: filters.useAllDates ? "-1" : (filters.dateRange?.startDate || "-1"),
-    end_date: filters.useAllDates ? "-1" : (filters.dateRange?.endDate || "-1"),
-    sailing_numbers: filters.sailingNumbers || [],
-    useAllDates: filters.useAllDates || false
+    sailing_numbers: filters.sailingNumbers || []
   };
 };
 
@@ -56,7 +46,7 @@ export const convertToLegacyFormat = (filters: BasicFilterState) => {
 };
 
 /**
- * Create API request data for Issues/Personnel endpoints
+ * Create API request data for Issues/Personnel endpoints - only sailing numbers
  */
 export const createIssuesApiData = (
   filters: BasicFilterState, 
@@ -65,17 +55,13 @@ export const createIssuesApiData = (
   const standardFilters = convertToStandardFilters(filters);
   
   return {
-    ships: standardFilters.ships.length > 0 ? standardFilters.ships : [],
-    sailing_numbers: standardFilters.sailing_numbers.length > 0 ? standardFilters.sailing_numbers : [],
-    sheets: sheets.length > 0 ? sheets : [],
-    start_date: standardFilters.start_date,
-    end_date: standardFilters.end_date,
-    fleets: standardFilters.fleets
+    sailing_numbers: standardFilters.sailing_numbers,
+    sheets: sheets.length > 0 ? sheets : []
   };
 };
 
 /**
- * Create API request data for Search endpoints
+ * Create API request data for Search endpoints - only sailing numbers
  */
 export const createSearchApiData = (
   filters: BasicFilterState,
@@ -92,11 +78,7 @@ export const createSearchApiData = (
   
   return {
     query,
-    ships: standardFilters.ships,
-    fleets: standardFilters.fleets,
-    start_date: standardFilters.start_date,
-    end_date: standardFilters.end_date,
-    sailing_numbers: standardFilters.sailing_numbers.length > 0 ? standardFilters.sailing_numbers : [],
+    sailing_numbers: standardFilters.sailing_numbers,
     sheet_names: options.sheet_names || [],
     meal_time: options.meal_time,
     semanticSearch: options.semanticSearch || true,
@@ -106,48 +88,36 @@ export const createSearchApiData = (
 };
 
 /**
- * Create API request data for Rating Summary endpoints
+ * Create API request data for Rating Summary endpoints - only sailing numbers
  */
 export const createRatingSummaryApiData = (filters: BasicFilterState) => {
   const standardFilters = convertToStandardFilters(filters);
   
   return {
-    ships: standardFilters.ships,
-    fleets: standardFilters.fleets,
-    start_date: standardFilters.start_date,
-    end_date: standardFilters.end_date,
     sailing_numbers: standardFilters.sailing_numbers
   };
 };
 
 /**
- * Create API request data for Metric Rating endpoints
+ * Create API request data for Metric Rating endpoints - only sailing numbers
  */
 export const createMetricRatingApiData = (
   filters: BasicFilterState,
   metric: string,
   options: {
-    filterBelow?: number;
+    filterLower?: number;
+    filterUpper?: number;
     compareToAverage?: boolean;
   } = {}
 ) => {
   const standardFilters = convertToStandardFilters(filters);
   
   return {
-    filter_by: standardFilters.sailing_numbers.length > 0 ? "sailing" : "date",
     metric,
-    ships: standardFilters.ships,
-    fleets: standardFilters.fleets,
-    start_date: standardFilters.start_date,
-    end_date: standardFilters.end_date,
     sailing_numbers: standardFilters.sailing_numbers,
-    filterBelow: options.filterBelow,
-    compareToAverage: options.compareToAverage || false,
-    // Include sailings for backward compatibility if needed
-    sailings: standardFilters.sailing_numbers.map(num => ({
-      shipName: standardFilters.ships[0] || '',
-      sailingNumber: num
-    }))
+    filterLower: options.filterLower,
+    filterUpper: options.filterUpper,
+    compareToAverage: options.compareToAverage || false
   };
 };
 

@@ -27,7 +27,7 @@ const MetricFilter = () => {
     sailingNumbers: [],
     useAllDates: false // Default to specific date range
   });
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());  // Changed to string for comment IDs
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   // Fetch available metrics from API
@@ -38,14 +38,13 @@ const MetricFilter = () => {
     debugFilters('Filter data received in MetricFilter', filterData);
     setFilters(filterData);
   };
-
-  const toggleRowExpansion = (index: number) => {
+  const toggleRowExpansion = (id: string) => {
     setExpandedRows(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
+      if (newSet.has(id)) {
+        newSet.delete(id);
       } else {
-        newSet.add(index);
+        newSet.add(id);
       }
       return newSet;
     });
@@ -56,9 +55,9 @@ const MetricFilter = () => {
     }
 
     setIsLoading(true);
-    try {
-      const searchData = createMetricRatingApiData(filters, selectedMetric, {
-        filterBelow: ratingRange[1], // Use upper bound of rating range as filter
+    try {      const searchData = createMetricRatingApiData(filters, selectedMetric, {
+        filterLower: ratingRange[0], // Use lower bound of rating range as filter
+        filterUpper: ratingRange[1], // Use upper bound of rating range as filter
         compareToAverage: true
       });
 
@@ -220,9 +219,7 @@ const MetricFilter = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Results Section */}
+      </div>      {/* Results Section */}
       {isLoading ? (
         <Card>
           <CardContent className="py-12">
@@ -232,137 +229,173 @@ const MetricFilter = () => {
             </div>
           </CardContent>
         </Card>
-      ) : results.length > 0 ? (        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Filtered Results ({results.length} entries)</CardTitle>              <SortControls 
-                sortOptions={METRIC_SORT_OPTIONS}
-                currentSort={sortConfig}
-                onSortChange={(field) => setSortConfig(toggleSort(sortConfig, field))}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>            <div className="space-y-4">              {sortData(results, sortConfig, 'metrics').map((result, index) => (
-                <div key={index} className="border rounded-lg p-6 hover:bg-gray-50 transition-colors">
-                  {/* Sailing Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-1">
-                      <div>
-                        <div className="text-sm font-medium text-gray-500">Ship</div>
-                        <div className="font-medium">{result.ship || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-500">Sailing Number</div>
-                        <div className="font-medium">{result.sailingNumber || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-500">Average Rating</div>
-                        <div className="text-sm">
+      ) : results.length > 0 ? (
+        <div className="space-y-6">
+          {/* Summary/Averages Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                📊 Summary Statistics ({results.length} sailings)
+                <Badge variant="secondary" className="text-sm px-3 py-1">
+                  Average Data
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-200 rounded-lg">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Ship</th>
+                      <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Sailing Number</th>
+                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Average Rating</th>
+                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Total Ratings</th>
+                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Filtered Count</th>
+                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Comparison</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((result, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="border border-gray-200 px-4 py-3 font-medium">{result.ship || 'N/A'}</td>
+                        <td className="border border-gray-200 px-4 py-3">{result.sailingNumber || 'N/A'}</td>
+                        <td className="border border-gray-200 px-4 py-3 text-center">
                           <Badge className={getRatingColor(result.averageRating)} variant="secondary">
                             {result.averageRating?.toFixed(2) || 'N/A'}
                           </Badge>
-                          {result.comparisonToOverall !== undefined && (
-                            <span className={`ml-2 text-xs ${result.comparisonToOverall >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              ({result.comparisonToOverall > 0 ? '+' : ''}{result.comparisonToOverall.toFixed(2)})
+                        </td>
+                        <td className="border border-gray-200 px-4 py-3 text-center">{result.ratingCount || 'N/A'}</td>
+                        <td className="border border-gray-200 px-4 py-3 text-center">
+                          <Badge variant="outline">{result.filteredCount || 0}</Badge>
+                        </td>
+                        <td className="border border-gray-200 px-4 py-3 text-center">
+                          {result.comparisonToOverall !== undefined ? (
+                            <span className={`text-sm font-medium ${result.comparisonToOverall >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {result.comparisonToOverall > 0 ? '+' : ''}{result.comparisonToOverall.toFixed(2)}
                             </span>
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
                           )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Individual Guest Comments */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center">
+                  💬 Individual Guest Comments
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {results.reduce((total, result) => total + (result.filteredCount || 0), 0)} total comments
+                  </Badge>
+                </CardTitle>
+                <SortControls 
+                  sortOptions={METRIC_SORT_OPTIONS}
+                  currentSort={sortConfig}
+                  onSortChange={(field) => setSortConfig(toggleSort(sortConfig, field))}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {sortData(results, sortConfig, 'metrics').map((result, sailingIndex) => (
+                  <div key={sailingIndex} className="border rounded-lg p-6 bg-white">
+                    {/* Sailing Header */}
+                    <div className="mb-4 pb-4 border-b border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-4">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {result.ship || 'Unknown Ship'} - {result.sailingNumber || 'Unknown Sailing'}
+                          </h3>
+                          <Badge className={getRatingColor(result.averageRating)} variant="secondary">
+                            Avg: {result.averageRating?.toFixed(2) || 'N/A'}
+                          </Badge>
                         </div>
+                        <Badge variant="outline" className="text-sm">
+                          {result.filteredCount || 0} comments below threshold
+                        </Badge>
                       </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-500">Total Ratings</div>
-                        <div className="text-sm">{result.ratingCount || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-500">Filtered Count</div>
-                        <Badge variant="outline">{result.filteredCount || 0}</Badge>
-                      </div>                    </div>
-                    
-                  </div>{/* Reviews Section - Always Visible */}
-                  {result.filteredReviews && result.filteredReviews.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                        📋 Guest Reviews ({result.filteredReviews.length})
-                        <Badge variant="outline" className="ml-2 text-xs">Always Visible</Badge>
-                      </h4>
-                      <div className="space-y-2">
-                        {result.filteredReviews.slice(0, 3).map((review: string, reviewIndex: number) => (
-                          <div key={reviewIndex} className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
-                            <FormattedText 
-                              text={review} 
-                              className="text-gray-700"
-                            />
-                            {result.filteredMetric && result.filteredMetric[reviewIndex] && (
-                              <Badge className={`mt-2 ${getRatingColor(result.filteredMetric[reviewIndex])}`} variant="secondary">
-                                Rating: {result.filteredMetric[reviewIndex].toFixed(1)}
-                              </Badge>
-                            )}
-                          </div>
-                        ))}
-                        {result.filteredReviews.length > 3 && (
-                          <div className="text-sm text-blue-600 italic bg-blue-100 p-2 rounded">
-                            💡 {result.filteredReviews.length - 3} more reviews available - click expand below to see detailed comments
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Collapsible Comments Section */}
-                  <Collapsible open={expandedRows.has(index)}>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-between mb-4"
-                        onClick={() => toggleRowExpansion(index)}
-                      >
-                        <span className="flex items-center">
-                          💬 Detailed Comments ({result.filteredComments?.length || 0})
-                        </span>
-                        {expandedRows.has(index) ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="border-t pt-4 mt-2">
-                        <div className="text-sm font-medium text-gray-600 mb-3 flex items-center">
-                          <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium mr-2">EXPANDED VIEW</span>
-                          All Detailed Comments & Feedback
-                        </div>
-                        {result.filteredComments && result.filteredComments.length > 0 ? (
-                          <div className="space-y-3 max-h-96 overflow-y-auto apollo-scrollbar bg-gray-50 p-4 rounded-lg">
-                            {result.filteredComments.map((comment: string, commentIndex: number) => (
-                              <div key={commentIndex} className="text-sm text-gray-700 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                                <div className="flex justify-between items-start mb-2">
-                                  <span className="text-xs text-gray-500 font-medium">Comment #{commentIndex + 1}</span>
-                                  {result.filteredMetric && result.filteredMetric[commentIndex] && (
-                                    <Badge className={`${getRatingColor(result.filteredMetric[commentIndex])}`} variant="secondary">
-                                      {result.filteredMetric[commentIndex].toFixed(1)}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <FormattedText 
-                                  text={comment} 
-                                  className="text-gray-700 leading-relaxed"
-                                />
+                    </div>                    {/* Individual Guest Comments */}
+                    {result.filteredComments && result.filteredComments.length > 0 ? (
+                      <div className="space-y-4">
+                        {result.filteredComments.map((comment: string, commentIndex: number) => {
+                          const commentId = `${sailingIndex}-${commentIndex}`;
+                          return (
+                            <Collapsible key={commentIndex}>
+                              <div className="border border-gray-200 rounded-lg">
+                                {/* Comment Header - Always Visible */}
+                                <CollapsibleTrigger asChild>
+                                  <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center space-x-3">
+                                        <span className="text-sm font-medium text-gray-600">
+                                          Guest #{commentIndex + 1}
+                                        </span>
+                                        {result.filteredMetric && result.filteredMetric[commentIndex] && (
+                                          <Badge className={getRatingColor(result.filteredMetric[commentIndex])} variant="secondary">
+                                            Rating: {result.filteredMetric[commentIndex].toFixed(1)}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-xs text-gray-500">
+                                          {expandedRows.has(commentId) ? 'Collapse' : 'Expand'} Comment
+                                        </span>
+                                        {expandedRows.has(commentId) ? (
+                                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                                        ) : (
+                                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CollapsibleTrigger>
+                                
+                                {/* Collapsible Comment Content */}
+                                <CollapsibleContent>
+                                  <div className="p-4 bg-white">
+                                    <div className="text-sm text-gray-700 leading-relaxed">
+                                      <FormattedText 
+                                        text={comment} 
+                                        className="text-gray-700"
+                                      />
+                                    </div>
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                      <div className="flex items-center justify-between text-xs text-gray-500">
+                                        <span>Guest feedback for {selectedMetric}</span>
+                                        {result.filteredMetric && result.filteredMetric[commentIndex] && (
+                                          <span>
+                                            Rated: {result.filteredMetric[commentIndex].toFixed(1)}/10
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CollapsibleContent>
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 bg-gray-50 rounded-lg">
-                            <p className="text-gray-500 italic">📝 No detailed comments available for this sailing</p>
-                          </div>
-                        )}
+                            </Collapsible>
+                          );
+                        })}
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                    ) : (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg">
+                        <p className="text-gray-500 italic">
+                          📝 No guest comments available for this sailing below the threshold
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <Card>
           <CardContent className="py-12">
