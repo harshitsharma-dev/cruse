@@ -11,7 +11,7 @@ import { CalendarIcon, Filter, RotateCcw, CheckCircle, ChevronDown, X, Check } f
 import { format, setMonth, setYear } from 'date-fns';
 import { useFilter } from '../contexts/FilterContext';
 import { cn } from '@/lib/utils';
-import { BasicFilterState } from '../utils/filterUtils';
+import { BasicFilterState, getDefaultFilterState } from '../utils/filterUtils';
 
 interface BasicFilterProps {
   onFilterChange?: (filters: any) => void;
@@ -52,14 +52,19 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();  const [selectedSailingNumbers, setSelectedSailingNumbers] = useState<string[]>([]);
   const [useAllDates, setUseAllDates] = useState(false); // Default to specific date range
-  // Function to check if any filters are currently applied
+  // Function to check if any filters are currently applied (beyond default state)
   const areFiltersApplied = () => {
+    // Get the default state to compare against
+    const defaultState = getDefaultFilterState();
+    
     return (
       (filterState?.fleets && filterState.fleets.length > 0) ||
       (filterState?.ships && filterState.ships.length > 0) ||
-      (filterState?.dateRange?.startDate && filterState?.dateRange?.endDate) ||
       (filterState?.sailingNumbers && filterState.sailingNumbers.length > 0) ||
-      filterState?.useAllDates
+      filterState?.useAllDates === true ||
+      // Check if date range differs from default
+      (filterState?.dateRange?.startDate !== defaultState.dateRange.startDate) ||
+      (filterState?.dateRange?.endDate !== defaultState.dateRange.endDate)
     );
   };  // Function to check if there are pending changes that need to be applied
   const hasPendingChanges = () => {
@@ -222,8 +227,11 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     // Include sailing numbers in persistence now
     if (filterState.sailingNumbers && filterState.sailingNumbers.length > 0) {
       setSelectedSailingNumbers(filterState.sailingNumbers);
+    } else {
+      // Reset sailing numbers if none in filter state
+      setSelectedSailingNumbers([]);
     }
-  }, []); // Only run on mount
+  }, [filterState]); // React to changes in filterState, not just on mount
 
   if (isLoading) {
     return (
