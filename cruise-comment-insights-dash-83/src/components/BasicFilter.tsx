@@ -50,8 +50,7 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
 
   const safeAvailableFleets = Array.isArray(availableFleets) ? availableFleets : [];
   const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [selectedSailingNumbers, setSelectedSailingNumbers] = useState<string[]>([]);  const [filtersApplied, setFiltersApplied] = useState(false);
+  const [endDate, setEndDate] = useState<Date>();  const [selectedSailingNumbers, setSelectedSailingNumbers] = useState<string[]>([]);
   const [useAllDates, setUseAllDates] = useState(false); // Default to specific date range
 
   // Function to check if any filters are currently applied
@@ -61,6 +60,22 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       safeFilterState.ships.length > 0 ||
       (safeFilterState.dateRange.startDate && safeFilterState.dateRange.endDate) ||
       safeFilterState.sailingNumbers.length > 0
+    );
+  };
+
+  // Function to check if there are pending changes that need to be applied
+  const hasPendingChanges = () => {
+    const currentStartDate = startDate ? format(startDate, 'yyyy-MM-dd') : '';
+    const currentEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : '';
+    
+    return (
+      // Check if dates have changed
+      (currentStartDate !== safeFilterState.dateRange.startDate) ||
+      (currentEndDate !== safeFilterState.dateRange.endDate) ||
+      // Check if sailing numbers have changed
+      JSON.stringify(selectedSailingNumbers) !== JSON.stringify(safeFilterState.sailingNumbers) ||
+      // Check if useAllDates changed
+      useAllDates !== safeFilterState.useAllDates
     );
   };
   const handleFleetChange = (fleetName: string, checked: boolean) => {
@@ -121,30 +136,23 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
         ? selectedSailingNumbers 
         : [],
-      useAllDates: useAllDates
-    };
+      useAllDates: useAllDates    };
     
     console.log('BasicFilter sending standardized filter data:', filterData);
-    
-    // Show applied feedback
-    setFiltersApplied(true);
-    setTimeout(() => setFiltersApplied(false), 3000); // Hide after 3 seconds
     
     // Call the parent component's filter change handler
     onFilterChange?.(filterData);
     onApplyFilters?.();
-  };  const handleResetFilters = () => {
+  };const handleResetFilters = () => {
     resetFilters();
     
     // Reset to default date range (last 30 days) instead of all dates
     const defaultEndDate = new Date();
     const defaultStartDate = new Date();
     defaultStartDate.setDate(defaultEndDate.getDate() - 30);
-    
-    setStartDate(defaultStartDate);
+      setStartDate(defaultStartDate);
     setEndDate(defaultEndDate);
     setSelectedSailingNumbers([]);
-    setFiltersApplied(false);
     setUseAllDates(false); // Reset to specific date range, not "All Dates"
   };
   // Load sailing numbers when date range or ships change
@@ -682,14 +690,13 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
               </PopoverContent>
             </Popover>
           </div>
-        </div>{/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+        </div>{/* Action Buttons */}        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
           <Button 
             onClick={handleApplyFilters} 
             className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
-            disabled={filtersApplied}
+            disabled={!hasPendingChanges() && areFiltersApplied()}
           >
-            {filtersApplied ? (
+            {areFiltersApplied() && !hasPendingChanges() ? (
               <>
                 <CheckCircle className="h-4 w-4" />
                 Filters Applied!
@@ -709,16 +716,15 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
-        </div>        {/* Current Filter Summary */}
-        {(safeFilterState.fleets.length > 0 || safeFilterState.ships.length > 0 || 
+        </div>        {/* Current Filter Summary */}        {(safeFilterState.fleets.length > 0 || safeFilterState.ships.length > 0 || 
           safeFilterState.dateRange.startDate || safeFilterState.dateRange.endDate || 
           (selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1')) ||
-          filtersApplied || useAllDates) && (
+          areFiltersApplied() || useAllDates) && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              {filtersApplied && <CheckCircle className="h-4 w-4 text-green-600" />}
+              {areFiltersApplied() && <CheckCircle className="h-4 w-4 text-green-600" />}
               <div className="text-sm font-medium text-blue-800">
-                {filtersApplied ? 'Active Filters:' : 'Current Filters:'}
+                {areFiltersApplied() ? 'Active Filters:' : 'Current Filters:'}
               </div>
             </div>
             <div className="text-xs text-blue-600 space-y-1">
