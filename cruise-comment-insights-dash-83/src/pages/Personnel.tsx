@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,28 +7,25 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Users, ChevronDown, ChevronUp, Download, Loader2, Settings, Expand, Minimize2, Check, X, BarChart3, Star } from 'lucide-react';
+import { Users, ChevronDown, ChevronUp, Download, Loader2, Settings, Expand, Minimize2, Check, X, BarChart3, Star, MessageSquare, ThumbsUp, ThumbsDown, Frown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
-
+import { useFilter } from '../contexts/FilterContext';
 import { BasicFilterState, createIssuesApiData, debugFilters } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig } from '../utils/sortingUtils';
 
 const Personnel = () => {
+  const { filterState } = useFilter(); // Use shared filter context
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
+  const [selectedSentiments, setSelectedSentiments] = useState<string[]>(['positive', 'negative']);
   const [personnelData, setPersonnelData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);  const [filters, setFilters] = useState<BasicFilterState>({
-    fleets: [],
-    ships: [],
-    dateRange: { startDate: '', endDate: '' },
-    sailingNumbers: [],
-    useAllDates: false // Default to specific date range
-  });
-  const [expandedPersonnel, setExpandedPersonnel] = useState<Record<string, boolean>>({});
-  const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(false);
+  const [expandedSailings, setExpandedSailings] = useState<Record<string, boolean>>({});
+  const [expandedCrew, setExpandedCrew] = useState<Record<string, boolean>>({});
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   // Fetch available sheets from API
@@ -36,12 +33,19 @@ const Personnel = () => {
     queryKey: ['sheets'],
     queryFn: () => apiService.getSheets(),
   });
-
   const handleSheetToggle = (sheet: string) => {
     setSelectedSheets(prev => 
       prev.includes(sheet) 
         ? prev.filter(s => s !== sheet)
         : [...prev, sheet]
+    );
+  };
+
+  const handleSentimentToggle = (sentiment: string) => {
+    setSelectedSentiments(prev => 
+      prev.includes(sentiment) 
+        ? prev.filter(s => s !== sentiment)
+        : [...prev, sentiment]
     );
   };
 
@@ -52,6 +56,45 @@ const Personnel = () => {
     } else {
       setSelectedSheets(allSheets);
     }
+  };
+
+  const handleFilterChange = (newFilters: BasicFilterState) => {
+    debugFilters('FILTER CHANGE IN PERSONNEL', newFilters);
+    // No need to set local state since we're using FilterContext
+  };
+
+  const toggleSailingExpansion = (sailingId: string) => {
+    setExpandedSailings(prev => ({
+      ...prev,
+      [sailingId]: !prev[sailingId]
+    }));
+  };
+
+  const toggleCrewExpansion = (crewId: string) => {
+    setExpandedCrew(prev => ({
+      ...prev,
+      [crewId]: !prev[crewId]
+    }));
+  };
+
+  const toggleCommentExpansion = (commentId: string) => {
+    setExpandedComments(prev => ({
+      ...prev,
+      [commentId]: !prev[commentId]
+    }));
+  };
+
+  const expandAllSailings = () => {
+    if (!personnelData?.results) return;
+    const allExpanded: Record<string, boolean> = {};
+    personnelData.results.forEach((sailing: any) => {
+      allExpanded[sailing.sailingNumber] = true;
+    });
+    setExpandedSailings(allExpanded);
+  };
+
+  const collapseAllSailings = () => {
+    setExpandedSailings({});
   };
   const handleFilterChange = (newFilters: BasicFilterState) => {
     debugFilters('FILTER CHANGE IN PERSONNEL', newFilters);
@@ -85,69 +128,40 @@ const Personnel = () => {
   const collapseAllPersonnel = () => {
     setExpandedPersonnel({});
   };
-
   const fetchPersonnel = async () => {
     console.log('=== PERSONNEL FETCH DEBUG START ===');
-    console.log('Current filters object:', filters);
+    console.log('Current filter state:', filterState);
     console.log('Selected sheets:', selectedSheets);
-    console.log('Sheets data:', sheetsData?.data);
-    console.log('Available sheets from API:', sheetsData);
+    console.log('Selected sentiments:', selectedSentiments);
     
     setLoading(true);
     try {
-      // Payload for the future personnel endpoint
-      const requestData = {
-        ships: filters.ships && filters.ships.length > 0 
-          ? filters.ships.map((ship: string) => ship.split(':')[1] || ship)
-          : [],
-        sailing_numbers: filters.sailingNumbers && filters.sailingNumbers.length > 0 
-          ? filters.sailingNumbers 
-          : [],
-        sheets: selectedSheets.length > 0 
-          ? selectedSheets 
-          : (sheetsData?.data && sheetsData.data.length > 0 ? sheetsData.data : []),        start_date: filters.useAllDates ? "-1" : filters.dateRange?.startDate || "",
-        end_date: filters.useAllDates ? "-1" : filters.dateRange?.endDate || "",
-        fleets: filters.fleets || []
-      };
+      // Use same payload format as Issues page
+      const requestData = createIssuesApiData(filterState, {
+        sheet_names: selectedSheets.length > 0 ? selectedSheets : (sheetsData?.data || [])
+      });
 
       console.log('=== PERSONNEL PAYLOAD DEBUG ===');
       console.log('Final personnel payload:', requestData);
       console.log('=== END PAYLOAD DEBUG ===');
       
-      // TODO: Replace with actual personnel API call when backend is ready
-      // const response = await apiService.getPersonnelMentions(requestData);
+      // Call the personnel API
+      const response = await apiService.getPersonnelList(requestData);
+      console.log('Personnel API response:', response);
       
-      // Mock response for now
-      const mockResponse = {
-        status: "success",
-        data: {
-          sailing_summaries: [
-            {
-              ship_name: "explorer",
-              sailing_number: "MEX-10-17Jan-AtlanticIslands",
-              start_date: "2024-01-17",
-              end_date: "2024-01-24",
-              personnel_count: 12,
-              sailing_summary: "Personnel feedback for Explorer sailing MEX-10-17Jan-AtlanticIslands: 12 personnel mentions identified across multiple departments including housekeeping, dining, and entertainment staff."
-            },
-            {
-              ship_name: "explorer", 
-              sailing_number: "MEX-11-17April-CanarianFlavours",
-              start_date: "2024-04-17",
-              end_date: "2024-04-24", 
-              personnel_count: 8,
-              sailing_summary: "Personnel feedback for Explorer sailing MEX-11-17April-CanarianFlavours: 8 personnel mentions identified with positive feedback for crew friendliness and service quality."
-            }
-          ],
-          all_personnel: [
-            {
-              ship_name: "explorer",
-              sailing_number: "MEX-10-17Jan-AtlanticIslands",
-              sheet_name: "Dining",
-              personnel_mentions: "Waiter John was exceptional - very attentive and friendly throughout our stay. Made our dining experience memorable."
-            },
-            {
-              ship_name: "explorer", 
+      if (response && response.results) {
+        setPersonnelData(response);
+      } else {
+        console.warn('Invalid personnel response structure:', response);
+        setPersonnelData(null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch personnel data:', error);
+      setPersonnelData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
               sailing_number: "MEX-10-17Jan-AtlanticIslands",
               sheet_name: "Cabin Service",
               personnel_mentions: "Housekeeping staff Maria did an outstanding job keeping our cabin clean and tidy. Always had a smile and was very professional."
