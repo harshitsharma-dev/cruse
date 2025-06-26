@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +42,7 @@ interface PersonnelData {
 
 const Personnel = () => {
   const { filterState } = useFilter(); // Use shared filter context
+  const basicFilterRef = useRef<{ applyFilters: () => void; hasPendingChanges: () => boolean }>(null);
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [personnelData, setPersonnelData] = useState<PersonnelData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,6 +142,14 @@ const Personnel = () => {
     console.log('Current filters object:', filterState);
     console.log('Selected sheets:', selectedSheets);
     console.log('Sheets data:', sheetsData?.data);
+    
+    // Auto-apply basic filters if they have pending changes
+    if (basicFilterRef.current?.hasPendingChanges()) {
+      console.log('Auto-applying basic filters before personnel search...');
+      basicFilterRef.current.applyFilters();
+      // Small delay to ensure filters are applied
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     
     setLoading(true);
     try {
@@ -278,6 +287,7 @@ const Personnel = () => {
       {/* Filters Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BasicFilter 
+          ref={basicFilterRef}
           onFilterChange={handleFilterChange}
           showTitle={true}
           compact={false}

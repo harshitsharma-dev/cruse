@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,16 +20,20 @@ interface BasicFilterProps {
   showTitle?: boolean;
   compact?: boolean;
   className?: string;
+  ref?: React.Ref<{ applyFilters: () => void; hasPendingChanges: () => boolean }>;
 }
 
-const BasicFilter: React.FC<BasicFilterProps> = ({ 
+const BasicFilter = React.forwardRef<
+  { applyFilters: () => void; hasPendingChanges: () => boolean },
+  BasicFilterProps
+>(({ 
   onFilterChange,
   onApplyFilters,
   currentFilters,
   showTitle = true,
   compact = false,
   className 
-}) => {  const { 
+}, ref) => {  const { 
     filterState, 
     setFilterState, 
     resetFilters, 
@@ -82,35 +86,8 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       currentUseAllDates !== persistedUseAllDates
     );
   };
-  const handleFleetChange = (fleetName: string, checked: boolean) => {
-    const newFleets = checked 
-      ? [...safeFilterState.fleets, fleetName]
-      : safeFilterState.fleets.filter(f => f !== fleetName);
-    
-    setFilterState({ 
-      fleets: newFleets,
-      ships: [] // Reset ships when fleets change
-    });
-  };
 
-  const handleShipChange = (shipName: string, checked: boolean) => {
-    const newShips = checked 
-      ? [...safeFilterState.ships, shipName]
-      : safeFilterState.ships.filter(s => s !== shipName);
-    
-    setFilterState({ ships: newShips });
-  };
-
-  const handleDateRangeApply = () => {
-    if (startDate && endDate) {
-      setFilterState({
-        dateRange: {
-          startDate: format(startDate, 'yyyy-MM-dd'),
-          endDate: format(endDate, 'yyyy-MM-dd')
-        }
-      });
-    }
-  };  const handleApplyFilters = () => {
+  const handleApplyFilters = () => {
     // Prepare standardized filter data for the context update
     const contextUpdate = {
       fleets: safeFilterState.fleets,
@@ -158,7 +135,45 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
         filterState: safeFilterState
       });
     }, 100);
-  };const handleResetFilters = () => {
+  };
+
+  // Expose methods to parent components via ref
+  useImperativeHandle(ref, () => ({
+    applyFilters: handleApplyFilters,
+    hasPendingChanges: hasPendingChanges
+  }), [handleApplyFilters, hasPendingChanges]);
+
+  const handleFleetChange = (fleetName: string, checked: boolean) => {
+    const newFleets = checked 
+      ? [...safeFilterState.fleets, fleetName]
+      : safeFilterState.fleets.filter(f => f !== fleetName);
+    
+    setFilterState({ 
+      fleets: newFleets,
+      ships: [] // Reset ships when fleets change
+    });
+  };
+
+  const handleShipChange = (shipName: string, checked: boolean) => {
+    const newShips = checked 
+      ? [...safeFilterState.ships, shipName]
+      : safeFilterState.ships.filter(s => s !== shipName);
+    
+    setFilterState({ ships: newShips });
+  };
+
+  const handleDateRangeApply = () => {
+    if (startDate && endDate) {
+      setFilterState({
+        dateRange: {
+          startDate: format(startDate, 'yyyy-MM-dd'),
+          endDate: format(endDate, 'yyyy-MM-dd')
+        }
+      });
+    }
+  };
+
+  const handleResetFilters = () => {
     resetFilters();
     
     // Reset to default date range (last 30 days) instead of all dates
@@ -815,6 +830,8 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+BasicFilter.displayName = 'BasicFilter';
 
 export default BasicFilter;

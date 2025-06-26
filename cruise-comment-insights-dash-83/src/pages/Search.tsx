@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,8 @@ import { sortData, toggleSort, SortConfig } from '../utils/sortingUtils';
 import { useFilter } from '../contexts/FilterContext';
 
 const Search = () => {
-  const [query, setQuery] = useState('');  const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
+  const [query, setQuery] = useState('');  
+  const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [selectedMealTimes, setSelectedMealTimes] = useState<string[]>([]);
   const [searchType, setSearchType] = useState('keyword');
   const [cutOff, setCutOff] = useState([7]);
@@ -34,6 +35,9 @@ const Search = () => {
 
   // Use shared filter context instead of local state
   const { filterState, setFilterState } = useFilter();
+
+  // Create ref for BasicFilter to access its methods
+  const basicFilterRef = useRef<{ applyFilters: () => void; hasPendingChanges: () => boolean }>(null);
 
   // Fetch available sheets from API
   const { data: sheetsData, isLoading: sheetsLoading, error: sheetsError } = useQuery({
@@ -59,6 +63,11 @@ const Search = () => {
     console.log('Filters updated in Search component');
   };
   const handleSearch = async () => {
+    // Auto-apply basic filters if there are pending changes
+    if (basicFilterRef.current?.hasPendingChanges()) {
+      basicFilterRef.current.applyFilters();
+    }
+
     debugFilters('SEARCH DEBUG START', filterState);
     console.log('Query:', query);
     console.log('Query trimmed:', query.trim());
@@ -143,6 +152,7 @@ const Search = () => {
 
       {/* Filters Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">        <BasicFilter 
+          ref={basicFilterRef}
           onFilterChange={handleFilterChange}
           showTitle={true}
           compact={false}

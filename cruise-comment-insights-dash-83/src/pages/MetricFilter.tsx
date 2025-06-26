@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -17,6 +17,7 @@ import { useFilter } from '../contexts/FilterContext';
 
 const MetricFilter = () => {
   const { filterState } = useFilter(); // Use shared filter context
+  const basicFilterRef = useRef<{ applyFilters: () => void; hasPendingChanges: () => boolean }>(null);
   const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric
   const [ratingRange, setRatingRange] = useState<number[]>([6, 10]);
   const [results, setResults] = useState<any[]>([]);
@@ -50,6 +51,14 @@ const MetricFilter = () => {
     if (!selectedMetric) {
       alert('Please select a metric');
       return;
+    }
+
+    // Auto-apply basic filters if they have pending changes
+    if (basicFilterRef.current?.hasPendingChanges()) {
+      console.log('Auto-applying basic filters before metric search...');
+      basicFilterRef.current.applyFilters();
+      // Small delay to ensure filters are applied
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     setIsLoading(true);
@@ -198,6 +207,7 @@ const MetricFilter = () => {
       {/* Filters Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BasicFilter 
+          ref={basicFilterRef}
           onFilterChange={handleFilterChange}
           showTitle={true}
           compact={false}

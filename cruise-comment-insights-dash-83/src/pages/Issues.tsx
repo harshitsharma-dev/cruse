@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,9 +24,13 @@ const Issues = () => {
   const [loading, setLoading] = useState(false);
   
   // Use shared filter context instead of local state
-  const { filterState, setFilterState } = useFilter();const [expandedIssues, setExpandedIssues] = useState<Record<string, boolean>>({});
+  const { filterState, setFilterState } = useFilter();
+  const [expandedIssues, setExpandedIssues] = useState<Record<string, boolean>>({});
   const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+
+  // Create ref for BasicFilter to access its methods
+  const basicFilterRef = useRef<{ applyFilters: () => void; hasPendingChanges: () => boolean }>(null);
 
   // Fetch available sheets from API
   const { data: sheetsData, isLoading: sheetsLoading, error: sheetsError } = useQuery({
@@ -79,8 +83,13 @@ const Issues = () => {
   const collapseAllIssues = () => {
     setExpandedIssues({});
     setExpandedSummaries({}); // Also collapse sailing summaries
-  };const fetchIssues = async () => {
-    debugFilters('ISSUES FETCH DEBUG START', filters);
+  };  const fetchIssues = async () => {
+    // Auto-apply basic filters if there are pending changes
+    if (basicFilterRef.current?.hasPendingChanges()) {
+      basicFilterRef.current.applyFilters();
+    }
+
+    debugFilters('ISSUES FETCH DEBUG START', filterState);
     console.log('Selected sheets:', selectedSheets);
     console.log('Sheets data:', sheetsData?.data);
     
@@ -144,6 +153,7 @@ const Issues = () => {
       {/* Filters Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BasicFilter 
+          ref={basicFilterRef}
           onFilterChange={handleFilterChange}
           showTitle={true}
           compact={false}
@@ -349,18 +359,16 @@ const Issues = () => {
                   <div className="text-center py-8">
                     <div className="text-gray-500">
                       <p className="font-medium">Sailing Summary Data</p>
-                      <p className="text-sm mt-1">
-                        Showing aggregated data for {filters?.ships?.length || 0} ships, 
-                        {filters?.sailingNumbers?.length || 0} sailing numbers, 
+                      <p className="text-sm mt-1">                        Showing aggregated data for {filterState?.ships?.length || 0} ships,
+                        {filterState?.sailingNumbers?.length || 0} sailing numbers,
                         and {selectedSheets.length || 0} issue sheets
                       </p>
                       {/* Display basic filter summary */}
                       <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                           <div>
-                            <span className="font-medium text-blue-800">Ships:</span>
-                            <p className="text-blue-600 mt-1">                              {filters?.ships?.length > 0 
-                                ? filters.ships.map((ship: string) => formatShipName(ship.split(':')[1] || ship)).join(', ')
+                            <span className="font-medium text-blue-800">Ships:</span>                            <p className="text-blue-600 mt-1">                              {filterState?.ships?.length > 0
+                                ? filterState.ships.map((ship: string) => formatShipName(ship.split(':')[1] || ship)).join(', ')
                                 : 'All Ships'
                               }
                             </p>
@@ -368,9 +376,9 @@ const Issues = () => {
                           <div>
                             <span className="font-medium text-blue-800">Date Range:</span>
                             <p className="text-blue-600 mt-1">
-                              {filters?.useAllDates 
+                              {filterState?.useAllDates 
                                 ? 'All Dates' 
-                                : `${filters?.dateRange?.startDate || 'N/A'} to ${filters?.dateRange?.endDate || 'N/A'}`
+                                : `${filterState?.dateRange?.startDate || 'N/A'} to ${filterState?.dateRange?.endDate || 'N/A'}`
                               }
                             </p>
                           </div>
