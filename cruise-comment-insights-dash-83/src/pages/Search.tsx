@@ -19,6 +19,7 @@ import { FormattedText } from '../components/FormattedText';
 import { useQuery } from '@tanstack/react-query';
 import { BasicFilterState, createSearchApiData, debugFilters } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig } from '../utils/sortingUtils';
+import { useFilter } from '../contexts/FilterContext';
 
 const Search = () => {
   const [query, setQuery] = useState('');  const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
@@ -29,13 +30,10 @@ const Search = () => {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
-  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});const [filters, setFilters] = useState<BasicFilterState>({
-    fleets: [],
-    ships: [],
-    dateRange: { startDate: '', endDate: '' },
-    sailingNumbers: [],
-    useAllDates: false // Default to specific date range
-  });
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+
+  // Use shared filter context instead of local state
+  const { filterState, setFilterState } = useFilter();
 
   // Fetch available sheets from API
   const { data: sheetsData, isLoading: sheetsLoading, error: sheetsError } = useQuery({
@@ -57,12 +55,11 @@ const Search = () => {
     );
   };  const handleFilterChange = (newFilters: BasicFilterState) => {
     debugFilters('FILTER CHANGE IN SEARCH', newFilters);
-    setFilters(newFilters);
+    setFilterState(newFilters);
     console.log('Filters updated in Search component');
   };
-
   const handleSearch = async () => {
-    debugFilters('SEARCH DEBUG START', filters);
+    debugFilters('SEARCH DEBUG START', filterState);
     console.log('Query:', query);
     console.log('Query trimmed:', query.trim());
     console.log('Selected sheets:', selectedSheets);
@@ -77,7 +74,7 @@ const Search = () => {
 
     setLoading(true);
     try {
-      const searchData = createSearchApiData(filters, query, {
+      const searchData = createSearchApiData(filterState, query, {
         sheet_names: selectedSheets.length > 0 ? selectedSheets : sheetsData?.data || [],
         meal_time: selectedMealTimes.length > 0 ? selectedMealTimes.join(',') : undefined,
         semanticSearch: searchType === 'semantic',
@@ -97,7 +94,7 @@ const Search = () => {
       setResults([]);
     } finally {
       setLoading(false);
-      debugFilters('SEARCH DEBUG END', filters);
+      debugFilters('SEARCH DEBUG END', filterState);
     }
   };
   const exportResults = () => {
@@ -145,8 +142,7 @@ const Search = () => {
       </div>
 
       {/* Filters Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BasicFilter 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">        <BasicFilter 
           onFilterChange={handleFilterChange}
           showTitle={true}
           compact={false}
@@ -374,10 +370,9 @@ const Search = () => {
             {process.env.NODE_ENV === 'development' && (              <div className="p-2 bg-gray-100 rounded text-xs">
                 <p>Loading: {loading.toString()}</p>
                 <p>Query: {query}</p>
-                <p>Query trimmed: {query.trim()}</p>
-                <p>UseAllDates: {filters?.useAllDates?.toString()}</p>
-                <p>StartDate: {filters?.dateRange?.startDate || 'undefined'}</p>
-                <p>EndDate: {filters?.dateRange?.endDate || 'undefined'}</p>
+                <p>Query trimmed: {query.trim()}</p>                <p>UseAllDates: {filterState?.useAllDates?.toString()}</p>
+                <p>StartDate: {filterState?.dateRange?.startDate || 'undefined'}</p>
+                <p>EndDate: {filterState?.dateRange?.endDate || 'undefined'}</p>
                 <p>Button disabled: {(loading || !query.trim()).toString()}</p>
               </div>
             )}
@@ -541,7 +536,7 @@ const Search = () => {
         </Card>
       )}
 
-      {results.length === 0 && !loading && query && filters.fleets && (
+      {results.length === 0 && !loading && query && filterState.fleets && (
         <Card>
           <CardContent className="py-12">
             <div className="text-center text-gray-500">

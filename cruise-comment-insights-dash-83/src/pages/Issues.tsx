@@ -16,17 +16,15 @@ import { FormattedText } from '../components/FormattedText';
 
 import { BasicFilterState, createIssuesApiData, debugFilters, formatShipName } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig } from '../utils/sortingUtils';
+import { useFilter } from '../contexts/FilterContext';
 
 const Issues = () => {
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [issuesData, setIssuesData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);  const [filters, setFilters] = useState<BasicFilterState>({
-    fleets: [],
-    ships: [],
-    dateRange: { startDate: '', endDate: '' },
-    sailingNumbers: [],
-    useAllDates: false // Default to specific date range
-  });  const [expandedIssues, setExpandedIssues] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(false);
+  
+  // Use shared filter context instead of local state
+  const { filterState, setFilterState } = useFilter();const [expandedIssues, setExpandedIssues] = useState<Record<string, boolean>>({});
   const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
@@ -52,7 +50,7 @@ const Issues = () => {
     }
   };  const handleFilterChange = (newFilters: BasicFilterState) => {
     debugFilters('FILTER CHANGE IN ISSUES', newFilters);
-    setFilters(newFilters);
+    setFilterState(newFilters);
     console.log('Filters updated in Issues component');
   };
 
@@ -88,7 +86,7 @@ const Issues = () => {
     
     setLoading(true);
     try {
-      const requestData = createIssuesApiData(filters, selectedSheets.length > 0 ? selectedSheets : (sheetsData?.data || []));
+      const requestData = createIssuesApiData(filterState, selectedSheets.length > 0 ? selectedSheets : (sheetsData?.data || []));
       
       debugFilters('ISSUES PAYLOAD DEBUG', requestData);
       console.log('Sending issues request to /sailing/getIssuesList...');
