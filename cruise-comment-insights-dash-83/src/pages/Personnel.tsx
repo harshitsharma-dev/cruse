@@ -13,9 +13,9 @@ import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
-import { SortControls } from '../components/SortControls';
+
 import { BasicFilterState, createIssuesApiData, debugFilters } from '../utils/filterUtils';
-import { sortData, toggleSort, SortConfig, PERSONNEL_SORT_OPTIONS } from '../utils/sortingUtils';
+import { sortData, toggleSort, SortConfig } from '../utils/sortingUtils';
 
 const Personnel = () => {
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
@@ -449,12 +449,7 @@ const Personnel = () => {
               <div className="space-y-4">
                 {personnelData.all_personnel && Array.isArray(personnelData.all_personnel) && personnelData.all_personnel.length > 0 && (                  <div className="mt-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-lg text-gray-900">Detailed Personnel Reports</h4>
-                      <div className="flex items-center gap-3">                        <SortControls 
-                          sortOptions={PERSONNEL_SORT_OPTIONS}
-                          currentSort={sortConfig}
-                          onSortChange={(field) => setSortConfig(toggleSort(sortConfig, field))}
-                        />
+                      <h4 className="font-semibold text-lg text-gray-900">Detailed Personnel Reports</h4>                      <div className="flex items-center gap-3">
                         <div className="flex gap-2">
                           <Button
                             variant="outline"

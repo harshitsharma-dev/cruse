@@ -10,7 +10,6 @@ import { apiService } from '../services/api';
 import BasicFilter from './BasicFilter';
 import { BasicFilterState, createRatingSummaryApiData, debugFilters, formatShipName } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig, RATING_SUMMARY_SORT_OPTIONS } from '../utils/sortingUtils';
-import { SortControls } from './SortControls';
 
 const RatingSummary = () => {
   const [ratingsData, setRatingsData] = useState<any[]>([]);
@@ -527,14 +526,7 @@ const RatingSummary = () => {
           </Card>
         ) : (          <div>            {viewMode === 'chart' ? (
               renderChartsForGroup(groupKey)
-            ) : (
-              <div className="space-y-4">                {/* Sort Controls */}
-                <SortControls
-                  currentSort={sortConfig}
-                  onSortChange={handleSort}
-                  sortOptions={RATING_SUMMARY_SORT_OPTIONS}
-                />
-                
+            ) : (              <div className="space-y-4">
                 <div className="overflow-x-auto">
                   <table className="min-w-full bg-white border border-gray-200 rounded-lg">                    <thead className="bg-gray-50">
                       <tr>

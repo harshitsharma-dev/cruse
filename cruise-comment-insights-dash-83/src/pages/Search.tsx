@@ -15,10 +15,10 @@ import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
-import { SortControls } from '../components/SortControls';
+
 import { useQuery } from '@tanstack/react-query';
 import { BasicFilterState, createSearchApiData, debugFilters } from '../utils/filterUtils';
-import { sortData, toggleSort, SortConfig, SEARCH_SORT_OPTIONS } from '../utils/sortingUtils';
+import { sortData, toggleSort, SortConfig } from '../utils/sortingUtils';
 
 const Search = () => {
   const [query, setQuery] = useState('');  const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
@@ -396,13 +396,7 @@ const Search = () => {
       {results.length > 0 && (
         <Card>          <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Search Results ({results.length})</CardTitle>
-              <div className="flex items-center gap-4">
-                <SortControls
-                  sortOptions={SEARCH_SORT_OPTIONS}
-                  currentSort={sortConfig}
-                  onSortChange={(key) => setSortConfig(toggleSort(sortConfig, key))}
-                />
+              <CardTitle>Search Results ({results.length})</CardTitle>              <div className="flex items-center gap-4">
                 <Button onClick={exportResults} variant="outline" size="sm" className="flex items-center gap-2">
                   <Download className="h-4 w-4" />
                   Export CSV
