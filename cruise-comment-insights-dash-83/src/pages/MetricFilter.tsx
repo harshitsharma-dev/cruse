@@ -21,6 +21,7 @@ const MetricFilter = () => {
   const [ratingRange, setRatingRange] = useState<number[]>([6, 10]);
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastAppliedFilters, setLastAppliedFilters] = useState<any>(null); // Track applied filters
 
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());  // Changed to string for comment IDs
   const [sailingSortConfig, setSailingSortConfig] = useState<SortConfig | null>(null);
