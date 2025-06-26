@@ -62,7 +62,7 @@ const MetricFilter = () => {
       const response = await apiService.getMetricRating(searchData);
       console.log('Metric filter response:', response);
       
-      // Use the new backend structure with filteredReviews and filteredComments
+      // Use the new backend structure with filteredResults
       const transformedResults = (response.results || [])
         .filter(result => !result.error && result.filteredCount > 0)
         .map(result => ({
@@ -73,9 +73,7 @@ const MetricFilter = () => {
           comparisonToOverall: result.comparisonToOverall || 0,
           ratingCount: result.ratingCount || 0,
           filteredCount: result.filteredCount || 0,
-          filteredReviews: result.filteredReviews || [],
-          filteredComments: result.filteredComments || [],
-          filteredMetric: result.filteredMetric || []
+          filteredResults: result.filteredResults || []
         }));
       
       setResults(transformedResults);} catch (error) {
@@ -99,14 +97,38 @@ const MetricFilter = () => {
       return;
     }
 
-    const headers = ['Ship', 'Sailing Number', 'Metric', 'Average Rating', 'Reviews'];    const csvContent = results.map(row => [
-      `"${formatShipName(row.ship)}"`,
-      `"${row.sailingNumber || 'N/A'}"`,
-      `"${row.metric || 'N/A'}"`,
-      `"${row.averageRating?.toFixed(2) || 'N/A'}"`,
-      `"${(row.filteredReviews?.join('; ') || 'N/A').replace(/"/g, '""')}"`
-    ].join(',')).join('\n');
+    const headers = ['Ship', 'Sailing Number', 'Metric', 'Average Rating', 'Rating', 'Reason', 'Comment'];
     
+    // Flatten all comments with their individual ratings
+    const csvRows: string[] = [];
+    results.forEach(row => {
+      if (row.filteredResults && row.filteredResults.length > 0) {
+        row.filteredResults.forEach((result: any) => {
+          csvRows.push([
+            `"${formatShipName(row.ship)}"`,
+            `"${row.sailingNumber || 'N/A'}"`,
+            `"${row.metric || 'N/A'}"`,
+            `"${row.averageRating?.toFixed(2) || 'N/A'}"`,
+            `"${result.rating?.toFixed(1) || 'N/A'}"`,
+            `"${(result.reason || 'N/A').replace(/"/g, '""')}"`,
+            `"${(result.comment || 'N/A').replace(/"/g, '""')}"`
+          ].join(','));
+        });
+      } else {
+        // Add a row even if no comments, showing just the summary data
+        csvRows.push([
+          `"${formatShipName(row.ship)}"`,
+          `"${row.sailingNumber || 'N/A'}"`,
+          `"${row.metric || 'N/A'}"`,
+          `"${row.averageRating?.toFixed(2) || 'N/A'}"`,
+          `"N/A"`,
+          `"N/A"`,
+          `"No comments below threshold"`
+        ].join(','));
+      }
+    });
+    
+    const csvContent = csvRows.join('\n');
     const blob = new Blob([`${headers.join(',')}\n${csvContent}`], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -288,18 +310,25 @@ const MetricFilter = () => {
                       {renderSortableHeader('sailingNumber', 'Sailing Number')}
                       {renderSortableHeader('averageRating', 'Average Rating', 'center')}
                       {renderSortableHeader('ratingCount', 'Total Ratings', 'center')}
+                      {renderSortableHeader('filteredCount', 'Comments Below Threshold', 'center')}
                     </tr>
                   </thead>
                   <tbody>
                     {sortData(results, sailingSortConfig, 'metrics').map((result, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="border border-gray-200 px-4 py-3 font-medium">{formatShipName(result.ship)}</td>
-                        <td className="border border-gray-200 px-4 py-3">{result.sailingNumber || 'N/A'}</td>                        <td className="border border-gray-200 px-4 py-3 text-center">
+                        <td className="border border-gray-200 px-4 py-3">{result.sailingNumber || 'N/A'}</td>
+                        <td className="border border-gray-200 px-4 py-3 text-center">
                           <Badge className={getRatingColor(result.averageRating)} variant="secondary">
                             {result.averageRating?.toFixed(2) || 'N/A'}
                           </Badge>
                         </td>
                         <td className="border border-gray-200 px-4 py-3 text-center">{result.ratingCount || 'N/A'}</td>
+                        <td className="border border-gray-200 px-4 py-3 text-center">
+                          <Badge variant="outline" className="text-sm">
+                            {result.filteredResults?.length || 0}
+                          </Badge>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -313,7 +342,7 @@ const MetricFilter = () => {
               <div className="space-y-4">
                 <CardTitle className="flex items-center">                  💬 Individual Guest Comments
                   <Badge variant="outline" className="ml-2 text-xs">
-                    {results.reduce((total, result) => total + (result.filteredCount || 0), 0)} total comments
+                    {results.reduce((total, result) => total + (result.filteredResults?.length || 0), 0)} total comments
                   </Badge>
                 </CardTitle>                {/* Comment Rating Sort Control */}
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -365,26 +394,27 @@ const MetricFilter = () => {
                           </Badge>
                         </div>
                         <Badge variant="outline" className="text-sm">
-                          {result.filteredCount || 0} comments below threshold
+                          {result.filteredResults?.length || 0} comments below threshold
                         </Badge>
                       </div>
                     </div>                    {/* Individual Guest Comments */}
-                    {result.filteredComments && result.filteredComments.length > 0 ? (
+                    {result.filteredResults && result.filteredResults.length > 0 ? (
                       <div className="space-y-4">
-                        {(() => {                          // Create sortable comment data with ratings and reviews
-                          const commentData = result.filteredComments.map((comment: string, originalIndex: number) => ({
-                            comment,
-                            rating: result.filteredMetric?.[originalIndex] !== undefined && result.filteredMetric?.[originalIndex] !== null ? Number(result.filteredMetric[originalIndex]) : null,
-                            review: result.filteredReviews?.[originalIndex] || `Guest #${originalIndex + 1}`,
-                            originalIndex
+                        {(() => {
+                          // Use the new filteredResults structure directly
+                          const commentData = result.filteredResults.map((item: any, index: number) => ({
+                            comment: item.comment,
+                            rating: item.rating !== undefined && item.rating !== null ? Number(item.rating) : null,
+                            reason: item.reason || `Guest #${index + 1}`,
+                            originalIndex: index
                           }));
                           
                           console.log('Comment data for debugging:', {
-                            filteredMetric: result.filteredMetric,
-                            filteredComments: result.filteredComments,
+                            filteredResults: result.filteredResults,
                             commentData: commentData.slice(0, 3) // First 3 for debugging
                           });
-                            // Sort comments based on commentSortConfig
+                            
+                          // Sort comments based on commentSortConfig
                           const sortedComments = commentSortConfig 
                             ? commentData.sort((a, b) => {
                                 let aValue, bValue;
@@ -393,8 +423,8 @@ const MetricFilter = () => {
                                   aValue = a.rating !== null ? a.rating : -1; // Treat null as lowest rating
                                   bValue = b.rating !== null ? b.rating : -1;
                                 } else if (commentSortConfig.key === 'review') {
-                                  aValue = a.review.toLowerCase();
-                                  bValue = b.review.toLowerCase();
+                                  aValue = a.reason.toLowerCase();
+                                  bValue = b.reason.toLowerCase();
                                 } else {
                                   return 0;
                                 }
@@ -413,13 +443,16 @@ const MetricFilter = () => {
                           
                           return sortedComments.map((commentData, displayIndex) => {
                             const commentId = `${sailingIndex}-${commentData.originalIndex}`;
-                            return (                              <Collapsible key={commentData.originalIndex} open={expandedRows.has(commentId)}>
+                            return (
+                              <Collapsible key={commentData.originalIndex} open={expandedRows.has(commentId)}>
                                 <div className="border border-gray-200 rounded-lg">
-                                  {/* Comment Header - Always Visible */}                                  <CollapsibleTrigger 
+                                  {/* Comment Header - Always Visible */}
+                                  <CollapsibleTrigger 
                                     onClick={() => toggleRowExpansion(commentId)}
                                     className="w-full p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
                                   >
-                                      <div className="flex justify-between items-center">                                        <div className="flex items-center space-x-3">
+                                      <div className="flex justify-between items-center">
+                                        <div className="flex items-center space-x-3">
                                           {/* Rating Badge - Prominently displayed at the start */}
                                           {commentData.rating !== null && commentData.rating !== undefined ? (
                                             <Badge className={`${getRatingColor(commentData.rating)} text-sm font-semibold px-3 py-1 flex-shrink-0`} variant="secondary">
@@ -431,7 +464,7 @@ const MetricFilter = () => {
                                             </Badge>
                                           )}
                                           <span className="text-sm font-medium text-gray-600 flex-1">
-                                            {commentData.review}
+                                            {commentData.reason}
                                           </span>
                                         </div>
                                         <div className="flex items-center space-x-2">
@@ -445,7 +478,9 @@ const MetricFilter = () => {
                                           )}
                                         </div>
                                       </div>
-                                  </CollapsibleTrigger>                                    {/* Collapsible Comment Content */}
+                                  </CollapsibleTrigger>
+                                    
+                                  {/* Collapsible Comment Content */}
                                   <CollapsibleContent>
                                     <div className="p-4 bg-white">
                                       <div className="border-l-4 border-blue-200 pl-4">

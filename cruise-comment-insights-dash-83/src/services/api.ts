@@ -302,9 +302,11 @@ class ApiService {
         metric: string;
         averageRating: number;
         ratingCount: number;
-        filteredReviews: string[];
-        filteredComments: string[];
-        filteredMetric: number[];
+        filteredResults: Array<{
+          rating: number;
+          reason: string;
+          comment: string;
+        }>;
         filteredCount: number;
         comparisonToOverall?: number;
         error?: string;
