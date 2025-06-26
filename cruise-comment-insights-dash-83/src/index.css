@@ -121,7 +121,7 @@
     background: linear-gradient(135deg, hsl(var(--apollo-accent)) 0%, hsl(var(--apollo-accent-light)) 100%);
   }
   .apollo-gradient-hero {
-    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 25%, #c084fc 50%, #e879f9 75%, #f0abfc 100%);
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #2563eb 50%, #3b82f6 75%, #60a5fa 100%);
   }
 
   /* Glass morphism effects */
