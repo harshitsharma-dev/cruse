@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,45 +7,62 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Users, ChevronDown, ChevronUp, Download, Loader2, Settings, Expand, Minimize2, Check, X, BarChart3, Star, MessageSquare, ThumbsUp, ThumbsDown, Frown } from 'lucide-react';
+import { Users, ChevronDown, ChevronUp, Download, Loader2, Settings, Expand, Minimize2, Check, X, BarChart3, Star, Heart, Frown, Meh } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
-import { useFilter } from '../contexts/FilterContext';
+
 import { BasicFilterState, createIssuesApiData, debugFilters } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig } from '../utils/sortingUtils';
+import { useFilter } from '../contexts/FilterContext';
+
+interface CrewMention {
+  crewName: string;
+  sentiments: Array<{
+    sentiment: string; // Changed from 'positive' | 'negative' | 'neutral' to string
+    mentions: Array<{
+      sheetName: string;
+      commentSnippet: string;
+      comment: string;
+    }>;
+  }>;
+}
+
+interface SailingData {
+  sailingNumber: string;
+  crewMentions: CrewMention[];
+}
+
+interface PersonnelData {
+  status: string;
+  results: SailingData[];
+}
 
 const Personnel = () => {
   const { filterState } = useFilter(); // Use shared filter context
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
-  const [selectedSentiments, setSelectedSentiments] = useState<string[]>(['positive', 'negative']);
-  const [personnelData, setPersonnelData] = useState<any>(null);
+  const [personnelData, setPersonnelData] = useState<PersonnelData | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedSailings, setExpandedSailings] = useState<Record<string, boolean>>({});
   const [expandedCrew, setExpandedCrew] = useState<Record<string, boolean>>({});
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [sentimentFilter, setSentimentFilter] = useState<string>('all');
+  const [crewNameFilter, setCrewNameFilter] = useState<string>('');
 
   // Fetch available sheets from API
   const { data: sheetsData, isLoading: sheetsLoading, error: sheetsError } = useQuery({
     queryKey: ['sheets'],
     queryFn: () => apiService.getSheets(),
   });
+
   const handleSheetToggle = (sheet: string) => {
     setSelectedSheets(prev => 
       prev.includes(sheet) 
         ? prev.filter(s => s !== sheet)
         : [...prev, sheet]
-    );
-  };
-
-  const handleSentimentToggle = (sentiment: string) => {
-    setSelectedSentiments(prev => 
-      prev.includes(sentiment) 
-        ? prev.filter(s => s !== sentiment)
-        : [...prev, sentiment]
     );
   };
 
@@ -56,38 +73,36 @@ const Personnel = () => {
     } else {
       setSelectedSheets(allSheets);
     }
-  };
-
-  const handleFilterChange = (newFilters: BasicFilterState) => {
+  };  const handleFilterChange = (newFilters: BasicFilterState) => {
     debugFilters('FILTER CHANGE IN PERSONNEL', newFilters);
     // No need to set local state since we're using FilterContext
   };
 
-  const toggleSailingExpansion = (sailingId: string) => {
+  const toggleSailingExpansion = (sailingNumber: string) => {
     setExpandedSailings(prev => ({
       ...prev,
-      [sailingId]: !prev[sailingId]
+      [sailingNumber]: !prev[sailingNumber]
     }));
   };
 
-  const toggleCrewExpansion = (crewId: string) => {
+  const toggleCrewExpansion = (crewKey: string) => {
     setExpandedCrew(prev => ({
       ...prev,
-      [crewId]: !prev[crewId]
+      [crewKey]: !prev[crewKey]
     }));
   };
 
-  const toggleCommentExpansion = (commentId: string) => {
+  const toggleCommentExpansion = (commentKey: string) => {
     setExpandedComments(prev => ({
       ...prev,
-      [commentId]: !prev[commentId]
+      [commentKey]: !prev[commentKey]
     }));
   };
 
   const expandAllSailings = () => {
     if (!personnelData?.results) return;
     const allExpanded: Record<string, boolean> = {};
-    personnelData.results.forEach((sailing: any) => {
+    personnelData.results.forEach((sailing: SailingData) => {
       allExpanded[sailing.sailingNumber] = true;
     });
     setExpandedSailings(allExpanded);
@@ -96,112 +111,155 @@ const Personnel = () => {
   const collapseAllSailings = () => {
     setExpandedSailings({});
   };
-  const handleFilterChange = (newFilters: BasicFilterState) => {
-    debugFilters('FILTER CHANGE IN PERSONNEL', newFilters);
-    setFilters(newFilters);
-    console.log('Filters updated in Personnel component');
+
+  const getSentimentIcon = (sentiment: string) => {
+    switch (sentiment) {
+      case 'positive':
+        return <Heart className="h-4 w-4 text-green-600" />;
+      case 'negative':
+        return <Frown className="h-4 w-4 text-red-600" />;
+      case 'neutral':
+        return <Meh className="h-4 w-4 text-gray-600" />;
+      default:
+        return <Meh className="h-4 w-4 text-gray-600" />;
+    }
   };
 
-  const togglePersonnelExpansion = (personnelId: string) => {
-    setExpandedPersonnel(prev => ({
-      ...prev,
-      [personnelId]: !prev[personnelId]
-    }));
-  };
-
-  const toggleSummaryExpansion = (summaryId: string) => {
-    setExpandedSummaries(prev => ({
-      ...prev,
-      [summaryId]: !prev[summaryId]
-    }));
-  };
-
-  const expandAllPersonnel = () => {
-    if (!personnelData?.all_personnel) return;
-    const allExpanded: Record<string, boolean> = {};
-    personnelData.all_personnel.forEach((_: any, index: number) => {
-      allExpanded[`personnel-${index}`] = true;
-    });
-    setExpandedPersonnel(allExpanded);
-  };
-
-  const collapseAllPersonnel = () => {
-    setExpandedPersonnel({});
+  const getSentimentBadgeColor = (sentiment: string) => {
+    switch (sentiment) {
+      case 'positive':
+        return 'bg-green-100 text-green-800';
+      case 'negative':
+        return 'bg-red-100 text-red-800';
+      case 'neutral':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
   const fetchPersonnel = async () => {
     console.log('=== PERSONNEL FETCH DEBUG START ===');
-    console.log('Current filter state:', filterState);
+    console.log('Current filters object:', filterState);
     console.log('Selected sheets:', selectedSheets);
-    console.log('Selected sentiments:', selectedSentiments);
+    console.log('Sheets data:', sheetsData?.data);
     
     setLoading(true);
     try {
-      // Use same payload format as Issues page
-      const requestData = createIssuesApiData(filterState, {
-        sheet_names: selectedSheets.length > 0 ? selectedSheets : (sheetsData?.data || [])
-      });
+      // Create API payload similar to Issues page format
+      const requestData = {
+        ships: filterState.ships && filterState.ships.length > 0 
+          ? filterState.ships.map((ship: string) => ship.split(':')[1] || ship)
+          : [],
+        sailing_numbers: filterState.sailingNumbers && filterState.sailingNumbers.length > 0 
+          ? filterState.sailingNumbers 
+          : [],
+        sheets: selectedSheets.length > 0 
+          ? selectedSheets 
+          : (sheetsData?.data && sheetsData.data.length > 0 ? sheetsData.data : []),
+        start_date: filterState.useAllDates ? "-1" : filterState.dateRange?.startDate || "",
+        end_date: filterState.useAllDates ? "-1" : filterState.dateRange?.endDate || "",
+        fleets: filterState.fleets || []
+      };
 
       console.log('=== PERSONNEL PAYLOAD DEBUG ===');
       console.log('Final personnel payload:', requestData);
-      console.log('=== END PAYLOAD DEBUG ===');
       
-      // Call the personnel API
       const response = await apiService.getPersonnelList(requestData);
       console.log('Personnel API response:', response);
-      
-      if (response && response.results) {
-        setPersonnelData(response);
-      } else {
-        console.warn('Invalid personnel response structure:', response);
-        setPersonnelData(null);
-      }
-    } catch (error) {
-      console.error('Failed to fetch personnel data:', error);
-      setPersonnelData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-              sailing_number: "MEX-10-17Jan-AtlanticIslands",
-              sheet_name: "Cabin Service",
-              personnel_mentions: "Housekeeping staff Maria did an outstanding job keeping our cabin clean and tidy. Always had a smile and was very professional."
-            },
-            {
-              ship_name: "explorer",
-              sailing_number: "MEX-11-17April-CanarianFlavours", 
-              sheet_name: "Entertainment",
-              personnel_mentions: "The entertainment team, especially David from the dance crew, was fantastic. Great energy and really engaged with the audience."
-            }
-          ],
-          total_personnel: 20,
-          sailing_count: 2
-        }
-      };
-
-      console.log('Personnel mock response:', mockResponse);
-      setPersonnelData(mockResponse.data);
+      setPersonnelData(response);
       
     } catch (error) {
       console.error('Error fetching personnel data:', error);
-      alert('Personnel API not yet implemented. Showing mock data for demo purposes.');
-      
-      // Set mock data on error too
-      const mockData = {
-        sailing_summaries: [],
-        all_personnel: [],
-        total_personnel: 0,
-        sailing_count: 0
-      };
-      setPersonnelData(mockData);
+      alert('Failed to fetch personnel data. Please try again.');
+      setPersonnelData(null);
     } finally {
       setLoading(false);
       console.log('=== PERSONNEL FETCH DEBUG END ===');
-    }
-  };
+    }  };
 
   if (sheetsError) {
     console.error('Error loading sheets:', sheetsError);
   }
+
+  const getFilteredData = () => {
+    if (!personnelData?.results) return [];
+    
+    return personnelData.results.filter(sailing => {
+      return sailing.crewMentions.some(crew => {
+        // Filter by crew name
+        if (crewNameFilter && !crew.crewName.toLowerCase().includes(crewNameFilter.toLowerCase())) {
+          return false;
+        }
+        
+        // Filter by sentiment
+        if (sentimentFilter !== 'all') {
+          return crew.sentiments.some(sentiment => sentiment.sentiment === sentimentFilter);
+        }
+        
+        return true;
+      });
+    });
+  };
+
+  const getTotalCrewCount = () => {
+    if (!personnelData?.results) return 0;
+    const allCrew = new Set();
+    personnelData.results.forEach(sailing => {
+      sailing.crewMentions.forEach(crew => {
+        allCrew.add(crew.crewName);
+      });
+    });
+    return allCrew.size;
+  };
+
+  const getTotalMentionsCount = () => {
+    if (!personnelData?.results) return 0;
+    let count = 0;
+    personnelData.results.forEach(sailing => {
+      sailing.crewMentions.forEach(crew => {
+        crew.sentiments.forEach(sentiment => {
+          count += sentiment.mentions.length;
+        });
+      });
+    });
+    return count;
+  };
+
+  const exportResults = () => {
+    if (!personnelData?.results || personnelData.results.length === 0) {
+      alert('No results to export');
+      return;
+    }
+
+    const csvRows = [];
+    csvRows.push(['Sailing Number', 'Crew Name', 'Sentiment', 'Sheet Name', 'Comment Snippet', 'Full Comment']);
+
+    personnelData.results.forEach(sailing => {
+      sailing.crewMentions.forEach(crew => {
+        crew.sentiments.forEach(sentiment => {
+          sentiment.mentions.forEach(mention => {
+            csvRows.push([
+              sailing.sailingNumber,
+              crew.crewName,
+              sentiment.sentiment,
+              mention.sheetName,
+              mention.commentSnippet?.replace(/"/g, '""') || '',
+              mention.comment?.replace(/"/g, '""') || ''
+            ]);
+          });
+        });
+      });
+    });
+
+    const csvContent = csvRows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'personnel-mentions.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -212,9 +270,9 @@ const Personnel = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-              Personnel Mentions & Recognition
+              Personnel Recognition
             </h1>
-            <p className="text-gray-600 mt-1">Track and analyze staff mentions and feedback across all sailings</p>
+            <p className="text-gray-600 mt-2">Analyze crew mentions and guest feedback for staff recognition</p>
           </div>
         </div>
       </div>
@@ -227,22 +285,21 @@ const Personnel = () => {
           compact={false}
         />
 
-        {/* Sheet Selection */}
+        {/* Sheet Selection & Controls */}
         <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+            <CardTitle className="flex items-center gap-2">
               <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-5 w-5 text-green-600" />
+                <Settings className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <span className="text-lg font-bold text-gray-900">Personnel Configuration</span>
                 <p className="text-sm text-gray-600 font-normal">Select sheets and parameters for personnel analysis</p>
-                <Badge variant="outline" className="mt-1 text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
-                  Under Development
-                </Badge>
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Sheet Selection */}
             <div>
               <Label className="text-base font-medium">Select Sheets to Analyze</Label>
               {sheetsLoading ? (
@@ -317,14 +374,48 @@ const Personnel = () => {
               )}
             </div>
 
-            <div className="pt-2">              <Button 
+            {/* Filtering Options */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Sentiment Filter</Label>
+                <Select value={sentimentFilter} onValueChange={setSentimentFilter}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sentiments</SelectItem>
+                    <SelectItem value="positive">Positive Only</SelectItem>
+                    <SelectItem value="negative">Negative Only</SelectItem>
+                    <SelectItem value="neutral">Neutral Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Crew Name Filter</Label>
+                <input
+                  type="text"
+                  value={crewNameFilter}
+                  onChange={(e) => setCrewNameFilter(e.target.value)}
+                  placeholder="Search crew name..."
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Button 
                 onClick={fetchPersonnel} 
-                className="w-full bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg cursor-not-allowed"
-                disabled={true}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg"
+                disabled={loading}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>Feature Under Development</span>
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Users className="h-4 w-4" />
+                  )}
+                  <span>{loading ? 'Loading...' : 'Get Personnel Mentions'}</span>
                 </div>
               </Button>
             </div>
@@ -333,280 +424,231 @@ const Personnel = () => {
       </div>
 
       {/* Results Section */}
-      {personnelData ? (
+      {personnelData?.results && personnelData.results.length > 0 ? (
         <div className="space-y-6">
-          {/* Sailing Summaries Section */}
+          {/* Summary Stats */}
           <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
             <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-green-600" />
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <BarChart3 className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <span className="text-lg font-bold text-gray-900">Personnel Analysis Summary</span>
+                    <p className="text-sm text-gray-600 font-normal">Overview of crew mentions across all sailings</p>
+                  </div>
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button onClick={exportResults} variant="outline" size="sm" className="flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={expandAllSailings}
+                    className="text-xs hover:bg-green-50"
+                  >
+                    <Expand className="h-3 w-3 mr-1" />
+                    Expand All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={collapseAllSailings}
+                    className="text-xs hover:bg-gray-50"
+                  >
+                    <Minimize2 className="h-3 w-3 mr-1" />
+                    Collapse All
+                  </Button>
                 </div>
-                <div>
-                  <span className="text-lg font-bold text-gray-900">Personnel Summaries</span>
-                  <p className="text-sm text-gray-600 font-normal">Overview of staff mentions by sailing</p>
-                </div>
-              </CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {personnelData?.sailing_summaries && Array.isArray(personnelData.sailing_summaries) && personnelData.sailing_summaries.length > 0 ? (
-                  <div className="space-y-6">
-                    {personnelData.sailing_summaries.map((sailing: any, index: number) => (
-                      <div key={index} className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:border-green-200">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="h-3 w-3 bg-green-500 rounded-full shadow-sm"></div>
-                              <h4 className="font-bold text-lg text-gray-900 capitalize">
-                                {sailing.ship_name || 'Unknown Ship'}
-                              </h4>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs font-medium bg-green-50 text-green-700 border-green-200">
-                                Sailing: {sailing.sailing_number || 'N/A'}
-                              </Badge>
-                              <Badge variant="secondary" className="text-xs font-medium bg-blue-50 text-blue-700">
-                                {sailing.personnel_count || 0} Personnel Mentions
-                              </Badge>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <Star className="h-4 w-4 text-green-500" />
-                            <span>Summary #{index + 1}</span>
-                          </div>
-                        </div>
-
-                        {/* Sailing Summary Text */}
-                        <div className="mt-4">
-                          <div className="border-l-4 border-green-400 pl-4">
-                            <Collapsible 
-                              open={expandedSummaries[`summary-${index}`]} 
-                              onOpenChange={() => toggleSummaryExpansion(`summary-${index}`)}
-                            >
-                              <CollapsibleTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  className="flex items-center justify-between w-full p-0 h-auto hover:bg-transparent"
-                                >
-                                  <h5 className="font-medium text-gray-800 flex items-center gap-2">
-                                    <span className="h-2 w-2 bg-green-400 rounded-full"></span>
-                                    Personnel Summary
-                                  </h5>
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-xs">
-                                      {expandedSummaries[`summary-${index}`] ? 'Click to collapse' : 'Click to expand'}
-                                    </Badge>
-                                    {expandedSummaries[`summary-${index}`] ? (
-                                      <ChevronUp className="h-4 w-4 text-green-600" />
-                                    ) : (
-                                      <ChevronDown className="h-4 w-4 text-green-600" />
-                                    )}
-                                  </div>
-                                </Button>
-                              </CollapsibleTrigger>
-                              
-                              <CollapsibleContent className="mt-3">
-                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg p-4 shadow-sm">
-                                  <div className="text-sm text-gray-800 leading-relaxed">
-                                    {sailing.sailing_summary ? (
-                                      <FormattedText 
-                                        text={sailing.sailing_summary} 
-                                        className="text-gray-800"
-                                      />
-                                    ) : (
-                                      <p className="text-gray-500 italic">No personnel summary available</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </CollapsibleContent>
-                            </Collapsible>
-                          </div>
-                        </div>
-                        
-                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                        </div>
-                      </div>
-                    ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">Total Sailings</span>
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="text-gray-500">
-                      <p className="font-medium">Personnel Summary Data</p>
-                      <p className="text-sm mt-1">
-                        API not yet implemented. This will show personnel mentions data once the backend is ready.
-                      </p>
-                    </div>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">{personnelData.results.length}</p>
+                </div>
+                <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">Unique Crew Members</span>
                   </div>
-                )}
+                  <p className="text-2xl font-bold text-green-900 mt-1">{getTotalCrewCount()}</p>
+                </div>
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-purple-600" />
+                    <span className="text-sm font-medium text-purple-700">Total Mentions</span>
+                  </div>
+                  <p className="text-2xl font-bold text-purple-900 mt-1">{getTotalMentionsCount()}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Detailed Personnel Analysis */}
-          <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Users className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <span className="text-lg font-bold text-gray-900">All Personnel Mentions - Detailed Analysis</span>
-                  <p className="text-sm text-gray-600 font-normal">Comprehensive breakdown of staff recognition and feedback</p>
-                </div>
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent>
-              <div className="space-y-4">
-                {personnelData.all_personnel && Array.isArray(personnelData.all_personnel) && personnelData.all_personnel.length > 0 && (                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-lg text-gray-900">Detailed Personnel Reports</h4>                      <div className="flex items-center gap-3">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={expandAllPersonnel}
-                            className="text-xs hover:bg-green-50"
-                          >
-                            <Expand className="h-3 w-3 mr-1" />
-                            Expand All
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={collapseAllPersonnel}
-                            className="text-xs hover:bg-gray-50"
-                          >
-                            <Minimize2 className="h-3 w-3 mr-1" />
-                            Collapse All
-                          </Button>
-                        </div>
-                        <Badge variant="secondary" className="text-sm px-3 py-1">
-                          {personnelData.all_personnel.length} Total Mentions
-                        </Badge>
-                      </div>
-                    </div>                    
-                    <div className="space-y-6 pr-2">
-                      {sortData(personnelData.all_personnel, sortConfig, 'personnel').map((personnel: any, index: number) => (
-                        <div key={index} className="group relative bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:border-green-200">
-                          {/* Personnel Header */}
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <div className="h-3 w-3 bg-green-500 rounded-full shadow-sm"></div>
-                                <h5 className="font-bold text-lg text-gray-900 capitalize">
-                                  {personnel.ship_name || 'Unknown Ship'}
-                                </h5>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs font-medium bg-green-50 text-green-700 border-green-200">
-                                  Sailing: {personnel.sailing_number || 'N/A'}
-                                </Badge>
-                                {personnel.sheet_name && (
-                                  <Badge variant="secondary" className="text-xs font-medium bg-gray-100 text-gray-700">
-                                    {personnel.sheet_name}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <Star className="h-4 w-4 text-amber-500" />
-                              <span>Mention #{index + 1}</span>
-                            </div>
+          {/* Detailed Personnel Data */}
+          <div className="space-y-4">
+            {getFilteredData().map((sailing, sailingIndex) => (
+              <Card key={sailing.sailingNumber} className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
+                <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+                  <Collapsible 
+                    open={expandedSailings[sailing.sailingNumber]} 
+                    onOpenChange={() => toggleSailingExpansion(sailing.sailingNumber)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="flex items-center justify-between w-full p-0 h-auto hover:bg-transparent"
+                      >
+                        <CardTitle className="flex items-center gap-2">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Users className="h-5 w-5 text-green-600" />
                           </div>
+                          <div className="text-left">
+                            <span className="text-lg font-bold text-gray-900">Sailing: {sailing.sailingNumber}</span>
+                            <p className="text-sm text-gray-600 font-normal">{sailing.crewMentions.length} crew members mentioned</p>
+                          </div>
+                        </CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {expandedSailings[sailing.sailingNumber] ? 'Click to collapse' : 'Click to expand'}
+                          </Badge>
+                          {expandedSailings[sailing.sailingNumber] ? (
+                            <ChevronUp className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
+                      </Button>
+                    </CollapsibleTrigger>
 
-                          {/* Personnel Content */}
-                          <div className="space-y-3">
-                            <div className="border-l-4 border-green-400 pl-4">
+                    <CollapsibleContent>
+                      <CardContent className="pt-6">
+                        <div className="space-y-6">
+                          {sailing.crewMentions
+                            .filter(crew => {
+                              // Apply crew name filter
+                              if (crewNameFilter && !crew.crewName.toLowerCase().includes(crewNameFilter.toLowerCase())) {
+                                return false;
+                              }
+                              // Apply sentiment filter
+                              if (sentimentFilter !== 'all') {
+                                return crew.sentiments.some(sentiment => sentiment.sentiment === sentimentFilter);
+                              }
+                              return true;
+                            })
+                            .map((crew, crewIndex) => (
+                            <div key={`${sailing.sailingNumber}-${crew.crewName}-${crewIndex}`} className="border border-gray-200 rounded-lg p-4 bg-white">
                               <Collapsible 
-                                open={expandedPersonnel[`personnel-${index}`]} 
-                                onOpenChange={() => togglePersonnelExpansion(`personnel-${index}`)}
+                                open={expandedCrew[`${sailing.sailingNumber}-${crew.crewName}`]} 
+                                onOpenChange={() => toggleCrewExpansion(`${sailing.sailingNumber}-${crew.crewName}`)}
                               >
                                 <CollapsibleTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     className="flex items-center justify-between w-full p-0 h-auto hover:bg-transparent"
                                   >
-                                    <h6 className="font-medium text-gray-800 flex items-center gap-2">
-                                      <span className="h-2 w-2 bg-green-400 rounded-full"></span>
-                                      Personnel Details
-                                    </h6>
-                                    <div className="flex items-center gap-2">
-                                      <Badge 
-                                        variant="outline" 
-                                        className={cn(
-                                          "text-xs transition-colors",
-                                          expandedPersonnel[`personnel-${index}`] 
-                                            ? "bg-green-50 text-green-700 border-green-200" 
-                                            : "bg-gray-50 text-gray-600 border-gray-200"
-                                        )}
-                                      >
-                                        {expandedPersonnel[`personnel-${index}`] ? 'Click to collapse' : 'Click to expand'}
-                                      </Badge>
-                                      {expandedPersonnel[`personnel-${index}`] ? (
-                                        <ChevronUp className="h-4 w-4 text-green-600" />
-                                      ) : (
-                                        <ChevronDown className="h-4 w-4 text-green-600" />
-                                      )}
+                                    <div className="flex items-center gap-3">
+                                      <div className="h-3 w-3 bg-blue-500 rounded-full"></div>
+                                      <h4 className="font-bold text-lg text-gray-900">{crew.crewName}</h4>
+                                      <div className="flex gap-1">
+                                        {crew.sentiments.map((sentiment, sentIndex) => (
+                                          <Badge 
+                                            key={sentIndex}
+                                            className={cn("text-xs", getSentimentBadgeColor(sentiment.sentiment))}
+                                          >
+                                            {getSentimentIcon(sentiment.sentiment)}
+                                            <span className="ml-1 capitalize">{sentiment.sentiment}</span>
+                                            <span className="ml-1">({sentiment.mentions.length})</span>
+                                          </Badge>
+                                        ))}
+                                      </div>
                                     </div>
+                                    {expandedCrew[`${sailing.sailingNumber}-${crew.crewName}`] ? (
+                                      <ChevronUp className="h-4 w-4 text-blue-600" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4 text-blue-600" />
+                                    )}
                                   </Button>
                                 </CollapsibleTrigger>
-                                
-                                <CollapsibleContent className="mt-3">
-                                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg p-4 shadow-sm">
-                                    <div className="text-sm text-gray-800 leading-relaxed">
-                                      {personnel.personnel_mentions ? (
-                                        <FormattedText 
-                                          text={personnel.personnel_mentions} 
-                                          className="text-gray-800"
-                                        />
-                                      ) : (
-                                        <p className="text-gray-500 italic">No detailed personnel mentions available</p>
-                                      )}
-                                    </div>
+
+                                <CollapsibleContent className="mt-4">
+                                  <div className="space-y-4">
+                                    {crew.sentiments
+                                      .filter(sentiment => sentimentFilter === 'all' || sentiment.sentiment === sentimentFilter)
+                                      .map((sentiment, sentimentIndex) => (
+                                      <div key={sentimentIndex} className={cn(
+                                        "border rounded-lg p-4",
+                                        sentiment.sentiment === 'positive' ? 'border-green-200 bg-green-50' :
+                                        sentiment.sentiment === 'negative' ? 'border-red-200 bg-red-50' :
+                                        'border-gray-200 bg-gray-50'
+                                      )}>
+                                        <div className="flex items-center gap-2 mb-3">
+                                          {getSentimentIcon(sentiment.sentiment)}
+                                          <h5 className="font-semibold capitalize">{sentiment.sentiment} Feedback</h5>
+                                          <Badge variant="outline" className="text-xs">
+                                            {sentiment.mentions.length} mention{sentiment.mentions.length !== 1 ? 's' : ''}
+                                          </Badge>
+                                        </div>
+                                        
+                                        <div className="space-y-3">
+                                          {sentiment.mentions.map((mention, mentionIndex) => (
+                                            <div key={mentionIndex} className="bg-white border border-gray-200 rounded-lg p-3">
+                                              <div className="flex items-center justify-between mb-2">
+                                                <Badge variant="secondary" className="text-xs">
+                                                  {mention.sheetName}
+                                                </Badge>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => toggleCommentExpansion(`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`)}
+                                                  className="text-xs h-auto p-1"
+                                                >
+                                                  {expandedComments[`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`] ? 'Show Less' : 'Show Full Comment'}
+                                                </Button>
+                                              </div>
+                                              
+                                              <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-2">
+                                                <p className="text-sm font-medium text-blue-900 mb-1">Key Mention:</p>
+                                                <FormattedText 
+                                                  text={mention.commentSnippet} 
+                                                  className="text-blue-800 text-sm"
+                                                />
+                                              </div>
+                                              
+                                              {expandedComments[`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`] && (
+                                                <div className="bg-gray-50 border border-gray-200 rounded p-3">
+                                                  <p className="text-sm font-medium text-gray-900 mb-1">Full Comment:</p>
+                                                  <FormattedText 
+                                                    text={mention.comment} 
+                                                    className="text-gray-700 text-sm"
+                                                  />
+                                                </div>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
                                 </CollapsibleContent>
                               </Collapsible>
                             </div>
-                          </div>
-                          
-                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    
-                    {/* Personnel Summary Footer */}
-                    <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-green-700">
-                          <BarChart3 className="h-4 w-4" />
-                          <span className="font-medium">Analysis Complete</span>
-                        </div>
-                        <div className="text-green-600">
-                          {personnelData.all_personnel.length} personnel mentions analyzed across {
-                            (() => {
-                              try {
-                                const ships = [...new Set(personnelData.all_personnel.map((personnel: any) => personnel?.ship_name).filter(Boolean))];
-                                return ships.length;
-                              } catch (error) {
-                                return 0;
-                              }
-                            })()
-                          } ships
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
         </div>
       ) : loading ? (
         <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
@@ -618,7 +660,7 @@ const Personnel = () => {
               </div>
               <div className="text-center">
                 <p className="text-lg font-medium text-gray-700 mb-1">Loading Personnel Data</p>
-                <p className="text-sm text-gray-500">Analyzing your selected criteria...</p>
+                <p className="text-sm text-gray-500">Analyzing crew mentions and feedback...</p>
               </div>
             </div>
           </CardContent>
@@ -635,17 +677,15 @@ const Personnel = () => {
               </div>
               <div>
                 <p className="text-xl font-bold text-gray-900 mb-2">Ready to Analyze Personnel Mentions</p>
-                <p className="text-gray-600 mb-4">Configure your filters and click "Get Personnel Mentions" to view staff recognition data</p>
+                <p className="text-gray-600 mb-4">Configure your filters and click "Get Personnel Mentions" to view crew recognition data</p>
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200 max-w-md mx-auto">
                   <p className="text-sm text-green-700 font-medium mb-2">Getting Started:</p>
                   <ul className="text-xs text-green-600 space-y-1 text-left">
                     <li>• Select ships and date ranges</li>
                     <li>• Choose relevant sheets to analyze</li>
+                    <li>• Apply sentiment and crew name filters</li>
                     <li>• Click "Get Personnel Mentions"</li>
                   </ul>
-                  <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
-                    <strong>Note:</strong> Personnel API is under development. Mock data will be shown for demonstration.
-                  </div>
                 </div>
               </div>
             </div>

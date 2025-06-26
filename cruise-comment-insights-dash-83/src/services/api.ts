@@ -365,38 +365,11 @@ class ApiService {
   }
 
   async getSailingNumbers() {
-    return this.request<{ status: string; data: string[] }>('/sailing/sailing_numbers');  }
+    return this.request<{ status: string; data: string[] }>('/sailing/sailing_numbers');
+  }
 
   async getSailingNumbersFiltered(filters: { ships: string[], start_date: string, end_date: string }) {
     return this.request<{ status: string; data: string[] }>('/sailing/sailing_numbers_filter', {
-      method: 'POST',
-      body: JSON.stringify(filters),
-    });
-  }
-
-  async getPersonnelList(filters: any) {
-    const isDevelopment = import.meta.env.DEV;
-    if (isDevelopment) {
-      console.log('API: Calling getPersonnelList endpoint with filters:', filters);
-    }
-    
-    return this.request<{
-      status: string;
-      results: Array<{
-        sailingNumber: string;
-        crewMentions: Array<{
-          crewName: string;
-          sentiments: Array<{
-            sentiment: string;
-            mentions: Array<{
-              sheetName: string;
-              commentSnippet: string;
-              comment: string;
-            }>;
-          }>;
-        }>;
-      }>;
-    }>('/sailing/getPersonnelList', {
       method: 'POST',
       body: JSON.stringify(filters),
     });
@@ -439,6 +412,33 @@ class ApiService {
       status: string; 
       data: Array<{ username: string; role: string }>; 
     }>('/sailing/admin/list-users');
+  }
+
+  async getPersonnelList(filters: any) {
+    const isDevelopment = import.meta.env.DEV;
+    if (isDevelopment) {
+      console.log('API: Calling getPersonnelList endpoint with filters:', filters);
+    }
+    return this.request<{ 
+      status: string; 
+      results: Array<{
+        sailingNumber: string;
+        crewMentions: Array<{
+          crewName: string;
+          sentiments: Array<{
+            sentiment: string;
+            mentions: Array<{
+              sheetName: string;
+              commentSnippet: string;
+              comment: string;
+            }>;
+          }>;
+        }>;
+      }>
+    }>('/sailing/getPersonnelList', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
   }
 }
 
