@@ -97,9 +97,8 @@ export const createSearchApiData = (
     start_date: standardFilters.start_date,
     end_date: standardFilters.end_date,
     sailing_numbers: standardFilters.sailing_numbers.length > 0 ? standardFilters.sailing_numbers : [],
-    sheet_names: options.sheet_names || [],
-    meal_time: options.meal_time,
-    semanticSearch: options.semanticSearch || true,
+    sheet_names: options.sheet_names || [],    meal_time: options.meal_time,
+    semanticSearch: options.semanticSearch || false,
     similarity_score_range: options.similarity_score_range || [0, 1],
     num_results: options.num_results || 10
   };

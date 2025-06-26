@@ -397,15 +397,14 @@ const MetricFilter = () => {
                                   <CollapsibleTrigger 
                                     onClick={() => toggleRowExpansion(commentId)}
                                     asChild
-                                  >
-                                    <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                                  >                                    <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
                                       <div className="flex justify-between items-center">
-                                        <div className="flex items-center space-x-3">
-                                          <span className="text-sm font-medium text-gray-600">
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-sm font-medium text-gray-600 flex-1">
                                             {commentData.review}
                                           </span>
                                           {commentData.rating > 0 && (
-                                            <Badge className={getRatingColor(commentData.rating)} variant="secondary">
+                                            <Badge className={`${getRatingColor(commentData.rating)} ml-2 flex-shrink-0`} variant="secondary">
                                               {commentData.rating.toFixed(1)}
                                             </Badge>
                                           )}
@@ -430,16 +429,7 @@ const MetricFilter = () => {
                                         <FormattedText 
                                           text={commentData.comment} 
                                           className="text-gray-700"
-                                        />
-                                      </div>
-                                      <div className="mt-2 pt-2 border-t border-gray-100">
-                                        <div className="flex items-center justify-between text-xs text-gray-500">
-                                          <span>Guest feedback for {selectedMetric}</span>
-                                          {commentData.rating > 0 && (
-                                            <span>Rated: {commentData.rating.toFixed(1)}/10</span>
-                                          )}
-                                        </div>
-                                      </div>
+                                        />                                      </div>
                                     </div>
                                   </CollapsibleContent>
                                 </div>

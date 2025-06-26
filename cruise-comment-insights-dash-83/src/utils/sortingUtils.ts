@@ -99,8 +99,7 @@ export const ISSUES_SORT_OPTIONS = [
  * Metric Filter page sort options for sailing-level sorting
  */
 export const METRIC_SAILING_SORT_OPTIONS = [
-  { key: 'ship', label: 'Ship Name' },
-  { key: 'sailingNumber', label: 'Sailing Number' }
+  { key: 'ship', label: 'Ship Name' }
 ] as const;
 
 /**
