@@ -405,15 +405,38 @@ const Search = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {sortData(results, sortConfig).map((result, index) => {
+            <div className="space-y-4">              {sortData(results, sortConfig).map((result, index) => {
                 console.log('Rendering search result:', result);
+                  // Define fields that we DON'T want to show as questions (standard metadata fields)
+                const excludedFields = [
+                  'Comment',
+                  'Fleet', 
+                  'Ship',
+                  'Start Date',
+                  'Sheet',
+                  'Id',
+                  'Sailing Number',
+                  'Distance Score',
+                  'status'
+                ];
                 
-                // Extract show/activity name dynamically (field that's not a standard field)
-                const showKey = Object.keys(result).find(
-                  key => !['Comment', 'Fleet', 'Distance Score', 'Id', 'status'].includes(key)
+                // Get all fields from the result EXCEPT the excluded ones
+                const questionFields = Object.keys(result).filter(field => 
+                  !excludedFields.includes(field)
                 );
-                const showName = showKey ? result[showKey] : 'N/A';
+                
+                // Filter out questions that have NaN, null, undefined, or empty values
+                const validQuestions = questionFields.filter(field => {
+                  const value = result[field];
+                  return value !== null && 
+                         value !== undefined && 
+                         !Number.isNaN(value) && 
+                         value !== '' && 
+                         value !== 'NaN';
+                }).map(field => ({
+                  question: field,
+                  answer: result[field]
+                }));
                 
                 return (
                   <div key={result.Id || index} className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors">                    <div className="flex justify-between items-start mb-3">
@@ -441,15 +464,24 @@ const Search = () => {
                       )}
                     </div>
                     
-                    {showKey && (
-                      <div className="mb-2">
-                        <span className="text-sm font-semibold text-gray-900">
-                          {showKey}: {showName}
-                        </span>
+                    {/* Display valid questions and answers */}
+                    {validQuestions.length > 0 && (
+                      <div className="mb-3 space-y-2">
+                        {validQuestions.map((qa, qaIndex) => (
+                          <div key={qaIndex} className="bg-blue-50 p-2 rounded-md">
+                            <div className="text-sm font-medium text-blue-900 mb-1">
+                              {qa.question}
+                            </div>
+                            <div className="text-sm text-blue-800">
+                              {qa.answer}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}                    <div className="text-sm text-gray-700 leading-relaxed mb-2">
                       {result.Comment ? (
                         <div>
+                          <div className="font-medium text-gray-600 mb-1">Comment:</div>
                           {result.Comment.length > 100 ? (
                             <div>
                               {expandedComments[result.Id] ? (
