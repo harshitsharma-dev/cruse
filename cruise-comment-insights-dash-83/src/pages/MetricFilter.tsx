@@ -317,8 +317,17 @@ const MetricFilter = () => {
                   </Badge>
                 </CardTitle>                {/* Comment Rating Sort Control */}
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm font-medium text-gray-700">Sort by Rating:</span>
+                  <span className="text-sm font-medium text-gray-700">Sort comments by rating:</span>
                   <div className="flex gap-2">
+                    <Button
+                      variant={commentSortConfig?.key === 'rating' && commentSortConfig?.direction === 'desc' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCommentSortConfig({ key: 'rating', direction: 'desc' })}
+                      className="flex items-center gap-1"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                      High to Low
+                    </Button>
                     <Button
                       variant={commentSortConfig?.key === 'rating' && commentSortConfig?.direction === 'asc' ? 'default' : 'outline'}
                       size="sm"
@@ -329,13 +338,13 @@ const MetricFilter = () => {
                       Low to High
                     </Button>
                     <Button
-                      variant={commentSortConfig?.key === 'rating' && commentSortConfig?.direction === 'desc' ? 'default' : 'outline'}
+                      variant={commentSortConfig === null ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setCommentSortConfig({ key: 'rating', direction: 'desc' })}
+                      onClick={() => setCommentSortConfig(null)}
                       className="flex items-center gap-1"
                     >
-                      <ChevronDown className="h-3 w-3" />
-                      High to Low
+                      <ArrowUpDown className="h-3 w-3" />
+                      Original Order
                     </Button>
                   </div>
                 </div>
@@ -407,15 +416,16 @@ const MetricFilter = () => {
                                     className="w-full p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
                                   >
                                       <div className="flex justify-between items-center">
-                                        <div className="flex items-center space-x-2">
+                                        <div className="flex items-center space-x-3">
+                                          {/* Rating Badge - Prominently displayed at the start */}
+                                          {commentData.rating > 0 && (
+                                            <Badge className={`${getRatingColor(commentData.rating)} text-sm font-semibold px-2 py-1 flex-shrink-0`} variant="secondary">
+                                              ⭐ {commentData.rating.toFixed(1)}
+                                            </Badge>
+                                          )}
                                           <span className="text-sm font-medium text-gray-600 flex-1">
                                             {commentData.review}
                                           </span>
-                                          {commentData.rating > 0 && (
-                                            <Badge className={`${getRatingColor(commentData.rating)} ml-2 flex-shrink-0`} variant="secondary">
-                                              {commentData.rating.toFixed(1)}
-                                            </Badge>
-                                          )}
                                         </div>
                                         <div className="flex items-center space-x-2">
                                           <span className="text-xs text-gray-500">
@@ -428,15 +438,17 @@ const MetricFilter = () => {
                                           )}
                                         </div>
                                       </div>
-                                  </CollapsibleTrigger>
-                                    {/* Collapsible Comment Content */}
+                                  </CollapsibleTrigger>                                    {/* Collapsible Comment Content */}
                                   <CollapsibleContent>
                                     <div className="p-4 bg-white">
-                                      <div className="text-sm text-gray-700 leading-relaxed">
-                                        <FormattedText 
-                                          text={commentData.comment} 
-                                          className="text-gray-700"
-                                        />                                      </div>
+                                      <div className="border-l-4 border-blue-200 pl-4">
+                                        <div className="text-sm text-gray-700 leading-relaxed">
+                                          <FormattedText 
+                                            text={commentData.comment} 
+                                            className="text-gray-700"
+                                          />
+                                        </div>
+                                      </div>
                                     </div>
                                   </CollapsibleContent>
                                 </div>
