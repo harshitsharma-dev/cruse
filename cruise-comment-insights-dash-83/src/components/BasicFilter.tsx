@@ -52,33 +52,32 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();  const [selectedSailingNumbers, setSelectedSailingNumbers] = useState<string[]>([]);
   const [useAllDates, setUseAllDates] = useState(false); // Default to specific date range
-
   // Function to check if any filters are currently applied
   const areFiltersApplied = () => {
     return (
-      safeFilterState.fleets.length > 0 ||
-      safeFilterState.ships.length > 0 ||
-      (safeFilterState.dateRange.startDate && safeFilterState.dateRange.endDate) ||
-      safeFilterState.sailingNumbers.length > 0
+      (filterState?.fleets && filterState.fleets.length > 0) ||
+      (filterState?.ships && filterState.ships.length > 0) ||
+      (filterState?.dateRange?.startDate && filterState?.dateRange?.endDate) ||
+      (filterState?.sailingNumbers && filterState.sailingNumbers.length > 0) ||
+      filterState?.useAllDates
     );
-  };
-  // Function to check if there are pending changes that need to be applied
+  };  // Function to check if there are pending changes that need to be applied
   const hasPendingChanges = () => {
     const currentStartDate = startDate ? format(startDate, 'yyyy-MM-dd') : '';
     const currentEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : '';
     
     // For useAllDates, check if it differs from the current state
     const currentUseAllDates = useAllDates;
-    const persistedUseAllDates = safeFilterState.useAllDates ?? false;
+    const persistedUseAllDates = filterState?.useAllDates ?? false;
     
     return (
       // Check if dates have changed (only when not using all dates)
       (!currentUseAllDates && (
-        (currentStartDate !== (safeFilterState.dateRange.startDate || '')) ||
-        (currentEndDate !== (safeFilterState.dateRange.endDate || ''))
+        (currentStartDate !== (filterState?.dateRange?.startDate || '')) ||
+        (currentEndDate !== (filterState?.dateRange?.endDate || ''))
       )) ||
       // Check if sailing numbers have changed
-      JSON.stringify(selectedSailingNumbers.sort()) !== JSON.stringify((safeFilterState.sailingNumbers || []).sort()) ||
+      JSON.stringify(selectedSailingNumbers.sort()) !== JSON.stringify((filterState?.sailingNumbers || []).sort()) ||
       // Check if useAllDates changed
       currentUseAllDates !== persistedUseAllDates
     );
@@ -126,7 +125,9 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       useAllDates: useAllDates
     };
     
-    // Update the filter context state
+    console.log('BasicFilter: Applying filters with context update:', contextUpdate);
+    
+    // Update the filter context state - this should trigger re-render
     setFilterState(contextUpdate);
     
     // Prepare standardized filter data for the callback
@@ -148,6 +149,15 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     // Call the parent component's filter change handler
     onFilterChange?.(filterData);
     onApplyFilters?.();
+    
+    // Force a small delay to ensure state has updated before checking button state
+    setTimeout(() => {
+      console.log('Post-apply state check:', {
+        areFiltersApplied: areFiltersApplied(),
+        hasPendingChanges: hasPendingChanges(),
+        filterState: safeFilterState
+      });
+    }, 100);
   };const handleResetFilters = () => {
     resetFilters();
     
@@ -696,12 +706,14 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
             </Popover>
           </div>
         </div>{/* Action Buttons */}        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-          {/* Debug info for button state */}
-          {process.env.NODE_ENV === 'development' && (
+          {/* Debug info for button state */}          {process.env.NODE_ENV === 'development' && (
             <div className="p-2 bg-gray-100 rounded text-xs">
               <p>areFiltersApplied: {areFiltersApplied().toString()}</p>
               <p>hasPendingChanges: {hasPendingChanges().toString()}</p>
               <p>Button disabled: {(areFiltersApplied() && !hasPendingChanges()).toString()}</p>
+              <p>filterState: {JSON.stringify(filterState, null, 2)}</p>
+              <p>selectedSailingNumbers: {JSON.stringify(selectedSailingNumbers)}</p>
+              <p>useAllDates: {useAllDates.toString()}</p>
             </div>
           )}
           <Button 
