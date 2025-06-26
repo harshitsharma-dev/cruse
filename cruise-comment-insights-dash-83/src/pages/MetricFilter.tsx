@@ -11,7 +11,6 @@ import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
-import { SortControls } from '../components/SortControls';
 import { BasicFilterState, createMetricRatingApiData, debugFilters, formatShipName } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig, METRIC_SAILING_SORT_OPTIONS, METRIC_COMMENT_SORT_OPTIONS } from '../utils/sortingUtils';
 
@@ -319,16 +318,29 @@ const MetricFilter = () => {
                   <Badge variant="outline" className="ml-2 text-xs">
                     {results.reduce((total, result) => total + (result.filteredCount || 0), 0)} total comments
                   </Badge>
-                </CardTitle>
-                {/* Comment Rating Sort Control */}
+                </CardTitle>                {/* Comment Rating Sort Control */}
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm font-medium text-gray-700">Sort Comments:</span>
-                  <SortControls 
-                    sortOptions={METRIC_COMMENT_SORT_OPTIONS}
-                    currentSort={commentSortConfig}
-                    onSortChange={(field) => setCommentSortConfig(toggleSort(commentSortConfig, field))}
-                    className="text-sm"
-                  />
+                  <span className="text-sm font-medium text-gray-700">Sort by Rating:</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={commentSortConfig?.key === 'rating' && commentSortConfig?.direction === 'asc' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCommentSortConfig({ key: 'rating', direction: 'asc' })}
+                      className="flex items-center gap-1"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                      Low to High
+                    </Button>
+                    <Button
+                      variant={commentSortConfig?.key === 'rating' && commentSortConfig?.direction === 'desc' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCommentSortConfig({ key: 'rating', direction: 'desc' })}
+                      className="flex items-center gap-1"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                      High to Low
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardHeader>
