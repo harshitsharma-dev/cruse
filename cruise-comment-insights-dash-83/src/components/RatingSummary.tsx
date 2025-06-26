@@ -9,6 +9,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { apiService } from '../services/api';
 import BasicFilter from './BasicFilter';
 import { BasicFilterState, createRatingSummaryApiData, debugFilters, formatShipName } from '../utils/filterUtils';
+import { sortData, toggleSort, SortConfig, RATING_SUMMARY_SORT_OPTIONS } from '../utils/sortingUtils';
+import { SortControls } from './SortControls';
 
 const RatingSummary = () => {
   const [ratingsData, setRatingsData] = useState<any[]>([]);
@@ -20,8 +22,10 @@ const RatingSummary = () => {
     sailingNumbers: [],
     useAllDates: true
   });
-  const [activeGroup, setActiveGroup] = useState('overall');
-  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');  // Fetch metrics from backend
+  const [activeGroup, setActiveGroup] = useState('overall');  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'start_date', direction: 'asc' });
+
+  // Fetch metrics from backend
   const { data: metricsData } = useQuery({
     queryKey: ['metrics'],
     queryFn: () => apiService.getMetrics(),
@@ -296,6 +300,57 @@ const RatingSummary = () => {
     });
   };
 
+  // Handle sorting
+  const handleSort = (key: string) => {
+    const newConfig = toggleSort(sortConfig, key);
+    setSortConfig(newConfig);
+  };
+  // Get sorted data for display
+  const getSortedData = () => {
+    if (!Array.isArray(ratingsData) || ratingsData.length === 0) {
+      return [];
+    }
+    
+    if (!sortConfig) return ratingsData;
+    
+    return [...ratingsData].sort((a, b) => {
+      let aValue, bValue;
+      
+      if (sortConfig.key === 'ship_name') {
+        aValue = formatShipName(a['Ship']);
+        bValue = formatShipName(b['Ship']);
+      } else if (sortConfig.key === 'sailing_number') {
+        aValue = a['Sailing Number'];
+        bValue = b['Sailing Number'];
+      } else if (sortConfig.key === 'start_date') {
+        aValue = extractStartDate(a['Sailing Number']);
+        bValue = extractStartDate(b['Sailing Number']);
+      } else if (sortConfig.key === 'fleet') {
+        aValue = a['Fleet'];
+        bValue = b['Fleet'];
+      } else {
+        return 0;
+      }
+      
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (bValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
+      
+      // Handle different data types
+      let result = 0;
+      if (aValue instanceof Date && bValue instanceof Date) {
+        result = aValue.getTime() - bValue.getTime();
+      } else if (typeof aValue === 'string' && typeof bValue === 'string') {
+        result = aValue.toLowerCase().localeCompare(bValue.toLowerCase());
+      } else {
+        result = String(aValue).toLowerCase().localeCompare(String(bValue).toLowerCase());
+      }
+      
+      return sortConfig.direction === 'asc' ? result : -result;
+    });
+  };
+
   // Generate unique colors for each ship
   const getShipColors = () => {
     const uniqueShips = [...new Set(ratingsData.map(r => r['Ship']))];
@@ -470,49 +525,56 @@ const RatingSummary = () => {
               </div>
             </CardContent>
           </Card>
-        ) : (
-          <div>            {viewMode === 'chart' ? (
+        ) : (          <div>            {viewMode === 'chart' ? (
               renderChartsForGroup(groupKey)
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-white border border-gray-200 rounded-lg">                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Ship</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Sailing</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Fleet</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Start Date</th>
-                      {group.metrics.map((metric) => (
-                        <th key={metric} className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">
-                          {metric}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead><tbody className="divide-y divide-gray-200">                    {Array.isArray(ratingsData) && ratingsData.map((rating, index) => (
-                      <tr key={index} className="hover:bg-gray-50">                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {formatShipName(rating['Ship'])}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {rating['Sailing Number'] || 'N/A'}
-                        </td>                        <td className="px-4 py-3 text-sm text-gray-600 capitalize">
-                          {rating['Fleet'] || 'N/A'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {formatStartDate(rating['Sailing Number'])}
-                        </td>
+              <div className="space-y-4">                {/* Sort Controls */}
+                <SortControls
+                  currentSort={sortConfig}
+                  onSortChange={handleSort}
+                  sortOptions={RATING_SUMMARY_SORT_OPTIONS}
+                />
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white border border-gray-200 rounded-lg">                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Ship</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Sailing</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Fleet</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Start Date</th>
                         {group.metrics.map((metric) => (
-                          <td key={metric} className="px-4 py-3 text-sm">
-                            <Badge 
-                              className={getRatingColor(rating[metric])}
-                              variant="secondary"
-                            >
-                              {rating[metric]?.toFixed(1) || 'N/A'}
-                            </Badge>
-                          </td>
+                          <th key={metric} className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">
+                            {metric}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead><tbody className="divide-y divide-gray-200">                      {getSortedData().map((rating, index) => (
+                        <tr key={index} className="hover:bg-gray-50">                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            {formatShipName(rating['Ship'])}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {rating['Sailing Number'] || 'N/A'}
+                          </td>                          <td className="px-4 py-3 text-sm text-gray-600 capitalize">
+                            {rating['Fleet'] || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {formatStartDate(rating['Sailing Number'])}
+                          </td>
+                          {group.metrics.map((metric) => (
+                            <td key={metric} className="px-4 py-3 text-sm">
+                              <Badge 
+                                className={getRatingColor(rating[metric])}
+                                variant="secondary"
+                              >
+                                {rating[metric]?.toFixed(1) || 'N/A'}
+                              </Badge>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

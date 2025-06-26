@@ -103,12 +103,11 @@ const MetricFilter = () => {
       return;
     }
 
-    const headers = ['Ship', 'Sailing Number', 'Metric', 'Average Rating', 'Comparison to Overall', 'Reviews'];    const csvContent = results.map(row => [
+    const headers = ['Ship', 'Sailing Number', 'Metric', 'Average Rating', 'Reviews'];    const csvContent = results.map(row => [
       `"${formatShipName(row.ship)}"`,
       `"${row.sailingNumber || 'N/A'}"`,
       `"${row.metric || 'N/A'}"`,
       `"${row.averageRating?.toFixed(2) || 'N/A'}"`,
-      `"${row.comparisonToOverall?.toFixed(2) || 'N/A'}"`,
       `"${(row.filteredReviews?.join('; ') || 'N/A').replace(/"/g, '""')}"`
     ].join(',')).join('\n');
     
@@ -272,33 +271,22 @@ const MetricFilter = () => {
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse border border-gray-200 rounded-lg">
-                  <thead>                    <tr className="bg-gray-50">
-                      <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Ship</th>
+                  <thead>                    <tr className="bg-gray-50">                      <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Ship</th>
                       <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Sailing Number</th>
                       <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Average Rating</th>
                       <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Total Ratings</th>
-                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Comparison (vs overall avg)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortData(results, sailingSortConfig, 'metrics').map((result, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="border border-gray-200 px-4 py-3 font-medium">{formatShipName(result.ship)}</td>
-                        <td className="border border-gray-200 px-4 py-3">{result.sailingNumber || 'N/A'}</td>
-                        <td className="border border-gray-200 px-4 py-3 text-center">
+                        <td className="border border-gray-200 px-4 py-3">{result.sailingNumber || 'N/A'}</td>                        <td className="border border-gray-200 px-4 py-3 text-center">
                           <Badge className={getRatingColor(result.averageRating)} variant="secondary">
                             {result.averageRating?.toFixed(2) || 'N/A'}
                           </Badge>
-                        </td>                        <td className="border border-gray-200 px-4 py-3 text-center">{result.ratingCount || 'N/A'}</td>
-                        <td className="border border-gray-200 px-4 py-3 text-center">
-                          {result.comparisonToOverall !== undefined ? (
-                            <span className={`text-sm font-medium ${result.comparisonToOverall >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {result.comparisonToOverall > 0 ? '+' : ''}{result.comparisonToOverall.toFixed(2)}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">N/A</span>
-                          )}
                         </td>
+                        <td className="border border-gray-200 px-4 py-3 text-center">{result.ratingCount || 'N/A'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -435,8 +423,7 @@ const MetricFilter = () => {
                                       </div>
                                     </div>
                                   </CollapsibleTrigger>
-                                  
-                                  {/* Collapsible Comment Content */}
+                                    {/* Collapsible Comment Content */}
                                   <CollapsibleContent>
                                     <div className="p-4 bg-white">
                                       <div className="text-sm text-gray-700 leading-relaxed">
@@ -445,13 +432,11 @@ const MetricFilter = () => {
                                           className="text-gray-700"
                                         />
                                       </div>
-                                      <div className="mt-3 pt-3 border-t border-gray-100">
+                                      <div className="mt-2 pt-2 border-t border-gray-100">
                                         <div className="flex items-center justify-between text-xs text-gray-500">
                                           <span>Guest feedback for {selectedMetric}</span>
                                           {commentData.rating > 0 && (
-                                            <span>
-                                              Rated: {commentData.rating.toFixed(1)}/10
-                                            </span>
+                                            <span>Rated: {commentData.rating.toFixed(1)}/10</span>
                                           )}
                                         </div>
                                       </div>

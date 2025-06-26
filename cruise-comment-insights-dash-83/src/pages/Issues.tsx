@@ -78,10 +78,10 @@ const Issues = () => {
     });
     setExpandedIssues(allExpanded);
   };
-
   const collapseAllIssues = () => {
     setExpandedIssues({});
-  };  const fetchIssues = async () => {
+    setExpandedSummaries({}); // Also collapse sailing summaries
+  };const fetchIssues = async () => {
     debugFilters('ISSUES FETCH DEBUG START', filters);
     console.log('Selected sheets:', selectedSheets);
     console.log('Sheets data:', sheetsData?.data);
@@ -112,6 +112,17 @@ const Issues = () => {
       console.log('=== ISSUES FETCH DEBUG END ===');
     }
   };
+
+  // Auto-expand sailing summaries when data is loaded
+  useEffect(() => {
+    if (issuesData?.sailing_summaries) {
+      const expandedState: Record<string, boolean> = {};
+      issuesData.sailing_summaries.forEach((_, index) => {
+        expandedState[`summary-${index}`] = true; // Expand by default
+      });
+      setExpandedSummaries(expandedState);
+    }
+  }, [issuesData]);
 
   if (sheetsError) {
     console.error('Error loading sheets:', sheetsError);
@@ -188,20 +199,19 @@ const Issues = () => {
                           <span className="font-medium">
                             {selectedSheets.length === (sheetsData?.data?.length || 0) ? "Deselect All" : "Select All"}
                           </span>
-                        </div>
-                        {(sheetsData?.data || []).map((sheet: string) => (
+                        </div>                        {(sheetsData?.data || []).map((sheet: string) => (
                           <div 
                             key={sheet}
-                            className={cn(
-                              "flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer",
-                              selectedSheets.includes(sheet) ? "bg-blue-50" : ""
-                            )}
-                            onClick={() => handleSheetToggle(sheet)}
+                            className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded"
                           >
-                            <span className="text-sm">{sheet}</span>
-                            {selectedSheets.includes(sheet) && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
+                            <Checkbox
+                              checked={selectedSheets.includes(sheet)}
+                              onCheckedChange={(checked) => handleSheetToggle(sheet)}
+                              className="border-2 border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                            />
+                            <span className="text-sm flex-1 cursor-pointer" onClick={() => handleSheetToggle(sheet)}>
+                              {sheet}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -421,11 +431,7 @@ const Issues = () => {
                           >
                             <Minimize2 className="h-3 w-3 mr-1" />
                             Collapse All
-                          </Button>
-                        </div>
-                        <Badge variant="secondary" className="text-sm px-3 py-1">
-                          {issuesData.all_issues.length} Total Issues
-                        </Badge>
+                          </Button>                        </div>
                       </div>
                     </div>                    
                     <div className="space-y-6 pr-2">

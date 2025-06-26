@@ -21,14 +21,15 @@ import { BasicFilterState, createSearchApiData, debugFilters } from '../utils/fi
 import { sortData, toggleSort, SortConfig, SEARCH_SORT_OPTIONS } from '../utils/sortingUtils';
 
 const Search = () => {
-  const [query, setQuery] = useState('');
-  const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
+  const [query, setQuery] = useState('');  const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [selectedMealTimes, setSelectedMealTimes] = useState<string[]>([]);
-  const [searchType, setSearchType] = useState('semantic');
-  const [cutOff, setCutOff] = useState([7]);  const [numResults, setNumResults] = useState(50);
+  const [searchType, setSearchType] = useState('keyword');
+  const [cutOff, setCutOff] = useState([7]);
+  const [numResults, setNumResults] = useState(50);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);const [filters, setFilters] = useState<BasicFilterState>({
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});const [filters, setFilters] = useState<BasicFilterState>({
     fleets: [],
     ships: [],
     dateRange: { startDate: '', endDate: '' },
@@ -123,6 +124,13 @@ const Search = () => {
     a.download = 'search-results.csv';
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const toggleCommentExpansion = (resultId: string) => {
+    setExpandedComments(prev => ({
+      ...prev,
+      [resultId]: !prev[resultId]
+    }));
   };
 
   if (sheetsError) {
@@ -414,28 +422,27 @@ const Search = () => {
                 const showName = showKey ? result[showKey] : 'N/A';
                 
                 return (
-                  <div key={result.Id || index} className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div className="flex justify-between items-start mb-3">
+                  <div key={result.Id || index} className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors">                    <div className="flex justify-between items-start mb-3">
                       <div className="flex gap-2 flex-wrap">
                         {result.Fleet && (
                           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                             Fleet: {result.Fleet}
                           </span>
                         )}
-                        {showName && showName !== 'N/A' && (
+                        {result.Ship && (
                           <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                            Activity: {showName}
+                            Ship: {result.Ship}
                           </span>
                         )}
-                        {result['Distance Score'] && (
+                        {result['Start Date'] && (
                           <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                            Score: {result['Distance Score'].toFixed(3)}
+                            Start: {result['Start Date']}
                           </span>
                         )}
                       </div>
-                      {result.Id && (
-                        <span className="text-xs text-gray-500">
-                          ID: {result.Id.slice(0, 8)}...
+                      {result.Sheet && (
+                        <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                          Sheet: {result.Sheet}
                         </span>
                       )}
                     </div>
@@ -446,14 +453,35 @@ const Search = () => {
                           {showKey}: {showName}
                         </span>
                       </div>
-                    )}
-                      <div className="text-sm text-gray-700 leading-relaxed mb-2">
-                      <span className="font-medium mb-1 block">Comment:</span>
+                    )}                    <div className="text-sm text-gray-700 leading-relaxed mb-2">
                       {result.Comment ? (
-                        <FormattedText 
-                          text={result.Comment} 
-                          className="text-gray-700"
-                        />
+                        <div>
+                          {result.Comment.length > 100 ? (
+                            <div>
+                              {expandedComments[result.Id] ? (
+                                <FormattedText 
+                                  text={result.Comment} 
+                                  className="text-gray-700"
+                                />
+                              ) : (
+                                <span className="text-gray-700">
+                                  {result.Comment.substring(0, 100)}...
+                                </span>
+                              )}
+                              <button
+                                onClick={() => toggleCommentExpansion(result.Id)}
+                                className="text-blue-600 hover:text-blue-800 ml-2 text-sm font-medium"
+                              >
+                                {expandedComments[result.Id] ? 'Show Less' : 'Show More'}
+                              </button>
+                            </div>
+                          ) : (
+                            <FormattedText 
+                              text={result.Comment} 
+                              className="text-gray-700"
+                            />
+                          )}
+                        </div>
                       ) : (
                         <p className="text-gray-500 italic">No comment available</p>
                       )}

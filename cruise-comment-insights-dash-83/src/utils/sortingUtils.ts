@@ -92,10 +92,7 @@ export const SEARCH_SORT_OPTIONS = [
  */
 export const ISSUES_SORT_OPTIONS = [
   { key: 'ship_name', label: 'Ship Name' },
-  { key: 'sailing_number', label: 'Sailing Number' },
-  { key: 'issue_count', label: 'Issue Count' },
-  { key: 'start_date', label: 'Date' },
-  { key: 'sheet_name', label: 'Category' }
+  { key: 'issue_count', label: 'Issue #' }
 ] as const;
 
 /**
