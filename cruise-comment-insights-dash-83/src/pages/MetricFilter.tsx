@@ -374,7 +374,7 @@ const MetricFilter = () => {
                         {(() => {                          // Create sortable comment data with ratings and reviews
                           const commentData = result.filteredComments.map((comment: string, originalIndex: number) => ({
                             comment,
-                            rating: result.filteredMetric?.[originalIndex] !== undefined && result.filteredMetric?.[originalIndex] !== null ? Number(result.filteredMetric[originalIndex]) : 0,
+                            rating: result.filteredMetric?.[originalIndex] !== undefined && result.filteredMetric?.[originalIndex] !== null ? Number(result.filteredMetric[originalIndex]) : null,
                             review: result.filteredReviews?.[originalIndex] || `Guest #${originalIndex + 1}`,
                             originalIndex
                           }));
@@ -384,15 +384,14 @@ const MetricFilter = () => {
                             filteredComments: result.filteredComments,
                             commentData: commentData.slice(0, 3) // First 3 for debugging
                           });
-                          
-                          // Sort comments based on commentSortConfig
+                            // Sort comments based on commentSortConfig
                           const sortedComments = commentSortConfig 
                             ? commentData.sort((a, b) => {
                                 let aValue, bValue;
                                 
                                 if (commentSortConfig.key === 'rating') {
-                                  aValue = a.rating;
-                                  bValue = b.rating;
+                                  aValue = a.rating !== null ? a.rating : -1; // Treat null as lowest rating
+                                  bValue = b.rating !== null ? b.rating : -1;
                                 } else if (commentSortConfig.key === 'review') {
                                   aValue = a.review.toLowerCase();
                                   bValue = b.review.toLowerCase();
@@ -422,7 +421,7 @@ const MetricFilter = () => {
                                   >
                                       <div className="flex justify-between items-center">                                        <div className="flex items-center space-x-3">
                                           {/* Rating Badge - Prominently displayed at the start */}
-                                          {commentData.rating && commentData.rating > 0 ? (
+                                          {commentData.rating !== null && commentData.rating !== undefined ? (
                                             <Badge className={`${getRatingColor(commentData.rating)} text-sm font-semibold px-3 py-1 flex-shrink-0`} variant="secondary">
                                               ⭐ {commentData.rating.toFixed(1)}
                                             </Badge>
