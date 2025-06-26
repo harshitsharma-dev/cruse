@@ -51,9 +51,18 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
   const safeAvailableFleets = Array.isArray(availableFleets) ? availableFleets : [];
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [selectedSailingNumbers, setSelectedSailingNumbers] = useState<string[]>([]);
-  const [filtersApplied, setFiltersApplied] = useState(false);
+  const [selectedSailingNumbers, setSelectedSailingNumbers] = useState<string[]>([]);  const [filtersApplied, setFiltersApplied] = useState(false);
   const [useAllDates, setUseAllDates] = useState(false); // Default to specific date range
+
+  // Function to check if any filters are currently applied
+  const areFiltersApplied = () => {
+    return (
+      safeFilterState.fleets.length > 0 ||
+      safeFilterState.ships.length > 0 ||
+      (safeFilterState.dateRange.startDate && safeFilterState.dateRange.endDate) ||
+      safeFilterState.sailingNumbers.length > 0
+    );
+  };
   const handleFleetChange = (fleetName: string, checked: boolean) => {
     const newFleets = checked 
       ? [...safeFilterState.fleets, fleetName]
@@ -204,12 +213,19 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
   }  return (
     <Card className={cn("w-full apollo-shadow bg-white/95 backdrop-blur-sm border-white/20", compact ? "border-0 shadow-none bg-gray-50" : "", className)}>
       {showTitle && (
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-xl">
+        <CardHeader className="pb-4">          <CardTitle className="flex items-center gap-3 text-xl">
             <div className="apollo-gradient-primary p-2 rounded-lg">
               <Filter className="h-6 w-6 text-white" />
             </div>
-            Apollo Filters
+            <div className="flex items-center gap-2">
+              <span>Apollo Filters</span>
+              {areFiltersApplied() && (
+                <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Applied
+                </Badge>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
       )}
