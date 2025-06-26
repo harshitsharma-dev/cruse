@@ -371,14 +371,19 @@ const MetricFilter = () => {
                     </div>                    {/* Individual Guest Comments */}
                     {result.filteredComments && result.filteredComments.length > 0 ? (
                       <div className="space-y-4">
-                        {(() => {
-                          // Create sortable comment data with ratings and reviews
+                        {(() => {                          // Create sortable comment data with ratings and reviews
                           const commentData = result.filteredComments.map((comment: string, originalIndex: number) => ({
                             comment,
-                            rating: result.filteredMetric?.[originalIndex] || 0,
+                            rating: result.filteredMetric?.[originalIndex] !== undefined && result.filteredMetric?.[originalIndex] !== null ? Number(result.filteredMetric[originalIndex]) : 0,
                             review: result.filteredReviews?.[originalIndex] || `Guest #${originalIndex + 1}`,
                             originalIndex
                           }));
+                          
+                          console.log('Comment data for debugging:', {
+                            filteredMetric: result.filteredMetric,
+                            filteredComments: result.filteredComments,
+                            commentData: commentData.slice(0, 3) // First 3 for debugging
+                          });
                           
                           // Sort comments based on commentSortConfig
                           const sortedComments = commentSortConfig 
@@ -415,12 +420,15 @@ const MetricFilter = () => {
                                     onClick={() => toggleRowExpansion(commentId)}
                                     className="w-full p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
                                   >
-                                      <div className="flex justify-between items-center">
-                                        <div className="flex items-center space-x-3">
+                                      <div className="flex justify-between items-center">                                        <div className="flex items-center space-x-3">
                                           {/* Rating Badge - Prominently displayed at the start */}
-                                          {commentData.rating > 0 && (
-                                            <Badge className={`${getRatingColor(commentData.rating)} text-sm font-semibold px-2 py-1 flex-shrink-0`} variant="secondary">
+                                          {commentData.rating && commentData.rating > 0 ? (
+                                            <Badge className={`${getRatingColor(commentData.rating)} text-sm font-semibold px-3 py-1 flex-shrink-0`} variant="secondary">
                                               ⭐ {commentData.rating.toFixed(1)}
+                                            </Badge>
+                                          ) : (
+                                            <Badge className="bg-gray-100 text-gray-500 text-sm font-semibold px-3 py-1 flex-shrink-0" variant="secondary">
+                                              ⭐ N/A
                                             </Badge>
                                           )}
                                           <span className="text-sm font-medium text-gray-600 flex-1">
