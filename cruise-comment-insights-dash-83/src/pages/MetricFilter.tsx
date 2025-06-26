@@ -13,19 +13,16 @@ import BasicFilter from '../components/BasicFilter';
 import { FormattedText } from '../components/FormattedText';
 import { BasicFilterState, createMetricRatingApiData, debugFilters, formatShipName } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig, METRIC_SAILING_SORT_OPTIONS, METRIC_COMMENT_SORT_OPTIONS } from '../utils/sortingUtils';
+import { useFilter } from '../contexts/FilterContext';
 
 const MetricFilter = () => {
+  const { filterState } = useFilter(); // Use shared filter context
   const [selectedMetric, setSelectedMetric] = useState<string>(''); // Changed to single metric
   const [ratingRange, setRatingRange] = useState<number[]>([6, 10]);
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] = useState<BasicFilterState>({
-    fleets: [],
-    ships: [],
-    dateRange: { startDate: '', endDate: '' },
-    sailingNumbers: [],
-    useAllDates: false // Default to specific date range
-  });  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());  // Changed to string for comment IDs
+
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());  // Changed to string for comment IDs
   const [sailingSortConfig, setSailingSortConfig] = useState<SortConfig | null>(null);
   const [commentSortConfig, setCommentSortConfig] = useState<SortConfig | null>(null);
   const [viewMode, setViewMode] = useState<'summary' | 'reviews'>('summary'); // Add view switching
@@ -36,7 +33,7 @@ const MetricFilter = () => {
     queryFn: () => apiService.getMetrics(),
   });  const handleFilterChange = (filterData: BasicFilterState) => {
     debugFilters('Filter data received in MetricFilter', filterData);
-    setFilters(filterData);
+    // No need to set local state since we're using FilterContext
   };
   const toggleRowExpansion = (id: string) => {
     setExpandedRows(prev => {
@@ -55,7 +52,7 @@ const MetricFilter = () => {
     }
 
     setIsLoading(true);
-    try {      const searchData = createMetricRatingApiData(filters, selectedMetric, {
+    try {      const searchData = createMetricRatingApiData(filterState, selectedMetric, {
         filterLower: ratingRange[0], // Use lower bound of rating range as filter
         filterUpper: ratingRange[1], // Use upper bound of rating range as filter
         compareToAverage: true

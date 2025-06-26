@@ -62,20 +62,25 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       safeFilterState.sailingNumbers.length > 0
     );
   };
-
   // Function to check if there are pending changes that need to be applied
   const hasPendingChanges = () => {
     const currentStartDate = startDate ? format(startDate, 'yyyy-MM-dd') : '';
     const currentEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : '';
     
+    // For useAllDates, check if it differs from the current state
+    const currentUseAllDates = useAllDates;
+    const persistedUseAllDates = safeFilterState.useAllDates ?? false;
+    
     return (
-      // Check if dates have changed
-      (currentStartDate !== safeFilterState.dateRange.startDate) ||
-      (currentEndDate !== safeFilterState.dateRange.endDate) ||
+      // Check if dates have changed (only when not using all dates)
+      (!currentUseAllDates && (
+        (currentStartDate !== (safeFilterState.dateRange.startDate || '')) ||
+        (currentEndDate !== (safeFilterState.dateRange.endDate || ''))
+      )) ||
       // Check if sailing numbers have changed
-      JSON.stringify(selectedSailingNumbers) !== JSON.stringify(safeFilterState.sailingNumbers) ||
+      JSON.stringify(selectedSailingNumbers.sort()) !== JSON.stringify((safeFilterState.sailingNumbers || []).sort()) ||
       // Check if useAllDates changed
-      useAllDates !== safeFilterState.useAllDates
+      currentUseAllDates !== persistedUseAllDates
     );
   };
   const handleFleetChange = (fleetName: string, checked: boolean) => {
@@ -107,15 +112,13 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       });
     }
   };  const handleApplyFilters = () => {
-    handleDateRangeApply();
-    
-    // Update the filter context state first
+    // Prepare standardized filter data for the context update
     const contextUpdate = {
       fleets: safeFilterState.fleets,
       ships: safeFilterState.ships,
       dateRange: {
-        startDate: useAllDates ? '' : (startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate),
-        endDate: useAllDates ? '' : (endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate)
+        startDate: useAllDates ? '' : (startDate ? format(startDate, 'yyyy-MM-dd') : ''),
+        endDate: useAllDates ? '' : (endDate ? format(endDate, 'yyyy-MM-dd') : '')
       },
       sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
         ? selectedSailingNumbers 
@@ -123,6 +126,7 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       useAllDates: useAllDates
     };
     
+    // Update the filter context state
     setFilterState(contextUpdate);
     
     // Prepare standardized filter data for the callback
@@ -130,13 +134,14 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
       fleets: safeFilterState.fleets,
       ships: safeFilterState.ships,
       dateRange: {
-        startDate: useAllDates ? '' : (startDate ? format(startDate, 'yyyy-MM-dd') : safeFilterState.dateRange.startDate),
-        endDate: useAllDates ? '' : (endDate ? format(endDate, 'yyyy-MM-dd') : safeFilterState.dateRange.endDate)
+        startDate: useAllDates ? '' : (startDate ? format(startDate, 'yyyy-MM-dd') : ''),
+        endDate: useAllDates ? '' : (endDate ? format(endDate, 'yyyy-MM-dd') : '')
       },
       sailingNumbers: selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1') 
         ? selectedSailingNumbers 
         : [],
-      useAllDates: useAllDates    };
+      useAllDates: useAllDates
+    };
     
     console.log('BasicFilter sending standardized filter data:', filterData);
     
@@ -691,10 +696,18 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
             </Popover>
           </div>
         </div>{/* Action Buttons */}        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+          {/* Debug info for button state */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="p-2 bg-gray-100 rounded text-xs">
+              <p>areFiltersApplied: {areFiltersApplied().toString()}</p>
+              <p>hasPendingChanges: {hasPendingChanges().toString()}</p>
+              <p>Button disabled: {(areFiltersApplied() && !hasPendingChanges()).toString()}</p>
+            </div>
+          )}
           <Button 
             onClick={handleApplyFilters} 
             className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
-            disabled={!hasPendingChanges() && areFiltersApplied()}
+            disabled={areFiltersApplied() && !hasPendingChanges()}
           >
             {areFiltersApplied() && !hasPendingChanges() ? (
               <>

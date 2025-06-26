@@ -10,17 +10,12 @@ import { apiService } from '../services/api';
 import BasicFilter from './BasicFilter';
 import { BasicFilterState, createRatingSummaryApiData, debugFilters, formatShipName } from '../utils/filterUtils';
 import { sortData, toggleSort, SortConfig, RATING_SUMMARY_SORT_OPTIONS } from '../utils/sortingUtils';
+import { useFilter } from '../contexts/FilterContext';
 
 const RatingSummary = () => {
+  const { filterState } = useFilter(); // Use shared filter context
   const [ratingsData, setRatingsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState<BasicFilterState>({
-    fleets: [],
-    ships: [],
-    dateRange: { startDate: '', endDate: '' },
-    sailingNumbers: [],
-    useAllDates: true
-  });
   const [activeGroup, setActiveGroup] = useState('overall');  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'start_date', direction: 'asc' });
 
@@ -173,14 +168,13 @@ const RatingSummary = () => {
     
     console.log('Data sorted. Final order:', sortedData.map(d => d['Sailing Number']));
     return sortedData;
-  };
-  const handleFilterChange = async (newFilters: BasicFilterState) => {
+  };  const handleFilterChange = async (newFilters: BasicFilterState) => {
     debugFilters('RatingSummary handleFilterChange called', newFilters);
-    setFilters(newFilters);
+    // No need to set filters locally since we're using FilterContext
     setLoading(true);
     
     try {
-      const requestPayload = createRatingSummaryApiData(newFilters);
+      const requestPayload = createRatingSummaryApiData(filterState);
       
       debugFilters('RatingSummary: Sending request with payload', requestPayload);
       const response = await apiService.getRatingSummary(requestPayload);
