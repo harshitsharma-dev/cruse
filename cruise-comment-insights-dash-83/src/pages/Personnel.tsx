@@ -37,7 +37,7 @@ interface SailingData {
 
 interface PersonnelData {
   status: string;
-  results: SailingData[];
+  data: SailingData[];
 }
 
 const Personnel = () => {
@@ -98,11 +98,10 @@ const Personnel = () => {
       [commentKey]: !prev[commentKey]
     }));
   };
-
   const expandAllSailings = () => {
-    if (!personnelData?.results) return;
+    if (!personnelData?.data) return;
     const allExpanded: Record<string, boolean> = {};
-    personnelData.results.forEach((sailing: SailingData) => {
+    personnelData.data.forEach((sailing: SailingData) => {
       allExpanded[sailing.sailingNumber] = true;
     });
     setExpandedSailings(allExpanded);
@@ -180,11 +179,10 @@ const Personnel = () => {
   if (sheetsError) {
     console.error('Error loading sheets:', sheetsError);
   }
-
   const getFilteredData = () => {
-    if (!personnelData?.results) return [];
+    if (!personnelData?.data) return [];
     
-    return personnelData.results.filter(sailing => {
+    return personnelData.data.filter(sailing => {
       return sailing.crewMentions.some(crew => {
         // Filter by crew name
         if (crewNameFilter && !crew.crewName.toLowerCase().includes(crewNameFilter.toLowerCase())) {
@@ -202,9 +200,9 @@ const Personnel = () => {
   };
 
   const getTotalCrewCount = () => {
-    if (!personnelData?.results) return 0;
+    if (!personnelData?.data) return 0;
     const allCrew = new Set();
-    personnelData.results.forEach(sailing => {
+    personnelData.data.forEach(sailing => {
       sailing.crewMentions.forEach(crew => {
         allCrew.add(crew.crewName);
       });
@@ -213,9 +211,9 @@ const Personnel = () => {
   };
 
   const getTotalMentionsCount = () => {
-    if (!personnelData?.results) return 0;
+    if (!personnelData?.data) return 0;
     let count = 0;
-    personnelData.results.forEach(sailing => {
+    personnelData.data.forEach(sailing => {
       sailing.crewMentions.forEach(crew => {
         crew.sentiments.forEach(sentiment => {
           count += sentiment.mentions.length;
@@ -226,7 +224,7 @@ const Personnel = () => {
   };
 
   const exportResults = () => {
-    if (!personnelData?.results || personnelData.results.length === 0) {
+    if (!personnelData?.data || personnelData.data.length === 0) {
       alert('No results to export');
       return;
     }
@@ -234,7 +232,7 @@ const Personnel = () => {
     const csvRows = [];
     csvRows.push(['Sailing Number', 'Crew Name', 'Sentiment', 'Sheet Name', 'Comment Snippet', 'Full Comment']);
 
-    personnelData.results.forEach(sailing => {
+    personnelData.data.forEach(sailing => {
       sailing.crewMentions.forEach(crew => {
         crew.sentiments.forEach(sentiment => {
           sentiment.mentions.forEach(mention => {
@@ -421,10 +419,8 @@ const Personnel = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Results Section */}
-      {personnelData?.results && personnelData.results.length > 0 ? (
+      </div>      {/* Results Section */}
+      {personnelData?.data && personnelData.data.length > 0 ? (
         <div className="space-y-6">
           {/* Summary Stats */}
           <Card className="apollo-shadow bg-white/70 backdrop-blur-sm border-white/20">
@@ -472,7 +468,7 @@ const Personnel = () => {
                     <Users className="h-5 w-5 text-blue-600" />
                     <span className="text-sm font-medium text-blue-700">Total Sailings</span>
                   </div>
-                  <p className="text-2xl font-bold text-blue-900 mt-1">{personnelData.results.length}</p>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">{personnelData.data.length}</p>
                 </div>
                 <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
                   <div className="flex items-center gap-2">

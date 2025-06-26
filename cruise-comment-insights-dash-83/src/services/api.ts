@@ -413,7 +413,6 @@ class ApiService {
       data: Array<{ username: string; role: string }>; 
     }>('/sailing/admin/list-users');
   }
-
   async getPersonnelList(filters: any) {
     const isDevelopment = import.meta.env.DEV;
     if (isDevelopment) {
@@ -421,7 +420,7 @@ class ApiService {
     }
     return this.request<{ 
       status: string; 
-      results: Array<{
+      data: Array<{
         sailingNumber: string;
         crewMentions: Array<{
           crewName: string;
