@@ -282,34 +282,7 @@ const MetricFilter = () => {
                 <CardTitle className="flex items-center">
                   📊 Summary Statistics ({results.length} sailings)
                   <Badge variant="secondary" className="text-sm px-3 py-1 ml-2">
-                    Average Data                  </Badge>
-                </CardTitle>
-                {/* Sorting Controls for Card Format Comments */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Sort Options:</span>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 whitespace-nowrap">Sailings:</span>
-                        <SortControls 
-                          sortOptions={METRIC_SAILING_SORT_OPTIONS}
-                          currentSort={sailingSortConfig}
-                          onSortChange={(field) => setSailingSortConfig(toggleSort(sailingSortConfig, field))}
-                          className="text-xs"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 whitespace-nowrap">Comments:</span>
-                        <SortControls 
-                          sortOptions={METRIC_COMMENT_SORT_OPTIONS}
-                          currentSort={commentSortConfig}
-                          onSortChange={(field) => setCommentSortConfig(toggleSort(commentSortConfig, field))}
-                          className="text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                    Average Data                  </Badge>                </CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -342,11 +315,21 @@ const MetricFilter = () => {
           <Card>
             <CardHeader>
               <div className="space-y-4">
-                <CardTitle className="flex items-center">
-                  💬 Individual Guest Comments
+                <CardTitle className="flex items-center">                  💬 Individual Guest Comments
                   <Badge variant="outline" className="ml-2 text-xs">
                     {results.reduce((total, result) => total + (result.filteredCount || 0), 0)} total comments
-                  </Badge>                </CardTitle>
+                  </Badge>
+                </CardTitle>
+                {/* Comment Rating Sort Control */}
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm font-medium text-gray-700">Sort Comments:</span>
+                  <SortControls 
+                    sortOptions={METRIC_COMMENT_SORT_OPTIONS}
+                    currentSort={commentSortConfig}
+                    onSortChange={(field) => setCommentSortConfig(toggleSort(commentSortConfig, field))}
+                    className="text-sm"
+                  />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
