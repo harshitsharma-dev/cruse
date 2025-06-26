@@ -522,11 +522,9 @@ const Personnel = () => {
                           )}
                         </div>
                       </Button>
-                    </CollapsibleTrigger>
-
-                    <CollapsibleContent>
+                    </CollapsibleTrigger>                    <CollapsibleContent>
                       <CardContent className="pt-6">
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                           {sailing.crewMentions
                             .filter(crew => {
                               // Apply crew name filter
@@ -540,7 +538,7 @@ const Personnel = () => {
                               return true;
                             })
                             .map((crew, crewIndex) => (
-                            <div key={`${sailing.sailingNumber}-${crew.crewName}-${crewIndex}`} className="border border-gray-200 rounded-lg p-4 bg-white">
+                            <div key={`${sailing.sailingNumber}-${crew.crewName}-${crewIndex}`} className="pb-4 border-b border-gray-200 last:border-b-0">
                               <Collapsible 
                                 open={expandedCrew[`${sailing.sailingNumber}-${crew.crewName}`]} 
                                 onOpenChange={() => toggleCrewExpansion(`${sailing.sailingNumber}-${crew.crewName}`)}
@@ -548,7 +546,7 @@ const Personnel = () => {
                                 <CollapsibleTrigger asChild>
                                   <Button
                                     variant="ghost"
-                                    className="flex items-center justify-between w-full p-0 h-auto hover:bg-transparent"
+                                    className="flex items-center justify-between w-full p-0 h-auto hover:bg-gray-50 rounded px-2 py-2"
                                   >
                                     <div className="flex items-center gap-3">
                                       <div className="h-3 w-3 bg-blue-500 rounded-full"></div>
@@ -574,64 +572,55 @@ const Personnel = () => {
                                   </Button>
                                 </CollapsibleTrigger>
 
-                                <CollapsibleContent className="mt-4">
-                                  <div className="space-y-4">
+                                <CollapsibleContent className="mt-3 ml-6">
+                                  <div className="space-y-3">
                                     {crew.sentiments
                                       .filter(sentiment => sentimentFilter === 'all' || sentiment.sentiment === sentimentFilter)
                                       .map((sentiment, sentimentIndex) => (
-                                      <div key={sentimentIndex} className={cn(
-                                        "border rounded-lg p-4",
-                                        sentiment.sentiment === 'positive' ? 'border-green-200 bg-green-50' :
-                                        sentiment.sentiment === 'negative' ? 'border-red-200 bg-red-50' :
-                                        'border-gray-200 bg-gray-50'
-                                      )}>
-                                        <div className="flex items-center gap-2 mb-3">
-                                          {getSentimentIcon(sentiment.sentiment)}
-                                          <h5 className="font-semibold capitalize">{sentiment.sentiment} Feedback</h5>
-                                          <Badge variant="outline" className="text-xs">
-                                            {sentiment.mentions.length} mention{sentiment.mentions.length !== 1 ? 's' : ''}
-                                          </Badge>
-                                        </div>
-                                        
-                                        <div className="space-y-3">
-                                          {sentiment.mentions.map((mention, mentionIndex) => (
-                                            <div key={mentionIndex} className="bg-white border border-gray-200 rounded-lg p-3">
-                                              <div className="flex items-center justify-between mb-2">
+                                        sentiment.mentions.map((mention, mentionIndex) => (
+                                          <div key={`${sentimentIndex}-${mentionIndex}`} className="bg-gray-50 rounded-lg p-3 border-l-4 border-blue-400">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <div className="flex items-center gap-2">
+                                                {getSentimentIcon(sentiment.sentiment)}
+                                                <Badge 
+                                                  className={cn("text-xs", getSentimentBadgeColor(sentiment.sentiment))}
+                                                >
+                                                  {sentiment.sentiment}
+                                                </Badge>
                                                 <Badge variant="secondary" className="text-xs">
                                                   {mention.sheetName}
                                                 </Badge>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  onClick={() => toggleCommentExpansion(`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`)}
-                                                  className="text-xs h-auto p-1"
-                                                >
-                                                  {expandedComments[`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`] ? 'Show Less' : 'Show Full Comment'}
-                                                </Button>
                                               </div>
-                                              
-                                              <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-2">
-                                                <p className="text-sm font-medium text-blue-900 mb-1">Key Mention:</p>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => toggleCommentExpansion(`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`)}
+                                                className="text-xs h-auto p-1"
+                                              >
+                                                {expandedComments[`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`] ? 'Show Less' : 'Show Full Comment'}
+                                              </Button>
+                                            </div>
+                                            
+                                            <div className="bg-blue-50 rounded p-3 mb-2">
+                                              <p className="text-sm font-medium text-blue-900 mb-1">Key Mention:</p>
+                                              <FormattedText 
+                                                text={mention.commentSnippet} 
+                                                className="text-blue-800 text-sm"
+                                              />
+                                            </div>
+                                            
+                                            {expandedComments[`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`] && (
+                                              <div className="bg-white rounded p-3 border border-gray-200">
+                                                <p className="text-sm font-medium text-gray-900 mb-1">Full Comment:</p>
                                                 <FormattedText 
-                                                  text={mention.commentSnippet} 
-                                                  className="text-blue-800 text-sm"
+                                                  text={mention.comment} 
+                                                  className="text-gray-700 text-sm"
                                                 />
                                               </div>
-                                              
-                                              {expandedComments[`${sailing.sailingNumber}-${crew.crewName}-${sentimentIndex}-${mentionIndex}`] && (
-                                                <div className="bg-gray-50 border border-gray-200 rounded p-3">
-                                                  <p className="text-sm font-medium text-gray-900 mb-1">Full Comment:</p>
-                                                  <FormattedText 
-                                                    text={mention.comment} 
-                                                    className="text-gray-700 text-sm"
-                                                  />
-                                                </div>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    ))}
+                                            )}
+                                          </div>
+                                        ))
+                                      ))}
                                   </div>
                                 </CollapsibleContent>
                               </Collapsible>
