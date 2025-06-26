@@ -27,10 +27,10 @@ export const useFilter = () => {
 const FILTER_STORAGE_KEY = 'cruise-analytics-filters';
 
 export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize state with persisted filters or defaults (using sessionStorage)
+  // Initialize state with persisted filters or defaults
   const [filterState, setFilterStateInternal] = useState<BasicFilterState>(() => {
     try {
-      const saved = sessionStorage.getItem(FILTER_STORAGE_KEY);
+      const saved = localStorage.getItem(FILTER_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         // Ensure the parsed data has all required properties
@@ -77,37 +77,15 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     loadFleetData();
-  }, []);
-
-  // Cleanup effect to handle page navigation
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Clear filters on page reload/close
-      try {
-        sessionStorage.removeItem(FILTER_STORAGE_KEY);
-      } catch (error) {
-        console.warn('Failed to clear filters on page unload:', error);
-      }
-    };
-
-    // Add event listener for page unload
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    // Cleanup function
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-
-  const setFilterState = (newState: Partial<BasicFilterState>) => {
+  }, []);  const setFilterState = (newState: Partial<BasicFilterState>) => {
     const updatedState = { ...filterState, ...newState };
     setFilterStateInternal(updatedState);
     
-    // Persist to sessionStorage (only for current browser session)
+    // Persist to localStorage
     try {
-      sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(updatedState));
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(updatedState));
     } catch (error) {
-      console.warn('Failed to save filters to sessionStorage:', error);
+      console.warn('Failed to save filters to localStorage:', error);
     }
   };
 
@@ -115,11 +93,11 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const defaultState = getDefaultFilterState();
     setFilterStateInternal(defaultState);
     
-    // Clear from sessionStorage
+    // Clear from localStorage
     try {
-      sessionStorage.removeItem(FILTER_STORAGE_KEY);
+      localStorage.removeItem(FILTER_STORAGE_KEY);
     } catch (error) {
-      console.warn('Failed to clear filters from sessionStorage:', error);
+      console.warn('Failed to clear filters from localStorage:', error);
     }
   };
   const availableShips = React.useMemo(() => {

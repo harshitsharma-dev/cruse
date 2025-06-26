@@ -52,7 +52,8 @@ const MetricFilter = () => {
     }
 
     setIsLoading(true);
-    try {      const searchData = createMetricRatingApiData(filterState, selectedMetric, {
+    try {
+      const searchData = createMetricRatingApiData(filterState, selectedMetric, {
         filterLower: ratingRange[0], // Use lower bound of rating range as filter
         filterUpper: ratingRange[1], // Use upper bound of rating range as filter
         compareToAverage: true
@@ -76,7 +77,17 @@ const MetricFilter = () => {
           filteredResults: result.filteredResults || []
         }));
       
-      setResults(transformedResults);} catch (error) {
+      setResults(transformedResults);
+      
+      // Store the applied filters for display
+      setLastAppliedFilters({
+        metric: selectedMetric,
+        ratingRange: [...ratingRange],
+        ships: filterState.ships,
+        dateRange: filterState.dateRange,
+        appliedAt: new Date().toLocaleString()
+      });
+    } catch (error) {
       console.error('Metric filter error:', error);
       let errorMessage = 'Failed to fetch metric data. Please try again.';
       
@@ -258,6 +269,22 @@ const MetricFilter = () => {
                 </>
               )}
             </Button>
+
+            {/* Filter Applied Status */}
+            {lastAppliedFilters && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-800">Filters Applied</span>
+                </div>
+                <div className="text-xs text-green-700 space-y-1">
+                  <div><strong>Metric:</strong> {lastAppliedFilters.metric}</div>
+                  <div><strong>Rating Range:</strong> {lastAppliedFilters.ratingRange[0]} - {lastAppliedFilters.ratingRange[1]}</div>
+                  <div><strong>Ships:</strong> {lastAppliedFilters.ships?.length > 0 ? lastAppliedFilters.ships.join(', ') : 'All'}</div>
+                  <div><strong>Applied:</strong> {lastAppliedFilters.appliedAt}</div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>      {/* Results Section */}

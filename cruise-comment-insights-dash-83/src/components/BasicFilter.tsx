@@ -11,7 +11,7 @@ import { CalendarIcon, Filter, RotateCcw, CheckCircle, ChevronDown, X, Check } f
 import { format, setMonth, setYear } from 'date-fns';
 import { useFilter } from '../contexts/FilterContext';
 import { cn } from '@/lib/utils';
-import { BasicFilterState, getDefaultFilterState } from '../utils/filterUtils';
+import { BasicFilterState } from '../utils/filterUtils';
 
 interface BasicFilterProps {
   onFilterChange?: (filters: any) => void;
@@ -52,19 +52,14 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();  const [selectedSailingNumbers, setSelectedSailingNumbers] = useState<string[]>([]);
   const [useAllDates, setUseAllDates] = useState(false); // Default to specific date range
-  // Function to check if any filters are currently applied (beyond default state)
+  // Function to check if any filters are currently applied
   const areFiltersApplied = () => {
-    // Get the default state to compare against
-    const defaultState = getDefaultFilterState();
-    
     return (
       (filterState?.fleets && filterState.fleets.length > 0) ||
       (filterState?.ships && filterState.ships.length > 0) ||
+      (filterState?.dateRange?.startDate && filterState?.dateRange?.endDate) ||
       (filterState?.sailingNumbers && filterState.sailingNumbers.length > 0) ||
-      filterState?.useAllDates === true ||
-      // Check if date range differs from default
-      (filterState?.dateRange?.startDate !== defaultState.dateRange.startDate) ||
-      (filterState?.dateRange?.endDate !== defaultState.dateRange.endDate)
+      filterState?.useAllDates
     );
   };  // Function to check if there are pending changes that need to be applied
   const hasPendingChanges = () => {
@@ -227,11 +222,8 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
     // Include sailing numbers in persistence now
     if (filterState.sailingNumbers && filterState.sailingNumbers.length > 0) {
       setSelectedSailingNumbers(filterState.sailingNumbers);
-    } else {
-      // Reset sailing numbers if none in filter state
-      setSelectedSailingNumbers([]);
     }
-  }, [filterState]); // React to changes in filterState, not just on mount
+  }, []); // Only run on mount
 
   if (isLoading) {
     return (
@@ -727,19 +719,9 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
           <Button 
             onClick={handleApplyFilters} 
             className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
-            disabled={areFiltersApplied() && !hasPendingChanges()}
           >
-            {areFiltersApplied() && !hasPendingChanges() ? (
-              <>
-                <CheckCircle className="h-4 w-4" />
-                Filters Applied!
-              </>
-            ) : (
-              <>
-                <Filter className="h-4 w-4" />
-                Apply Filters
-              </>
-            )}
+            <Filter className="h-4 w-4" />
+            Apply Filters
           </Button>
           <Button 
             variant="outline" 
@@ -749,7 +731,22 @@ const BasicFilter: React.FC<BasicFilterProps> = ({
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
-        </div>        {/* Current Filter Summary */}        {(safeFilterState.fleets.length > 0 || safeFilterState.ships.length > 0 || 
+        </div>
+
+        {/* Filter Applied Status */}
+        {areFiltersApplied() && !hasPendingChanges() && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-green-800">Filters Applied Successfully!</span>
+            </div>
+            <p className="text-xs text-green-700 mt-1">
+              Your current filter settings are active and being used for data retrieval.
+            </p>
+          </div>
+        )}
+
+        {/* Current Filter Summary */}        {(safeFilterState.fleets.length > 0 || safeFilterState.ships.length > 0 || 
           safeFilterState.dateRange.startDate || safeFilterState.dateRange.endDate || 
           (selectedSailingNumbers.length > 0 && !selectedSailingNumbers.includes('-1')) ||
           areFiltersApplied() || useAllDates) && (

@@ -123,6 +123,7 @@ const Personnel = () => {
         return <Meh className="h-4 w-4 text-gray-600" />;
     }
   };
+
   const getSentimentBadgeColor = (sentiment: string) => {
     switch (sentiment) {
       case 'positive':
@@ -134,36 +135,6 @@ const Personnel = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const getSentimentScore = (sentiment: string) => {
-    switch (sentiment) {
-      case 'positive':
-        return 5;
-      case 'negative':
-        return 1;
-      case 'neutral':
-        return 3;
-      default:
-        return 3;
-    }
-  };
-
-  const renderStarRating = (score: number) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={cn(
-              "h-3 w-3",
-              star <= score ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-            )}
-          />
-        ))}
-        <span className="text-xs text-gray-600 ml-1">({score}/5)</span>
-      </div>
-    );
   };
   const fetchPersonnel = async () => {
     console.log('=== PERSONNEL FETCH DEBUG START ===');
@@ -605,7 +576,8 @@ const Personnel = () => {
                                   <div className="space-y-3">
                                     {crew.sentiments
                                       .filter(sentiment => sentimentFilter === 'all' || sentiment.sentiment === sentimentFilter)
-                                      .map((sentiment, sentimentIndex) => (                                        sentiment.mentions.map((mention, mentionIndex) => (
+                                      .map((sentiment, sentimentIndex) => (
+                                        sentiment.mentions.map((mention, mentionIndex) => (
                                           <div key={`${sentimentIndex}-${mentionIndex}`} className="bg-gray-50 rounded-lg p-3 border-l-4 border-blue-400">
                                             <div className="flex items-center justify-between mb-2">
                                               <div className="flex items-center gap-2">
@@ -618,10 +590,6 @@ const Personnel = () => {
                                                 <Badge variant="secondary" className="text-xs">
                                                   {mention.sheetName}
                                                 </Badge>
-                                                {/* Sentiment-based Rating */}
-                                                <div className="flex items-center gap-1">
-                                                  {renderStarRating(getSentimentScore(sentiment.sentiment))}
-                                                </div>
                                               </div>
                                               <Button
                                                 variant="ghost"
