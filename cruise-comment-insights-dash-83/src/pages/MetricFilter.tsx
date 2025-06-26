@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { Download, Loader2, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, Loader2, Filter, ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import BasicFilter from '../components/BasicFilter';
@@ -125,6 +125,31 @@ const MetricFilter = () => {
     if (rating >= 6) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
+
+  // Helper function to render sortable table headers with arrows
+  const renderSortableHeader = (columnKey: string, label: string, align: 'left' | 'center' = 'left') => {
+    const isActive = sailingSortConfig?.key === columnKey;
+    const direction = isActive ? sailingSortConfig.direction : null;
+    
+    const alignClass = align === 'center' ? 'text-center' : 'text-left';
+    
+    return (
+      <th 
+        className={`border border-gray-200 px-4 py-3 ${alignClass} font-medium text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors`}
+        onClick={() => setSailingSortConfig(toggleSort(sailingSortConfig, columnKey))}
+      >
+        <div className="flex items-center space-x-1 justify-center">
+          <span>{label}</span>
+          <div className="flex flex-col">
+            {!isActive && <ArrowUpDown className="h-3 w-3 text-gray-400" />}
+            {isActive && direction === 'asc' && <ChevronUp className="h-3 w-3 text-blue-600" />}
+            {isActive && direction === 'desc' && <ChevronDown className="h-3 w-3 text-blue-600" />}
+          </div>
+        </div>
+      </th>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -271,10 +296,10 @@ const MetricFilter = () => {
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse border border-gray-200 rounded-lg">
-                  <thead>                    <tr className="bg-gray-50">                      <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Ship</th>
-                      <th className="border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">Sailing Number</th>
-                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Average Rating</th>
-                      <th className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">Total Ratings</th>
+                  <thead>                    <tr className="bg-gray-50">                      {renderSortableHeader('ship', 'Ship')}
+                      {renderSortableHeader('sailingNumber', 'Sailing Number')}
+                      {renderSortableHeader('averageRating', 'Average Rating', 'center')}
+                      {renderSortableHeader('ratingCount', 'Total Ratings', 'center')}
                     </tr>
                   </thead>
                   <tbody>
@@ -393,11 +418,10 @@ const MetricFilter = () => {
                             const commentId = `${sailingIndex}-${commentData.originalIndex}`;
                             return (                              <Collapsible key={commentData.originalIndex} open={expandedRows.has(commentId)}>
                                 <div className="border border-gray-200 rounded-lg">
-                                  {/* Comment Header - Always Visible */}
-                                  <CollapsibleTrigger 
+                                  {/* Comment Header - Always Visible */}                                  <CollapsibleTrigger 
                                     onClick={() => toggleRowExpansion(commentId)}
-                                    asChild
-                                  >                                    <div className="p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                                    className="w-full p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+                                  >
                                       <div className="flex justify-between items-center">
                                         <div className="flex items-center space-x-2">
                                           <span className="text-sm font-medium text-gray-600 flex-1">
@@ -420,7 +444,6 @@ const MetricFilter = () => {
                                           )}
                                         </div>
                                       </div>
-                                    </div>
                                   </CollapsibleTrigger>
                                     {/* Collapsible Comment Content */}
                                   <CollapsibleContent>

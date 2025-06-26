@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, TrendingUp, Download, Loader2, Table, ChartBar } from 'lucide-react';
+import { BarChart3, TrendingUp, Download, Loader2, Table, ChartBar, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { apiService } from '../services/api';
@@ -538,13 +538,21 @@ const RatingSummary = () => {
                 <div className="overflow-x-auto">
                   <table className="min-w-full bg-white border border-gray-200 rounded-lg">                    <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Ship</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Sailing</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Fleet</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">Start Date</th>
+                        {renderSortableHeader('ship_name', 'Ship')}
+                        {renderSortableHeader('sailing_number', 'Sailing')}
+                        {renderSortableHeader('fleet_name', 'Fleet')}
+                        {renderSortableHeader('start_date', 'Start Date')}
                         {group.metrics.map((metric) => (
-                          <th key={metric} className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b">
-                            {metric}
+                          <th key={metric} className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => handleSort(metric)}>
+                            <div className="flex items-center space-x-1">
+                              <span>{metric}</span>
+                              <div className="flex flex-col">
+                                {(!sortConfig || sortConfig.key !== metric) && <ArrowUpDown className="h-3 w-3 text-gray-400" />}
+                                {sortConfig?.key === metric && sortConfig.direction === 'asc' && <ChevronUp className="h-3 w-3 text-blue-600" />}
+                                {sortConfig?.key === metric && sortConfig.direction === 'desc' && <ChevronDown className="h-3 w-3 text-blue-600" />}
+                              </div>
+                            </div>
                           </th>
                         ))}
                       </tr>
@@ -604,6 +612,28 @@ const RatingSummary = () => {
       testDateParsing();
     }
   }, []);
+
+  // Helper function to render sortable table headers with arrows
+  const renderSortableHeader = (columnKey: string, label: string) => {
+    const isActive = sortConfig?.key === columnKey;
+    const direction = isActive ? sortConfig.direction : null;
+    
+    return (
+      <th 
+        className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b cursor-pointer hover:bg-gray-100 transition-colors"
+        onClick={() => handleSort(columnKey)}
+      >
+        <div className="flex items-center space-x-1">
+          <span>{label}</span>
+          <div className="flex flex-col">
+            {!isActive && <ArrowUpDown className="h-3 w-3 text-gray-400" />}
+            {isActive && direction === 'asc' && <ChevronUp className="h-3 w-3 text-blue-600" />}
+            {isActive && direction === 'desc' && <ChevronDown className="h-3 w-3 text-blue-600" />}
+          </div>
+        </div>
+      </th>
+    );
+  };
 
   return (
     <div className="space-y-8">
