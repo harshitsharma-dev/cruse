@@ -100,21 +100,30 @@ const MetricFilter = () => {
             console.warn('Similar metrics found:', similarMetrics);
           }
         }
+        
+        // Log the complete structure of the first sailing for debugging
+        console.log('Complete first sailing data:', {
+          Ship: sailingData[0].Ship,
+          'Sailing Number': sailingData[0]['Sailing Number'],
+          Fleet: sailingData[0].Fleet,
+          selectedMetricValue: sailingData[0][selectedMetric],
+          allKeys: Object.keys(sailingData[0])
+        });
       }
       
       const transformedResults = sailingData
         .filter((sailing: any) => sailing.Ship && sailing['Sailing Number'])
         .map((sailing: any) => {
-          // Get the selected metric value
+          // Get the selected metric value using exact field name from response
           const metricValue = sailing[selectedMetric];
-          const isValidMetric = metricValue !== null && metricValue !== undefined && !isNaN(metricValue);
+          const isValidMetric = metricValue !== null && metricValue !== undefined && !isNaN(Number(metricValue));
           
           // Debug: Log metric value for each sailing
           console.log(`Sailing ${sailing['Sailing Number']}: ${selectedMetric} = ${metricValue} (valid: ${isValidMetric})`);
           
           // Check if the metric value falls within the rating range (for filtering comments)
           // We'll show all sailings but only show filtered results if in range
-          const isInRange = isValidMetric && metricValue >= ratingRange[0] && metricValue <= ratingRange[1];
+          const isInRange = isValidMetric && Number(metricValue) >= ratingRange[0] && Number(metricValue) <= ratingRange[1];
           
           return {
             ship: sailing.Ship,
@@ -126,9 +135,9 @@ const MetricFilter = () => {
             ratingCount: 1, // Assuming 1 rating per sailing for now
             filteredCount: isInRange ? 1 : 0,
             filteredResults: [{
-              rating: isValidMetric ? metricValue : null,
+              rating: isValidMetric ? Number(metricValue) : null,
               comment: isValidMetric ? 
-                `${selectedMetric} rating for this sailing is ${metricValue}. ${isInRange ? 'This falls within your selected range.' : 'This is outside your selected range.'}` :
+                `${selectedMetric} rating for this sailing is ${Number(metricValue).toFixed(2)}. ${isInRange ? 'This falls within your selected range (' + ratingRange[0] + '-' + ratingRange[1] + ').' : 'This is outside your selected range (' + ratingRange[0] + '-' + ratingRange[1] + ').'}` :
                 `No ${selectedMetric} data available for this sailing. Available metrics: ${Object.keys(sailing).filter(key => !['Fleet', 'Ship', 'Sailing Number', 'sentiment_score'].includes(key) && sailing[key] !== null).join(', ')}`,
               reason: `${formatShipName(sailing.Ship)} - ${sailing['Sailing Number']}`
             }],
