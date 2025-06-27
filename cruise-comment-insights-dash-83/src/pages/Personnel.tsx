@@ -269,23 +269,23 @@ const Personnel = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-white/80 to-green-50/80 backdrop-blur-sm rounded-xl p-6 border border-white/20 apollo-shadow">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg">
-            <Users className="h-6 w-6 text-white" />
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-0">
+      <div className="bg-gradient-to-r from-white/80 to-green-50/80 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/20 apollo-shadow">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
               Personnel Recognition
             </h1>
-            <p className="text-gray-600 mt-2">Analyze crew mentions and guest feedback for staff recognition</p>
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Analyze crew mentions and guest feedback for staff recognition</p>
           </div>
         </div>
       </div>
 
       {/* Filters Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         <BasicFilter 
           ref={basicFilterRef}
           onFilterChange={handleFilterChange}

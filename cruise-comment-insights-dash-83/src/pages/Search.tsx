@@ -143,15 +143,15 @@ const Search = () => {
     console.error('Error loading sheets:', sheetsError);
   }
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Search</h1>          <p className="text-gray-600 mt-2">Search through guest comments and feedback</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Search</h1>          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Search through guest comments and feedback</p>
         </div>
       </div>
 
       {/* Filters Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">        <BasicFilter 
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">        <BasicFilter 
           ref={basicFilterRef}
           onFilterChange={handleFilterChange}
           showTitle={true}

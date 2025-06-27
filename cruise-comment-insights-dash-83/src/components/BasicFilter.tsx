@@ -251,14 +251,14 @@ const BasicFilter = React.forwardRef<
   }  return (
     <Card className={cn("w-full apollo-shadow bg-white/95 backdrop-blur-sm border-white/20", compact ? "border-0 shadow-none bg-gray-50" : "", className)}>
       {showTitle && (
-        <CardHeader className="pb-4">          <CardTitle className="flex items-center gap-3 text-xl">
-            <div className="apollo-gradient-primary p-2 rounded-lg">
-              <Filter className="h-6 w-6 text-white" />
+        <CardHeader className="pb-4">          <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-lg sm:text-xl">
+            <div className="apollo-gradient-primary p-2 rounded-lg w-fit">
+              <Filter className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <span>Apollo Filters</span>
               {areFiltersApplied() && (
-                <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
+                <Badge variant="default" className="bg-green-100 text-green-800 text-xs w-fit">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Applied
                 </Badge>
@@ -267,16 +267,16 @@ const BasicFilter = React.forwardRef<
           </CardTitle>
         </CardHeader>
       )}
-      <CardContent className={cn("space-y-6", compact ? "p-4" : "p-6")}>
+      <CardContent className={cn("space-y-4 sm:space-y-6", compact ? "p-3 sm:p-4" : "p-4 sm:p-6")}>
         {/* Fleet Selection */}
         <div>
           <Label className="text-sm font-semibold text-gray-700">Fleet Selection</Label>
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-between text-left font-normal"
+                  className="w-full justify-between text-left font-normal text-sm sm:text-base"
                 >                  <span>
                     {safeFilterState.fleets.length === 0 
                       ? "Select fleets..." 
