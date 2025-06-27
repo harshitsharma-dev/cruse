@@ -174,12 +174,12 @@ const MetricFilter = () => {
     
     return (
       <th 
-        className={`border border-gray-200 px-4 py-3 ${alignClass} font-medium text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors`}
+        className={`border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 ${alignClass} font-medium text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors`}
         onClick={() => setSailingSortConfig(toggleSort(sailingSortConfig, columnKey))}
       >
-        <div className="flex items-center space-x-1 justify-center">
-          <span>{label}</span>
-          <div className="flex flex-col">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-1 justify-center space-y-1 sm:space-y-0">
+          <span className="text-xs sm:text-sm">{label}</span>
+          <div className="flex justify-center">
             {!isActive && <ArrowUpDown className="h-3 w-3 text-gray-400" />}
             {isActive && direction === 'asc' && <ChevronUp className="h-3 w-3 text-blue-600" />}
             {isActive && direction === 'desc' && <ChevronDown className="h-3 w-3 text-blue-600" />}
@@ -235,7 +235,7 @@ const MetricFilter = () => {
                   step={0.5}
                   className="w-full"
                 />
-                <div className="flex justify-between text-sm text-gray-500 mt-2">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0 text-xs sm:text-sm text-gray-500 mt-2">
                   <span>Lower: {ratingRange[0]}</span>
                   <span>Upper: {ratingRange[1]}</span>
                 </div>
@@ -284,16 +284,16 @@ const MetricFilter = () => {
 
             {/* Filter Applied Status */}
             {lastAppliedFilters && (
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-800">Filters Applied</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                  <span className="text-xs sm:text-sm font-medium text-green-800">Filters Applied</span>
                 </div>
                 <div className="text-xs text-green-700 space-y-1">
-                  <div><strong>Metric:</strong> {lastAppliedFilters.metric}</div>
+                  <div className="break-words"><strong>Metric:</strong> {lastAppliedFilters.metric}</div>
                   <div><strong>Rating Range:</strong> {lastAppliedFilters.ratingRange[0]} - {lastAppliedFilters.ratingRange[1]}</div>
-                  <div><strong>Ships:</strong> {lastAppliedFilters.ships?.length > 0 ? lastAppliedFilters.ships.join(', ') : 'All'}</div>
-                  <div><strong>Applied:</strong> {lastAppliedFilters.appliedAt}</div>
+                  <div className="break-words"><strong>Ships:</strong> {lastAppliedFilters.ships?.length > 0 ? lastAppliedFilters.ships.join(', ') : 'All'}</div>
+                  <div className="break-words"><strong>Applied:</strong> {lastAppliedFilters.appliedAt}</div>
                 </div>
               </div>
             )}
@@ -313,11 +313,11 @@ const MetricFilter = () => {
           {/* View Toggle Buttons */}
           <Card>
             <CardContent className="py-4">
-              <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <Button
                   variant={viewMode === 'summary' ? 'default' : 'outline'}
                   onClick={() => setViewMode('summary')}
-                  className="flex items-center space-x-2 w-full sm:w-auto"
+                  className="flex items-center space-x-2 w-full sm:w-auto min-h-[44px] px-6 py-3"
                 >
                   <span>📊</span>
                   <span>Summary & Averages</span>
@@ -325,7 +325,7 @@ const MetricFilter = () => {
                 <Button
                   variant={viewMode === 'reviews' ? 'default' : 'outline'}
                   onClick={() => setViewMode('reviews')}
-                  className="flex items-center space-x-2 w-full sm:w-auto"
+                  className="flex items-center space-x-2 w-full sm:w-auto min-h-[44px] px-6 py-3"
                 >
                   <span>💬</span>
                   <span>Individual Guest Reviews</span>
@@ -356,16 +356,16 @@ const MetricFilter = () => {
                   <tbody>
                     {sortData(results, sailingSortConfig, 'metrics').map((result, index) => (
                       <tr key={index} className="hover:bg-gray-50">
-                        <td className="border border-gray-200 px-4 py-3 font-medium">{formatShipName(result.ship)}</td>
-                        <td className="border border-gray-200 px-4 py-3">{result.sailingNumber || 'N/A'}</td>
-                        <td className="border border-gray-200 px-4 py-3 text-center">
-                          <Badge className={getRatingColor(result.averageRating)} variant="secondary">
+                        <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm">{formatShipName(result.ship)}</td>
+                        <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{result.sailingNumber || 'N/A'}</td>
+                        <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-center">
+                          <Badge className={`${getRatingColor(result.averageRating)} text-xs`} variant="secondary">
                             {result.averageRating?.toFixed(2) || 'N/A'}
                           </Badge>
                         </td>
-                        <td className="border border-gray-200 px-4 py-3 text-center">{result.ratingCount || 'N/A'}</td>
-                        <td className="border border-gray-200 px-4 py-3 text-center">
-                          <Badge variant="outline" className="text-sm">
+                        <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm">{result.ratingCount || 'N/A'}</td>
+                        <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-center">
+                          <Badge variant="outline" className="text-xs">
                             {result.filteredResults?.length || 0}
                           </Badge>
                         </td>
@@ -388,12 +388,12 @@ const MetricFilter = () => {
                 </CardTitle>                {/* Comment Rating Sort Control */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <span className="text-sm font-medium text-gray-700">Sort comments by rating:</span>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 sm:gap-2">
                     <Button
                       variant={commentSortConfig?.key === 'rating' && commentSortConfig?.direction === 'desc' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setCommentSortConfig({ key: 'rating', direction: 'desc' })}
-                      className="flex items-center gap-1 text-xs sm:text-sm"
+                      className="flex items-center gap-1 text-xs sm:text-sm px-3 py-2 min-h-[36px] sm:min-h-[32px]"
                     >
                       <ChevronDown className="h-3 w-3" />
                       <span className="hidden sm:inline">High to Low</span>
@@ -403,7 +403,7 @@ const MetricFilter = () => {
                       variant={commentSortConfig?.key === 'rating' && commentSortConfig?.direction === 'asc' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setCommentSortConfig({ key: 'rating', direction: 'asc' })}
-                      className="flex items-center gap-1 text-xs sm:text-sm"
+                      className="flex items-center gap-1 text-xs sm:text-sm px-3 py-2 min-h-[36px] sm:min-h-[32px]"
                     >
                       <ChevronUp className="h-3 w-3" />
                       <span className="hidden sm:inline">Low to High</span>
@@ -413,7 +413,7 @@ const MetricFilter = () => {
                       variant={commentSortConfig === null ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setCommentSortConfig(null)}
-                      className="flex items-center gap-1 text-xs sm:text-sm"
+                      className="flex items-center gap-1 text-xs sm:text-sm px-3 py-2 min-h-[36px] sm:min-h-[32px]"
                     >
                       <ArrowUpDown className="h-3 w-3" />
                       <span className="hidden sm:inline">Original Order</span>
@@ -429,17 +429,20 @@ const MetricFilter = () => {
                   <div key={sailingIndex} className="border rounded-lg p-4 sm:p-6 bg-white">
                     {/* Sailing Header */}
                     <div className="mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                        <div className="flex flex-col gap-2">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                             {formatShipName(result.ship)} - {result.sailingNumber || 'Unknown Sailing'}
                           </h3>
-                          <Badge className={getRatingColor(result.averageRating)} variant="secondary">
-                            Avg: {result.averageRating?.toFixed(2) || 'N/A'}
-                          </Badge>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge className={getRatingColor(result.averageRating)} variant="secondary">
+                              Avg: {result.averageRating?.toFixed(2) || 'N/A'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs sm:text-sm">
+                              {result.filteredResults?.length || 0} comments below threshold
+                            </Badge>
+                          </div>
                         </div>
-                        <Badge variant="outline" className="text-xs sm:text-sm w-fit">
-                          {result.filteredResults?.length || 0} comments below threshold
-                        </Badge>
                       </div>
                     </div>                    {/* Individual Guest Comments */}
                     {result.filteredResults && result.filteredResults.length > 0 ? (
@@ -493,33 +496,34 @@ const MetricFilter = () => {
                                   {/* Comment Header - Always Visible */}
                                   <CollapsibleTrigger 
                                     onClick={() => toggleRowExpansion(commentId)}
-                                    className="w-full p-3 sm:p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+                                    className="w-full p-4 sm:p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors min-h-[56px] sm:min-h-[48px]"
                                   >
-                                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                                        <div className="flex items-center space-x-2 sm:space-x-3">
+                                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                           {/* Rating Badge - Prominently displayed at the start */}
                                           {commentData.rating !== null && commentData.rating !== undefined ? (
-                                            <Badge className={`${getRatingColor(commentData.rating)} text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 flex-shrink-0`} variant="secondary">
+                                            <Badge className={`${getRatingColor(commentData.rating)} text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 flex-shrink-0 w-fit`} variant="secondary">
                                               ⭐ {commentData.rating.toFixed(1)}
                                             </Badge>
                                           ) : (
-                                            <Badge className="bg-gray-100 text-gray-500 text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 flex-shrink-0" variant="secondary">
+                                            <Badge className="bg-gray-100 text-gray-500 text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 flex-shrink-0 w-fit" variant="secondary">
                                               ⭐ N/A
                                             </Badge>
-                                          )}
-                                          <span className="text-xs sm:text-sm font-medium text-gray-600 flex-1 break-words">
-                                            {commentData.reason}
-                                          </span>
+                                          )}                          <span className="text-xs sm:text-sm font-medium text-gray-600 flex-1 break-words min-w-0">
+                            {commentData.reason}
+                          </span>
                                         </div>
-                                        <div className="flex items-center space-x-2 self-end sm:self-center">
-                                          <span className="text-xs text-gray-500">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-0 sm:space-x-2">
+                                          <span className="text-xs text-gray-500 text-center sm:text-right">
                                             {expandedRows.has(commentId) ? 'Collapse' : 'Expand'} Comment
                                           </span>
-                                          {expandedRows.has(commentId) ? (
-                                            <ChevronUp className="h-4 w-4 text-gray-500" />
-                                          ) : (
-                                            <ChevronDown className="h-4 w-4 text-gray-500" />
-                                          )}
+                                          <div className="flex justify-center sm:justify-end">
+                                            {expandedRows.has(commentId) ? (
+                                              <ChevronUp className="h-4 w-4 text-gray-500" />
+                                            ) : (
+                                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
                                   </CollapsibleTrigger>

@@ -486,23 +486,24 @@ const BasicFilter = React.forwardRef<
           
           {/* Date Pickers - only show when not using "All Dates" */}
           {!useAllDates && (
-            <div className="mt-3 flex flex-col sm:flex-row gap-2">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full sm:w-auto justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal",
                       !startDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PPP") : "Start Date"}
+                    <span className="hidden sm:inline">{startDate ? format(startDate, "PPP") : "Start Date"}</span>
+                    <span className="sm:hidden">{startDate ? format(startDate, "MMM dd, yyyy") : "Start Date"}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={5}>
                   <div className="p-3 border-b">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 mb-2">
                       <Select 
                         value={(startDate || new Date()).getMonth().toString()} 
                         onValueChange={(value) => {
