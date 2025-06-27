@@ -73,19 +73,40 @@ const MetricFilter = () => {
       const response = await apiService.getMetricRating(searchData);
       console.log('Metric filter response:', response);
       
-      // Use the new backend structure with filteredResults
-      const transformedResults = (response.results || [])
-        .filter(result => !result.error && result.filteredCount > 0)
-        .map(result => ({
-          ship: result.ship,
-          sailingNumber: result.sailingNumber,
-          metric: result.metric,
-          averageRating: result.averageRating || 0,
-          comparisonToOverall: result.comparisonToOverall || 0,
-          ratingCount: result.ratingCount || 0,
-          filteredCount: result.filteredCount || 0,
-          filteredResults: result.filteredResults || []
-        }));
+      // Handle the backend response structure - it returns sailing data with metric values
+      const sailingData = (response as any).data || response.results || [];
+      const transformedResults = sailingData
+        .filter((sailing: any) => sailing.Ship && sailing['Sailing Number'])
+        .map((sailing: any) => {
+          // Get the selected metric value
+          const metricValue = sailing[selectedMetric];
+          const isValidMetric = metricValue !== null && metricValue !== undefined && !isNaN(metricValue);
+          
+          // Check if the metric value falls within the rating range (for filtering comments)
+          // We'll show all sailings but only show filtered results if in range
+          const isInRange = isValidMetric && metricValue >= ratingRange[0] && metricValue <= ratingRange[1];
+          
+          return {
+            ship: sailing.Ship,
+            sailingNumber: sailing['Sailing Number'],
+            fleet: sailing.Fleet,
+            metric: selectedMetric,
+            averageRating: isValidMetric ? Number(metricValue) : null,
+            comparisonToOverall: 0, // Not available in this response
+            ratingCount: 1, // Assuming 1 rating per sailing for now
+            filteredCount: isInRange ? 1 : 0,
+            filteredResults: [{
+              rating: metricValue,
+              comment: isValidMetric ? 
+                `${selectedMetric} rating for this sailing is ${metricValue}. ${isInRange ? 'This falls within your selected range.' : 'This is outside your selected range.'}` :
+                `No ${selectedMetric} data available for this sailing.`,
+              reason: `${formatShipName(sailing.Ship)} - ${sailing['Sailing Number']}`
+            }],
+            // Store all metric data for potential future use
+            allMetrics: sailing
+          };
+        })
+        .filter(result => result.averageRating !== null); // Only include sailings with valid metric data
       
       setResults(transformedResults);
       
@@ -159,7 +180,10 @@ const MetricFilter = () => {
     URL.revokeObjectURL(url);
   };
 
-  const getRatingColor = (rating: number) => {
+  const getRatingColor = (rating: number | null | undefined) => {
+    if (rating === null || rating === undefined || isNaN(rating)) {
+      return 'bg-gray-100 text-gray-500';
+    }
     if (rating >= 8) return 'bg-green-100 text-green-800';
     if (rating >= 6) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
@@ -348,9 +372,9 @@ const MetricFilter = () => {
                   <table className="w-full border-collapse border border-gray-200 rounded-lg min-w-[600px]">
                   <thead>                    <tr className="bg-gray-50">                      {renderSortableHeader('ship', 'Ship')}
                       {renderSortableHeader('sailingNumber', 'Sailing Number')}
-                      {renderSortableHeader('averageRating', 'Average Rating', 'center')}
-                      {renderSortableHeader('ratingCount', 'Total Ratings', 'center')}
-                      {renderSortableHeader('filteredCount', 'Comments Below Threshold', 'center')}
+                      {renderSortableHeader('averageRating', 'Metric Rating', 'center')}
+                      {renderSortableHeader('ratingCount', 'Data Points', 'center')}
+                      {renderSortableHeader('filteredCount', 'Within Range', 'center')}
                     </tr>
                   </thead>
                   <tbody>
@@ -359,14 +383,25 @@ const MetricFilter = () => {
                         <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm">{formatShipName(result.ship)}</td>
                         <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{result.sailingNumber || 'N/A'}</td>
                         <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-center">
-                          <Badge className={`${getRatingColor(result.averageRating)} text-xs`} variant="secondary">
-                            {result.averageRating?.toFixed(2) || 'N/A'}
-                          </Badge>
+                          {result.averageRating !== null && result.averageRating !== undefined ? (
+                            <Badge className={`${getRatingColor(result.averageRating)} text-xs`} variant="secondary">
+                              {result.averageRating.toFixed(2)}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-gray-100 text-gray-500 text-xs" variant="secondary">
+                              No Data
+                            </Badge>
+                          )}
                         </td>
-                        <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm">{result.ratingCount || 'N/A'}</td>
+                        <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm">
+                          1
+                        </td>
                         <td className="border border-gray-200 px-2 sm:px-4 py-2 sm:py-3 text-center">
-                          <Badge variant="outline" className="text-xs">
-                            {result.filteredResults?.length || 0}
+                          <Badge 
+                            variant={result.filteredCount > 0 ? "default" : "outline"} 
+                            className={`text-xs ${result.filteredCount > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                          >
+                            {result.filteredCount > 0 ? '✓ Yes' : '✗ No'}
                           </Badge>
                         </td>
                       </tr>
@@ -381,13 +416,13 @@ const MetricFilter = () => {
           <Card>
             <CardHeader>
               <div className="space-y-4">
-                <CardTitle className="flex items-center">                  💬 Individual Guest Comments
+                <CardTitle className="flex items-center">                  💬 Individual Sailing Details
                   <Badge variant="outline" className="ml-2 text-xs">
-                    {results.reduce((total, result) => total + (result.filteredResults?.length || 0), 0)} total comments
+                    {results.length} sailings analyzed
                   </Badge>
                 </CardTitle>                {/* Comment Rating Sort Control */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm font-medium text-gray-700">Sort comments by rating:</span>
+                  <span className="text-sm font-medium text-gray-700">Sort sailings by metric rating:</span>
                   <div className="flex flex-wrap gap-2 sm:gap-2">
                     <Button
                       variant={commentSortConfig?.key === 'rating' && commentSortConfig?.direction === 'desc' ? 'default' : 'outline'}
@@ -436,10 +471,16 @@ const MetricFilter = () => {
                           </h3>
                           <div className="flex flex-wrap gap-2">
                             <Badge className={getRatingColor(result.averageRating)} variant="secondary">
-                              Avg: {result.averageRating?.toFixed(2) || 'N/A'}
+                              {result.averageRating !== null && result.averageRating !== undefined ? 
+                                `Avg: ${result.averageRating.toFixed(2)}` : 
+                                'Avg: No Data'
+                              }
                             </Badge>
                             <Badge variant="outline" className="text-xs sm:text-sm">
-                              {result.filteredResults?.length || 0} comments below threshold
+                              {result.filteredCount > 0 ? 
+                                `${result.filteredCount} within range (${ratingRange[0]}-${ratingRange[1]})` : 
+                                `Outside range (${ratingRange[0]}-${ratingRange[1]})`
+                              }
                             </Badge>
                           </div>
                         </div>
@@ -550,7 +591,7 @@ const MetricFilter = () => {
                     ) : (
                       <div className="text-center py-8 bg-gray-50 rounded-lg">
                         <p className="text-gray-500 italic">
-                          📝 No guest comments available for this sailing below the threshold
+                          � Metric data available for this sailing
                         </p>
                       </div>
                     )}
