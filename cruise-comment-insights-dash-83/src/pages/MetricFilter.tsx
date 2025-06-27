@@ -75,12 +75,42 @@ const MetricFilter = () => {
       
       // Handle the backend response structure - it returns sailing data with metric values
       const sailingData = (response as any).data || response.results || [];
+      
+      // Debug: Log available metrics in the first sailing
+      if (sailingData.length > 0) {
+        const availableMetrics = Object.keys(sailingData[0]).filter(key => 
+          !['Fleet', 'Ship', 'Sailing Number', 'sentiment_score'].includes(key) && 
+          sailingData[0][key] !== null && 
+          sailingData[0][key] !== undefined
+        );
+        console.log('Available metrics in response:', availableMetrics);
+        console.log('Selected metric:', selectedMetric);
+        console.log('Metric value in first sailing:', sailingData[0][selectedMetric]);
+        
+        // Check if selected metric exists in the response
+        const hasSelectedMetric = availableMetrics.includes(selectedMetric);
+        if (!hasSelectedMetric) {
+          console.warn(`Selected metric "${selectedMetric}" not found in response. Available metrics:`, availableMetrics);
+          // Find similar metrics (in case of slight name differences)
+          const similarMetrics = availableMetrics.filter(metric => 
+            metric.toLowerCase().includes(selectedMetric.toLowerCase()) || 
+            selectedMetric.toLowerCase().includes(metric.toLowerCase())
+          );
+          if (similarMetrics.length > 0) {
+            console.warn('Similar metrics found:', similarMetrics);
+          }
+        }
+      }
+      
       const transformedResults = sailingData
         .filter((sailing: any) => sailing.Ship && sailing['Sailing Number'])
         .map((sailing: any) => {
           // Get the selected metric value
           const metricValue = sailing[selectedMetric];
           const isValidMetric = metricValue !== null && metricValue !== undefined && !isNaN(metricValue);
+          
+          // Debug: Log metric value for each sailing
+          console.log(`Sailing ${sailing['Sailing Number']}: ${selectedMetric} = ${metricValue} (valid: ${isValidMetric})`);
           
           // Check if the metric value falls within the rating range (for filtering comments)
           // We'll show all sailings but only show filtered results if in range
@@ -96,17 +126,27 @@ const MetricFilter = () => {
             ratingCount: 1, // Assuming 1 rating per sailing for now
             filteredCount: isInRange ? 1 : 0,
             filteredResults: [{
-              rating: metricValue,
+              rating: isValidMetric ? metricValue : null,
               comment: isValidMetric ? 
                 `${selectedMetric} rating for this sailing is ${metricValue}. ${isInRange ? 'This falls within your selected range.' : 'This is outside your selected range.'}` :
-                `No ${selectedMetric} data available for this sailing.`,
+                `No ${selectedMetric} data available for this sailing. Available metrics: ${Object.keys(sailing).filter(key => !['Fleet', 'Ship', 'Sailing Number', 'sentiment_score'].includes(key) && sailing[key] !== null).join(', ')}`,
               reason: `${formatShipName(sailing.Ship)} - ${sailing['Sailing Number']}`
             }],
             // Store all metric data for potential future use
-            allMetrics: sailing
+            allMetrics: sailing,
+            // Flag for debugging
+            hasValidMetric: isValidMetric
           };
-        })
-        .filter(result => result.averageRating !== null); // Only include sailings with valid metric data
+        });
+        // .filter(result => result.averageRating !== null); // Remove this filter to show all sailings
+      
+      console.log('Transformed results:', transformedResults.map(r => ({
+        ship: r.ship,
+        sailing: r.sailingNumber,
+        metric: r.metric,
+        rating: r.averageRating,
+        hasValidMetric: r.hasValidMetric
+      })));
       
       setResults(transformedResults);
       
@@ -335,6 +375,24 @@ const MetricFilter = () => {
           </CardContent>
         </Card>      ) : results.length > 0 ? (
         <div className="space-y-6">
+          {/* Show warning if no valid data found */}
+          {results.length > 0 && results.every(r => r.averageRating === null) && (
+            <Card>
+              <CardContent className="py-6">
+                <div className="text-center text-amber-600">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span className="text-2xl">⚠️</span>
+                    <span className="font-semibold">No Valid Data Found</span>
+                  </div>
+                  <p className="text-sm">
+                    The selected metric "{selectedMetric}" was not found in the response data. 
+                    Please check the console for available metrics or try selecting a different metric.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           {/* View Toggle Buttons */}
           <Card>
             <CardContent className="py-4">
