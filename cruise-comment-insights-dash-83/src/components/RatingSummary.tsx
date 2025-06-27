@@ -72,7 +72,7 @@ const RatingSummary = () => {
   const ratingGroups = {
     'overall': {
       title: 'Overall & Pre/Post',
-      metrics: ['Overall Holiday', 'Embarkation/Disembarkation', 'Value for Money', 'Pre-Cruise Hotel Accomodation', 'Sentiment Score']
+      metrics: ['Overall Holiday', 'Embarkation/Disembarkation', 'Value for Money', 'Pre-Cruise Hotel Accommodation', 'sentiment_score']
     },
     'accommodation': {
       title: 'Onboard Accommodation', 
@@ -80,7 +80,7 @@ const RatingSummary = () => {
     },
     'food': {
       title: 'Food & Beverage',
-      metrics: ['F&B Quality', 'F&B Service', 'Bar Service', 'Drinks Offerings and Menu']
+      metrics: ['F&B Quality', 'F&B Staff Service', 'Bar Staff Service', 'Drinks Offering and Menu']
     },
     'activities': {
       title: 'Activities & Services',
@@ -88,7 +88,7 @@ const RatingSummary = () => {
     },
     'other': {
       title: 'Other Services',
-      metrics: ['Prior Customer Service', 'Flight', 'App Booking']
+      metrics: ['Pre-Cruise Customer Service', 'Flight', 'App Booking']
     }
   };  // Helper function to extract and parse start date from sailing number
   const extractStartDate = (sailingNumber: string): Date | null => {
@@ -360,6 +360,32 @@ const RatingSummary = () => {
     return shipColors;
   };
 
+  // Helper function to get user-friendly display names for metrics
+  const getMetricDisplayName = (apiFieldName: string): string => {
+    const displayNameMap: { [key: string]: string } = {
+      'Overall Holiday': 'Overall Holiday',
+      'Embarkation/Disembarkation': 'Embarkation/Disembarkation',
+      'Value for Money': 'Value for Money',
+      'Pre-Cruise Hotel Accommodation': 'Pre-Cruise Hotel Accommodation',
+      'sentiment_score': 'Sentiment Score',
+      'Cabins': 'Cabins',
+      'Cabin Cleanliness': 'Cabin Cleanliness',
+      'Crew Friendliness': 'Crew Friendliness',
+      'Ship Condition/Cleanliness (Public Areas)': 'Ship Condition/Cleanliness (Public Areas)',
+      'F&B Quality': 'F&B Quality',
+      'F&B Staff Service': 'F&B Service',
+      'Bar Staff Service': 'Bar Service',
+      'Drinks Offering and Menu': 'Drinks Offerings and Menu',
+      'Entertainment': 'Entertainment',
+      'Excursions': 'Excursions',
+      'Pre-Cruise Customer Service': 'Prior Customer Service',
+      'Flight': 'Flight',
+      'App Booking': 'App Booking'
+    };
+    
+    return displayNameMap[apiFieldName] || apiFieldName;
+  };
+
   const renderMetricChart = (metric: string, groupKey: string) => {
     const chartData = generateChartData(groupKey);
     const shipColors = getShipColors();
@@ -401,7 +427,7 @@ const RatingSummary = () => {
               label={{ value: 'Rating', angle: -90, position: 'insideLeft' }}
             />
             <Tooltip 
-              formatter={(value: any) => [value?.toFixed(1), metric]}
+              formatter={(value: any) => [value?.toFixed(1), getMetricDisplayName(metric)]}
               labelFormatter={(label) => {
                 const item = filteredData.find(d => d.sailingNumber === label);
                 return item ? `${item.ship} - ${label}` : label;
@@ -433,31 +459,31 @@ const RatingSummary = () => {
     return (
       <div className="space-y-8">
         {/* Ship Color Legend */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Ship Colors:</h4>
-          <div className="flex flex-wrap gap-3">
+        <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+          <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">Ship Colors:</h4>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {uniqueShips.map(ship => (
-              <div key={ship} className="flex items-center gap-2">
+              <div key={ship} className="flex items-center gap-1 sm:gap-2">
                 <div 
-                  className="w-4 h-4 rounded" 
+                  className="w-3 h-3 sm:w-4 sm:h-4 rounded flex-shrink-0" 
                   style={{ backgroundColor: shipColors[ship] }}
                 ></div>
-                <span className="text-sm text-gray-700">{ship}</span>
+                <span className="text-xs sm:text-sm text-gray-700 break-words">{ship}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Individual Metric Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {group.metrics.map((metric) => (
             <Card key={metric} className="apollo-shadow bg-white/90 backdrop-blur-sm border-white/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  {metric}
+              <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+                  {getMetricDisplayName(metric)}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-3 sm:px-6">
                 {renderMetricChart(metric, groupKey)}
               </CardContent>
             </Card>          ))}
@@ -471,34 +497,34 @@ const RatingSummary = () => {
     
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
           <h3 className="text-lg font-semibold text-gray-900">{group.title}</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-2">
             {/* View Toggle */}
-            <div className="flex items-center rounded-lg border border-gray-200 p-1">
+            <div className="flex items-center rounded-lg border border-gray-200 p-1 w-full sm:w-auto">
               <Button
                 variant={viewMode === 'table' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('table')}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 flex-1 sm:flex-none justify-center"
               >
                 <Table className="h-4 w-4" />
-                Table
+                <span className="text-xs sm:text-sm">Table</span>
               </Button>
               <Button
                 variant={viewMode === 'chart' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('chart')}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 flex-1 sm:flex-none justify-center"
               >
                 <ChartBar className="h-4 w-4" />
-                Chart
+                <span className="text-xs sm:text-sm">Chart</span>
               </Button>
             </div>
             
-            <Button onClick={exportToExcel} variant="outline" size="sm">
+            <Button onClick={exportToExcel} variant="outline" size="sm" className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
-              Export Excel
+              <span className="text-xs sm:text-sm">Export Excel</span>
             </Button>
           </div>
         </div>
@@ -521,53 +547,60 @@ const RatingSummary = () => {
         ) : (          <div>            {viewMode === 'chart' ? (
               renderChartsForGroup(groupKey)
             ) : (              <div className="space-y-4">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full bg-white border border-gray-200 rounded-lg">                    <thead className="bg-gray-50">
-                      <tr>
-                        {renderSortableHeader('ship_name', 'Ship')}
-                        {renderSortableHeader('sailing_number', 'Sailing')}
-                        {renderSortableHeader('fleet_name', 'Fleet')}
-                        {renderSortableHeader('start_date', 'Start Date')}
-                        {group.metrics.map((metric) => (
-                          <th key={metric} className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => handleSort(metric)}>
-                            <div className="flex items-center space-x-1">
-                              <span>{metric}</span>
-                              <div className="flex flex-col">
-                                {(!sortConfig || sortConfig.key !== metric) && <ArrowUpDown className="h-3 w-3 text-gray-400" />}
-                                {sortConfig?.key === metric && sortConfig.direction === 'asc' && <ChevronUp className="h-3 w-3 text-blue-600" />}
-                                {sortConfig?.key === metric && sortConfig.direction === 'desc' && <ChevronDown className="h-3 w-3 text-blue-600" />}
-                              </div>
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead><tbody className="divide-y divide-gray-200">                      {getSortedData().map((rating, index) => (
-                        <tr key={index} className="hover:bg-gray-50">                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                            {formatShipName(rating['Ship'])}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {rating['Sailing Number'] || 'N/A'}
-                          </td>                          <td className="px-4 py-3 text-sm text-gray-600 capitalize">
-                            {rating['Fleet'] || 'N/A'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {formatStartDate(rating['Sailing Number'])}
-                          </td>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <div className="min-w-full inline-block align-middle">
+                    <table className="w-full bg-white border border-gray-200 rounded-lg min-w-[800px]">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          {renderSortableHeader('ship_name', 'Ship')}
+                          {renderSortableHeader('sailing_number', 'Sailing')}
+                          {renderSortableHeader('fleet_name', 'Fleet')}
+                          {renderSortableHeader('start_date', 'Start Date')}
                           {group.metrics.map((metric) => (
-                            <td key={metric} className="px-4 py-3 text-sm">
-                              <Badge 
-                                className={getRatingColor(rating[metric])}
-                                variant="secondary"
-                              >
-                                {rating[metric]?.toFixed(1) || 'N/A'}
-                              </Badge>
-                            </td>
+                            <th key={metric} className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-900 border-b cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort(metric)}>
+                              <div className="flex items-center space-x-1">
+                                <span className="truncate">{getMetricDisplayName(metric)}</span>
+                                <div className="flex flex-col flex-shrink-0">
+                                  {(!sortConfig || sortConfig.key !== metric) && <ArrowUpDown className="h-3 w-3 text-gray-400" />}
+                                  {sortConfig?.key === metric && sortConfig.direction === 'asc' && <ChevronUp className="h-3 w-3 text-blue-600" />}
+                                  {sortConfig?.key === metric && sortConfig.direction === 'desc' && <ChevronDown className="h-3 w-3 text-blue-600" />}
+                                </div>
+                              </div>
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {getSortedData().map((rating, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
+                              {formatShipName(rating['Ship'])}
+                            </td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
+                              {rating['Sailing Number'] || 'N/A'}
+                            </td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 capitalize">
+                              {rating['Fleet'] || 'N/A'}
+                            </td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
+                              {formatStartDate(rating['Sailing Number'])}
+                            </td>
+                            {group.metrics.map((metric) => (
+                              <td key={metric} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">
+                                <Badge 
+                                  className={`${getRatingColor(rating[metric])} text-xs`}
+                                  variant="secondary"
+                                >
+                                  {rating[metric]?.toFixed(1) || 'N/A'}
+                                </Badge>
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -606,12 +639,12 @@ const RatingSummary = () => {
     
     return (
       <th 
-        className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b cursor-pointer hover:bg-gray-100 transition-colors"
+        className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-900 border-b cursor-pointer hover:bg-gray-100 transition-colors"
         onClick={() => handleSort(columnKey)}
       >
         <div className="flex items-center space-x-1">
-          <span>{label}</span>
-          <div className="flex flex-col">
+          <span className="truncate">{label}</span>
+          <div className="flex flex-col flex-shrink-0">
             {!isActive && <ArrowUpDown className="h-3 w-3 text-gray-400" />}
             {isActive && direction === 'asc' && <ChevronUp className="h-3 w-3 text-blue-600" />}
             {isActive && direction === 'desc' && <ChevronDown className="h-3 w-3 text-blue-600" />}
@@ -622,33 +655,48 @@ const RatingSummary = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 px-4 sm:px-0">
       {/* Filters Section */}
       <BasicFilter 
         onFilterChange={handleFilterChange}
         showTitle={true}
         compact={false}
-        className="mb-8"
+        className="mb-6 sm:mb-8"
       />
       
       {/* Data Section */}
       <Card className="apollo-shadow bg-white/95 backdrop-blur-sm border-white/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-2xl">
-            <div className="apollo-gradient-primary p-2 rounded-lg">
-              <BarChart3 className="h-7 w-7 text-white" />
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl">
+            <div className="apollo-gradient-primary p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+              <BarChart3 className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
             </div>
-            Rating Summary
+            <span className="truncate">Rating Summary</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>          
-          <Tabs value={activeGroup} onValueChange={setActiveGroup} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overall">Overall & Pre/Post</TabsTrigger>
-              <TabsTrigger value="accommodation">Accommodation</TabsTrigger>
-              <TabsTrigger value="food">Food & Beverage</TabsTrigger>
-              <TabsTrigger value="activities">Activities</TabsTrigger>
-              <TabsTrigger value="other">Other</TabsTrigger>
+        <CardContent className="px-4 sm:px-6">          
+          <Tabs value={activeGroup} onValueChange={setActiveGroup} className="space-y-4 sm:space-y-6">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-2">
+              <TabsTrigger value="overall" className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap">
+                <span className="hidden sm:inline">Overall & Pre/Post</span>
+                <span className="sm:hidden">Overall</span>
+              </TabsTrigger>
+              <TabsTrigger value="accommodation" className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap">
+                <span className="hidden sm:inline">Accommodation</span>
+                <span className="sm:hidden">Rooms</span>
+              </TabsTrigger>
+              <TabsTrigger value="food" className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap">
+                <span className="hidden sm:inline">Food & Beverage</span>
+                <span className="sm:hidden">Food</span>
+              </TabsTrigger>
+              <TabsTrigger value="activities" className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap">
+                <span className="hidden sm:inline">Activities</span>
+                <span className="sm:hidden">Events</span>
+              </TabsTrigger>
+              <TabsTrigger value="other" className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap">
+                <span className="hidden sm:inline">Other</span>
+                <span className="sm:hidden">Other</span>
+              </TabsTrigger>
             </TabsList>
 
             {Object.keys(ratingGroups).map((groupKey) => (
